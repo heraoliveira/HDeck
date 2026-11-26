@@ -38,6 +38,8 @@ export class VigiaSaude {
   private ws = new Map<string, InfoWs>()
   private principal: string | null = null
   private principalFixada = false
+  /** Conexões que já existiam quando a principal caiu: não podem virar a nova principal (chat etc.). */
+  private secundarias = new Set<string>()
   private jaTeveWs = false
   private carregadaEm = 0
   private ultimoDado: number | null = null
@@ -58,6 +60,7 @@ export class VigiaSaude {
     private readonly rede: Rede,
     private readonly d: DecisoesSaude,
   ) {
+    this.carregadaEm = relogio.agora()
     this.timerSemDados = relogio.aCada(15_000, () => this.conferirSemDados())
   }
 
@@ -84,14 +87,19 @@ export class VigiaSaude {
 
   // ---- eventos da página ----
 
+  /** Nova navegação: as conexões da página anterior não existem mais. */
+  comecouCarregar(): void {
+    this.ws.clear()
+    this.secundarias.clear()
+    this.principal = null
+    this.principalFixada = false
+    this.carregadaEm = this.relogio.agora()
+  }
+
   carregou(): void {
     this.cancelar('esperaRecarga')
     this.cancelar('esperaQueda')
     this.travada = false
-    this.ws.clear()
-    this.principal = null
-    this.principalFixada = false
-    this.carregadaEm = this.relogio.agora()
     this.ultimoDado = this.relogio.agora()
     this.aguardandoInternet = false
     this.d.estado({ tipo: 'carregou' })
@@ -145,24 +153,41 @@ export class VigiaSaude {
   }
 
   dado(wsId: string | null): void {
-    this.ultimoDado = this.relogio.agora()
-    if (this.semDadosAvisado) {
+    // RN-064: com a conexão principal conhecida, só os dados dela contam (o chat não engana).
+    if (this.principal === null || wsId === this.principal || (wsId === null && !this.jaTeveWs))
+      this.ultimoDado = this.relogio.agora()
+    if (this.semDadosAvisado && this.ultimoDado === this.relogio.agora()) {
       this.semDadosAvisado = false
       this.d.resolverAviso('sem_dados')
     }
     if (wsId === null) return
-    const info = this.ws.get(wsId)
-    if (!info) return
+    let info = this.ws.get(wsId)
+    if (!info) {
+      // O vigia pode ter ligado depois de a conexão abrir: ela passa a ser conhecida pelo primeiro quadro.
+      info = { url: '', quadros: 0, abertoEm: this.relogio.agora() }
+      this.ws.set(wsId, info)
+    }
     info.quadros++
     // RN-062: sem declaração no catálogo, a principal é a que mais recebeu no primeiro minuto.
-    if (!this.principalFixada) {
-      if (this.relogio.agora() - this.carregadaEm <= PADROES.janelaWsPrincipalSeg * 1000) {
+    if (this.secundarias.has(wsId)) return
+    if (!this.principalFixada || this.principal === null) {
+      if (this.principal === null || this.relogio.agora() - this.carregadaEm <= PADROES.janelaWsPrincipalSeg * 1000) {
         const atual = this.principal ? this.ws.get(this.principal) : undefined
         if (!atual || info.quadros > atual.quadros) this.principal = wsId
         this.jaTeveWs = true
       } else {
         this.principalFixada = true
       }
+    }
+    // A conexão principal voltou depois de recarregar (mesmo que o vigia só a conheça pelos quadros).
+    if (wsId === this.principal && this.esperaWsAposCarga) {
+      this.cancelar('esperaWsAposCarga')
+      this.sucesso()
+    }
+    if (wsId === this.principal && this.esperaQueda) {
+      this.cancelar('esperaQueda')
+      this.d.registrar('voltou', 'a conexão voltou sozinha')
+      this.d.estado({ tipo: 'carregou' })
     }
   }
 
@@ -171,6 +196,7 @@ export class VigiaSaude {
     this.ws.delete(id)
     if (!eraPrincipal) return // RN-062: chat, anúncios etc. não derrubam a conta.
     this.principal = null
+    this.secundarias = new Set(this.ws.keys())
     this.queda('a conexão principal fechou')
   }
 

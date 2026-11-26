@@ -41,10 +41,12 @@ export async function abrirApp(
     servidor,
     pasta,
     async fechar(apagar = true) {
-      await app.evaluate(({ app }) => {
-        ;(globalThis as { hdeckTeste?: { motor: { encerrar(): void } } }).hdeckTeste?.motor.encerrar()
-        app.exit(0)
-      }).catch(() => {})
+      await app
+        .evaluate(async ({ app }) => {
+          await (globalThis as { hdeckTeste?: { encerrar(): Promise<void> } }).hdeckTeste?.encerrar()
+          setTimeout(() => app.exit(0), 200)
+        })
+        .catch(() => {})
       await app.close().catch(() => {})
       if (!opcoes.servidor) await servidor.fechar()
       if (apagar) rmSync(pasta, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 })
@@ -97,7 +99,7 @@ export async function garantirJogoFalso(a: App): Promise<void> {
       limiteContas: null,
       bonusLive: true,
       plataformasLive: ['twitch'],
-      wsPrincipal: '/ws',
+      wsPrincipal: null,
       seletoresLogin: { usuario: '#usuario-campo', senha: '#senha-campo' },
       seletorPedeLogin: null,
       canvas: false,
@@ -124,8 +126,12 @@ export async function naConta<T>(a: App, id: string, codigo: string): Promise<T>
   return a.app.evaluate(
     async (_e, { id, codigo }) => {
       const h = (globalThis as unknown as { hdeckTeste: { fabrica: { view(id: string): { webContents: { executeJavaScript(c: string): Promise<unknown> } } | undefined } } }).hdeckTeste
-      return h.fabrica.view(id)?.webContents.executeJavaScript(codigo)
+      try {
+        return await h.fabrica.view(id)?.webContents.executeJavaScript(codigo)
+      } catch {
+        return undefined
+      }
     },
     { id, codigo },
-  ) as Promise<T>
+  ).catch(() => undefined) as Promise<T>
 }

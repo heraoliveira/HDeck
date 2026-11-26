@@ -712,6 +712,7 @@ export class Motor {
       },
     )
     const pagina = this.d.paginas.criar(c, {
+      comecouCarregar: () => saude.comecouCarregar(),
       carregou: () => {
         if (rtRef) rtRef.google = false
         saude.carregou()

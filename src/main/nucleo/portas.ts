@@ -33,6 +33,8 @@ export type Exibicao =
   | { modo: 'fora' }
 
 export type EventosPagina = {
+  /** A página começou a carregar (as conexões antigas morreram). */
+  comecouCarregar(): void
   carregou(urlAtual: string): void
   falhouCarregar(codigo: number, descricao: string): void
   statusPrincipal(status: number): void

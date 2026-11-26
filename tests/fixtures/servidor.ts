@@ -138,6 +138,10 @@ export async function iniciarServidorFalso(porta = 0): Promise<ServidorFalso> {
       live(canal)
       return responder(res, 200, 'text/html; charset=utf-8', paginaLive.replaceAll('{{CANAL}}', canal))
     }
+    if (u.pathname === '/anuncio/ads.js') {
+      // RN-005: o HDeck não bloqueia anúncios; a página consegue carregar isto.
+      return responder(res, 200, 'text/javascript', 'window.__anuncio = true')
+    }
     if (u.pathname === '/ping') {
       estado.pings++
       return responder(res, 200, 'text/plain', 'ok')

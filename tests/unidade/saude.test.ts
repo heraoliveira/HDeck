@@ -138,6 +138,23 @@ describe('vigia de saúde', () => {
     expect(m.recargas).toHaveLength(1)
   })
 
+  it('RN-062 RN-064 conexão aberta antes do vigia vale pelo primeiro quadro; o chat não conta como dado', () => {
+    const m = montar({ avisarSemDadosMin: 1 })
+    m.v.comecouCarregar()
+    m.v.carregou()
+    for (let i = 0; i < 5; i++) m.v.dado('principal-desconhecida')
+    m.v.wsAbriu('chat', 'wss://x/chat')
+    m.v.dado('chat')
+    expect(m.v.wsPrincipal()).toBe('principal-desconhecida')
+    for (let i = 0; i < 8; i++) {
+      m.r.avancar(10_000)
+      m.v.dado('chat')
+    }
+    expect(m.log.some((l) => l.startsWith('aviso:sem_dados'))).toBe(true)
+    m.v.dado('principal-desconhecida')
+    expect(m.log).toContain('resolvido:sem_dados')
+  })
+
   it('RN-062 depois do primeiro minuto a escolha fica fixa', () => {
     const m = montar()
     m.v.carregou()

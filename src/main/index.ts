@@ -45,6 +45,7 @@ import { criarLog } from './adaptadores/node/log.ts'
 import { type Contexto, type Manipuladores, registrarIpc } from './ipc/roteador.ts'
 import { sugerirJogo } from './nucleo/contas/contas.ts'
 import { Motor } from './nucleo/motor.ts'
+import { aoFecharJanela, iniciarEscondido, opcoesDeInicio, precisaConfirmarSaida } from './nucleo/geral/geral.ts'
 import { podeReabrir } from './nucleo/painel/painel.ts'
 import type { Relogio } from './nucleo/portas.ts'
 import { userAgentLimpo } from './nucleo/seguranca/politicas.ts'
@@ -77,14 +78,17 @@ if (!app.requestSingleInstanceLock()) {
   void iniciar()
 }
 
+/** Relógio real. No modo de teste, HDECK_TESTE_ACELERAR=N faz o tempo do núcleo andar N vezes mais rápido. */
+const acelerar = modoTeste ? Math.max(1, Number(process.env.HDECK_TESTE_ACELERAR ?? 1)) : 1
+const inicioRelogio = Date.now()
 const relogioReal: Relogio = {
-  agora: () => Date.now(),
+  agora: () => (acelerar === 1 ? Date.now() : inicioRelogio + (Date.now() - inicioRelogio) * acelerar),
   depois: (ms, fn) => {
-    const h = setTimeout(fn, ms)
+    const h = setTimeout(fn, ms / acelerar)
     return () => clearTimeout(h)
   },
   aCada: (ms, fn) => {
-    const h = setInterval(fn, ms)
+    const h = setInterval(fn, Math.max(5, ms / acelerar))
     return () => clearInterval(h)
   },
 }
@@ -153,14 +157,14 @@ async function iniciar(): Promise<void> {
       if (saindo) return
       e.preventDefault()
       // RN-171: fechar no X manda para a bandeja.
-      if (motor?.obterConfig().geral.fecharVaiParaBandeja) janelas.principal?.hide()
+      if (motor && aoFecharJanela(motor.obterConfig(), saindo) === 'bandeja') janelas.principal?.hide()
       else void sair()
     },
     aoFecharJanelaGrupo: (grupoId) => {
       contasPorJanelaGrupo.delete(grupoId)
       motor?.definirEspacos(`grupo:${grupoId}`, [])
     },
-    iniciarEscondida: process.argv.includes('--bandeja') && arquivoConfig.ler().geral.abrirNaBandeja,
+    iniciarEscondida: iniciarEscondido(arquivoConfig.ler(), process.argv),
   })
 
   instalarEndurecimento({
@@ -249,7 +253,7 @@ async function iniciar(): Promise<void> {
       if (c.geral.atalhos !== configAnterior.geral.atalhos) mapa = mapaDeAtalhos(c.geral.atalhos)
       if (c.geral.tema !== configAnterior.geral.tema) nativeTheme.themeSource = c.geral.tema === 'sistema' ? 'system' : c.geral.tema === 'claro' ? 'light' : 'dark'
       if (c.geral.iniciarComWindows !== configAnterior.geral.iniciarComWindows && app.isPackaged && !modoTeste)
-        app.setLoginItemSettings({ openAtLogin: c.geral.iniciarComWindows, args: ['--bandeja'] }) // RN-170
+        app.setLoginItemSettings(opcoesDeInicio(c)) // RN-170
       if (c.atualizacao.canal !== configAnterior.atualizacao.canal) atualizador.definirCanal(c.atualizacao.canal)
       configAnterior = c
     }
@@ -270,7 +274,7 @@ async function iniciar(): Promise<void> {
   // RN-171: sair de verdade, com confirmação se houver contas ligadas.
   async function sair(): Promise<void> {
     if (saindo) return
-    if (m.obterConfig().geral.confirmarAoSair && m.contasLigadas() > 0) {
+    if (precisaConfirmarSaida(m.obterConfig(), m.contasLigadas())) {
       const r = await perguntador.perguntar({
         mensagem: t('dialogo.sairTitulo'),
         detalhe: t('dialogo.sairTexto', { n: m.contasLigadas() }),
@@ -280,6 +284,7 @@ async function iniciar(): Promise<void> {
       if (r !== 0) return
     }
     saindo = true
+    await fabrica.gravarSessoes()
     m.encerrar()
     bandeja.destruir()
     armazem.fechar()
@@ -736,13 +741,29 @@ async function iniciar(): Promise<void> {
     if (!saindo) setTimeout(() => !principal.isDestroyed() && principal.webContents.reload(), 500)
   })
   bandeja.criar()
+  setInterval(() => void fabrica.gravarSessoes(), 60_000)
   ouvirEnergia(() => m.aoAcordar())
   m.iniciar({ reaberto })
   if (app.isPackaged && !modoTeste) setTimeout(() => void atualizador.procurar(), 30_000)
 
   if (modoTeste) {
     Object.assign(globalThis, {
-      hdeckTeste: { motor: m, fabrica, janelas, perguntador, cofre, armazem, sistema, executarComando, proximoArquivo: undefined },
+      hdeckTeste: {
+        motor: m,
+        fabrica,
+        janelas,
+        perguntador,
+        cofre,
+        armazem,
+        sistema,
+        executarComando,
+        proximoArquivo: undefined,
+        async encerrar() {
+          saindo = true
+          await fabrica.gravarSessoes()
+          m.encerrar()
+        },
+      },
     })
   }
   log.info('HDeck aberto', { versao: app.getVersion(), reaberto })
