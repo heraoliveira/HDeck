@@ -1,103 +1,111 @@
 <script lang="ts">
-  import { CORES_CONTA } from '@shared/dados/padroes-config.ts'
-  import { t } from '@shared/i18n/index.ts'
-  import type { Conta } from '@shared/tipos/dominio.ts'
-  import Modal from '../componentes/Modal.svelte'
-  import { chamar } from '../estado/api.ts'
-  import { loja, mensagem } from '../estado/loja.svelte.ts'
+import { CORES_CONTA } from '@shared/dados/padroes-config.ts'
+import { t } from '@shared/i18n/index.ts'
+import type { Conta } from '@shared/tipos/dominio.ts'
+import { untrack } from 'svelte'
+import Modal from '../componentes/Modal.svelte'
+import { chamar } from '../estado/api.ts'
+import { loja, mensagem } from '../estado/loja.svelte.ts'
 
-  let { aoFechar, grupoId, editar }: { aoFechar: () => void; grupoId?: string | undefined; editar?: Conta | undefined } = $props()
-  const s = $derived(loja.snap!)
+let {
+  aoFechar,
+  grupoId,
+  editar,
+}: { aoFechar: () => void; grupoId?: string | undefined; editar?: Conta | undefined } = $props()
+const s = $derived(loja.snap!)
+// Valores iniciais do formulário (o diálogo não acompanha mudanças de fora).
+const ini = untrack(() => ({ editar, grupoId }))
 
-  let url = $state(editar?.url ?? '')
-  let jogoId = $state(editar?.jogoId ?? '')
-  let nome = $state(editar?.nome ?? '')
-  let grupo = $state(editar?.grupoId ?? grupoId ?? loja.snap?.grupoAtualId ?? '')
-  let cor = $state(editar?.cor ?? CORES_CONTA[(loja.snap?.contas.length ?? 0) % CORES_CONTA.length])
-  let icone = $state(editar?.icone ?? '')
-  let notas = $state(editar?.notas ?? '')
-  let som = $state(editar?.som ?? true)
-  let notificacoes = $state(editar?.notificacoesDaPagina ?? false)
-  let sugerido: string | null = $state(null)
-  let novoJogo = $state(false)
+let url = $state(ini.editar?.url ?? '')
+let jogoId = $state(ini.editar?.jogoId ?? '')
+let nome = $state(ini.editar?.nome ?? '')
+let grupo = $state(ini.editar?.grupoId ?? ini.grupoId ?? loja.snap?.grupoAtualId ?? '')
+let cor = $state(ini.editar?.cor ?? CORES_CONTA[(loja.snap?.contas.length ?? 0) % CORES_CONTA.length])
+let icone = $state(ini.editar?.icone ?? '')
+let notas = $state(ini.editar?.notas ?? '')
+let som = $state(ini.editar?.som ?? true)
+let notificacoes = $state(ini.editar?.notificacoesDaPagina ?? false)
+let sugerido: string | null = $state(null)
+let novoJogo = $state(false)
 
-  /** RN-013: o endereço sugere o jogo. */
-  async function aoMudarUrl() {
-    if (!/^https?:\/\//.test(url)) return
-    sugerido = await chamar<'contas.sugerirJogo', string | null>('contas.sugerirJogo', { url })
-    if (sugerido && !editar) jogoId = sugerido
-    if (!sugerido && !jogoId) novoJogo = true
+/** RN-013: o endereço sugere o jogo. */
+async function aoMudarUrl() {
+  if (!/^https?:\/\//.test(url)) return
+  sugerido = await chamar<'contas.sugerirJogo', string | null>('contas.sugerirJogo', { url })
+  if (sugerido && !editar) jogoId = sugerido
+  if (!sugerido && !jogoId) novoJogo = true
+}
+
+function escolherJogo(id: string) {
+  jogoId = id
+  const j = s.jogos.find((x) => x.id === id)
+  if (j && !url) url = j.urlInicial
+}
+
+async function salvar() {
+  let urlOk: URL
+  try {
+    urlOk = new URL(url)
+    if (!/^https?:$/.test(urlOk.protocol)) throw new Error()
+  } catch {
+    mensagem('erro', t('adicionar.urlInvalida'))
+    return
   }
-
-  function escolherJogo(id: string) {
-    jogoId = id
-    const j = s.jogos.find((x) => x.id === id)
-    if (j && !url) url = j.urlInicial
-  }
-
-  async function salvar() {
-    let urlOk: URL
-    try {
-      urlOk = new URL(url)
-      if (!/^https?:$/.test(urlOk.protocol)) throw new Error()
-    } catch {
-      mensagem('erro', t('adicionar.urlInvalida'))
-      return
-    }
-    let jid = jogoId
-    if (novoJogo || !jid) {
-      // Cria o jogo do usuário a partir do domínio.
-      jid = `jogo-${urlOk.hostname.replace(/[^a-z0-9]/gi, '-')}`
-      if (!s.jogos.some((j) => j.id === jid))
-        await chamar('jogos.salvar', {
-          id: jid,
-          nome: urlOk.hostname.replace(/^www\./, ''),
-          dominios: [urlOk.hostname.replace(/^www\./, '')],
-          urlInicial: `${urlOk.origin}/`,
-          icone: '🎮',
-          farmaEscondido: true,
-          dadosContinuos: false,
-          semDadosMinPadrao: 0,
-          limiteContas: null,
-          bonusLive: false,
-          plataformasLive: [],
-          wsPrincipal: null,
-          seletoresLogin: null,
-          seletorPedeLogin: null,
-          canvas: false,
-          origem: 'usuario',
-        })
-    }
-    if (editar) {
-      await chamar('contas.editar', {
-        id: editar.id,
-        nome: nome || editar.nome,
-        url,
-        jogoId: jid,
-        cor,
-        ...(icone ? { icone } : {}),
-        notas,
-        som,
-        notificacoesDaPagina: notificacoes,
+  let jid = jogoId
+  if (novoJogo || !jid) {
+    // Cria o jogo do usuário a partir do domínio.
+    jid = `jogo-${urlOk.hostname.replace(/[^a-z0-9]/gi, '-')}`
+    if (!s.jogos.some((j) => j.id === jid))
+      await chamar('jogos.salvar', {
+        id: jid,
+        nome: urlOk.hostname.replace(/^www\./, ''),
+        dominios: [urlOk.hostname.replace(/^www\./, '')],
+        urlInicial: `${urlOk.origin}/`,
+        icone: '🎮',
+        farmaEscondido: true,
+        dadosContinuos: false,
+        semDadosMinPadrao: 0,
+        limiteContas: null,
+        bonusLive: false,
+        plataformasLive: [],
+        wsPrincipal: null,
+        seletoresLogin: null,
+        seletorPedeLogin: null,
+        canvas: false,
+        origem: 'usuario',
       })
-      if (grupo !== editar.grupoId) await chamar('contas.mover', { id: editar.id, grupoId: grupo, posicao: 1000 })
-      aoFechar()
-      return
-    }
-    const r = await chamar<'contas.adicionar', { ok: boolean }>('contas.adicionar', {
-      grupoId: grupo,
-      jogoId: jid,
+  }
+  if (editar) {
+    await chamar('contas.editar', {
+      id: editar.id,
+      nome: nome || editar.nome,
       url,
+      jogoId: jid,
       cor,
+      ...(icone ? { icone } : {}),
       notas,
       som,
       notificacoesDaPagina: notificacoes,
-      ...(nome ? { nome } : {}),
-      ...(icone ? { icone } : {}),
     })
-    if (r.ok) aoFechar()
-    else mensagem('erro', t('adicionar.urlInvalida'))
+    if (grupo !== editar.grupoId)
+      await chamar('contas.mover', { id: editar.id, grupoId: grupo, posicao: 1000 })
+    aoFechar()
+    return
   }
+  const r = await chamar<'contas.adicionar', { ok: boolean }>('contas.adicionar', {
+    grupoId: grupo,
+    jogoId: jid,
+    url,
+    cor,
+    notas,
+    som,
+    notificacoesDaPagina: notificacoes,
+    ...(nome ? { nome } : {}),
+    ...(icone ? { icone } : {}),
+  })
+  if (r.ok) aoFechar()
+  else mensagem('erro', t('adicionar.urlInvalida'))
+}
 </script>
 
 <Modal titulo={editar ? t('conta.editar') : t('adicionar.titulo')} {aoFechar}>

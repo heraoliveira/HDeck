@@ -1,29 +1,29 @@
 <script lang="ts">
-  import { principalComMiniaturas } from '@shared/layout/layout.ts'
-  import type { Grupo } from '@shared/tipos/dominio.ts'
-  import MolduraConta from '../../componentes/MolduraConta.svelte'
-  import { chamar } from '../../estado/api.ts'
-  import { contasDoGrupo, loja } from '../../estado/loja.svelte.ts'
+import { principalComMiniaturas } from '@shared/layout/layout.ts'
+import type { Grupo } from '@shared/tipos/dominio.ts'
+import MolduraConta from '../../componentes/MolduraConta.svelte'
+import { chamar } from '../../estado/api.ts'
+import { contasDoGrupo, loja } from '../../estado/loja.svelte.ts'
 
-  let { grupo }: { grupo: Grupo } = $props()
-  let largura = $state(0)
-  let altura = $state(0)
+let { grupo }: { grupo: Grupo } = $props()
+let largura = $state(0)
+let altura = $state(0)
 
-  const contas = $derived(contasDoGrupo(grupo.id))
-  const principalId = $derived(
-    contas.find((c) => c.id === grupo.layout.espacos[0])?.id ??
-      contas.find((c) => c.id === loja.snap?.ativaId)?.id ??
-      contas[0]?.id,
-  )
-  const outras = $derived(contas.filter((c) => c.id !== principalId))
-  const r = $derived(principalComMiniaturas({ largura, altura }, outras.length, grupo.layout.faixaMiniaturas))
-  const principal = $derived(contas.find((c) => c.id === principalId))
+const contas = $derived(contasDoGrupo(grupo.id))
+const principalId = $derived(
+  contas.find((c) => c.id === grupo.layout.espacos[0])?.id ??
+    contas.find((c) => c.id === loja.snap?.ativaId)?.id ??
+    contas[0]?.id,
+)
+const outras = $derived(contas.filter((c) => c.id !== principalId))
+const r = $derived(principalComMiniaturas({ largura, altura }, outras.length, grupo.layout.faixaMiniaturas))
+const principal = $derived(contas.find((c) => c.id === principalId))
 
-  /** Clicar numa miniatura troca a principal (Seção 7.1). */
-  async function trocar(id: string) {
-    await chamar('grupos.layout', { id: grupo.id, layout: { espacos: [id] } })
-    await chamar('contas.ativar', { id })
-  }
+/** Clicar numa miniatura troca a principal (Seção 7.1). */
+async function trocar(id: string) {
+  await chamar('grupos.layout', { id: grupo.id, layout: { espacos: [id] } })
+  await chamar('contas.ativar', { id })
+}
 </script>
 
 <div class="principal" bind:clientWidth={largura} bind:clientHeight={altura}>

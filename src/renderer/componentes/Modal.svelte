@@ -1,28 +1,28 @@
 <script lang="ts">
-  import { t } from '@shared/i18n/index.ts'
-  import type { Snippet } from 'svelte'
-  import Icone from './Icone.svelte'
+import { t } from '@shared/i18n/index.ts'
+import type { Snippet } from 'svelte'
+import Icone from './Icone.svelte'
 
-  let {
-    titulo,
-    aoFechar,
-    largura = 520,
-    children,
-    rodape,
-  }: { titulo: string; aoFechar: () => void; largura?: number; children: Snippet; rodape?: Snippet } = $props()
-  let caixa: HTMLDivElement | undefined = $state()
+let {
+  titulo,
+  aoFechar,
+  largura = 520,
+  children,
+  rodape,
+}: { titulo: string; aoFechar: () => void; largura?: number; children: Snippet; rodape?: Snippet } = $props()
+let caixa: HTMLDivElement | undefined = $state()
 
-  $effect(() => {
-    const primeiro = caixa?.querySelector<HTMLElement>('input, select, textarea, button:not(.fechar)')
-    primeiro?.focus()
-  })
+$effect(() => {
+  const primeiro = caixa?.querySelector<HTMLElement>('input, select, textarea, button:not(.fechar)')
+  primeiro?.focus()
+})
 
-  function tecla(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-      e.stopPropagation()
-      aoFechar()
-    }
+function tecla(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    e.stopPropagation()
+    aoFechar()
   }
+}
 </script>
 
 <div class="fundo" role="presentation" onclick={(e) => e.target === e.currentTarget && aoFechar()}>

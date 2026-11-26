@@ -1,28 +1,37 @@
 <script lang="ts">
-  import { lerCaminho } from '@shared/config/esquema.ts'
-  import type { LinhaConfig } from '@shared/configuracoes/catalogo.ts'
-  import { t } from '@shared/i18n/index.ts'
-  import type { Snippet } from 'svelte'
-  import Interruptor from '../componentes/Interruptor.svelte'
-  import { chamar } from '../estado/api.ts'
-  import { loja, mensagem } from '../estado/loja.svelte.ts'
+import { lerCaminho } from '@shared/config/esquema.ts'
+import type { LinhaConfig } from '@shared/configuracoes/catalogo.ts'
+import { t } from '@shared/i18n/index.ts'
+import type { Snippet } from 'svelte'
+import Interruptor from '../componentes/Interruptor.svelte'
+import { chamar } from '../estado/api.ts'
+import { loja, mensagem } from '../estado/loja.svelte.ts'
 
-  let { linha, destacar = false, especial }: { linha: LinhaConfig; destacar?: boolean; especial?: Snippet } = $props()
+let {
+  linha,
+  destacar = false,
+  especial,
+}: { linha: LinhaConfig; destacar?: boolean; especial?: Snippet } = $props()
 
-  const cfg = $derived(loja.snap?.config)
-  const valor = $derived(cfg && linha.caminho ? lerCaminho(cfg, linha.caminho) : undefined)
-  /** Linha dependente fica esmaecida com a principal desligada (Seção 12.3). */
-  const esmaecida = $derived(cfg && linha.dependeDe ? lerCaminho(cfg, linha.dependeDe) === false : false)
-  const descricao = $derived(
-    linha.descricaoVar && cfg ? t(linha.descricao, { n: String(lerCaminho(cfg, linha.descricaoVar)) }) : t(linha.descricao),
-  )
+const cfg = $derived(loja.snap?.config)
+const valor = $derived(cfg && linha.caminho ? lerCaminho(cfg, linha.caminho) : undefined)
+/** Linha dependente fica esmaecida com a principal desligada (Seção 12.3). */
+const esmaecida = $derived(cfg && linha.dependeDe ? lerCaminho(cfg, linha.dependeDe) === false : false)
+const descricao = $derived(
+  linha.descricaoVar && cfg
+    ? t(linha.descricao, { n: String(lerCaminho(cfg, linha.descricaoVar)) })
+    : t(linha.descricao),
+)
 
-  async function mudar(v: unknown) {
-    if (!linha.caminho) return
-    const r = await chamar<'config.alterar', { ok: boolean }>('config.alterar', { caminho: linha.caminho, valor: v })
-    if (!r.ok) mensagem('erro', t('erro.desconhecido'))
-  }
-  const id = $derived(`cfg-${linha.id}`)
+async function mudar(v: unknown) {
+  if (!linha.caminho) return
+  const r = await chamar<'config.alterar', { ok: boolean }>('config.alterar', {
+    caminho: linha.caminho,
+    valor: v,
+  })
+  if (!r.ok) mensagem('erro', t('erro.desconhecido'))
+}
+const id = $derived(`cfg-${linha.id}`)
 </script>
 
 <div class="linha-config" class:esmaecida class:destacar data-linha={linha.id}>

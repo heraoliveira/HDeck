@@ -1,29 +1,33 @@
 <script lang="ts">
-  import { t, tDinamico } from '@shared/i18n/index.ts'
-  import type { PlataformaLive } from '@shared/tipos/dominio.ts'
-  import Interruptor from '../componentes/Interruptor.svelte'
-  import Modal from '../componentes/Modal.svelte'
-  import { chamar } from '../estado/api.ts'
-  import { loja, mensagem } from '../estado/loja.svelte.ts'
+import { t, tDinamico } from '@shared/i18n/index.ts'
+import type { PlataformaLive } from '@shared/tipos/dominio.ts'
+import Interruptor from '../componentes/Interruptor.svelte'
+import Modal from '../componentes/Modal.svelte'
+import { chamar } from '../estado/api.ts'
+import { loja, mensagem } from '../estado/loja.svelte.ts'
 
-  let { contaId, aoFechar }: { contaId: string; aoFechar: () => void } = $props()
-  const s = $derived(loja.snap!)
-  const conta = $derived(s.contas.find((c) => c.id === contaId))
-  const lives = $derived(s.lives.filter((l) => l.contaId === contaId).sort((a, b) => a.ordem - b.ordem))
-  let plataforma: PlataformaLive = $state('twitch')
-  let canal = $state('')
-  let comSom = $state(false)
+let { contaId, aoFechar }: { contaId: string; aoFechar: () => void } = $props()
+const s = $derived(loja.snap!)
+const conta = $derived(s.contas.find((c) => c.id === contaId))
+const lives = $derived(s.lives.filter((l) => l.contaId === contaId).sort((a, b) => a.ordem - b.ordem))
+let plataforma: PlataformaLive = $state('twitch')
+let canal = $state('')
+let comSom = $state(false)
 
-  async function adicionar() {
-    if (!canal.trim()) return
-    const r = await chamar<'lives.adicionar', { ok: boolean; erro?: string }>('lives.adicionar', { contaId, plataforma, canal: canal.trim() })
-    if (r.ok) canal = ''
-    else mensagem('erro', t('adicionar.urlInvalida'))
-  }
-  async function ligar(id: string, ligada: boolean) {
-    const r = await chamar<'lives.ligar', { ok: boolean; erro?: string }>('lives.ligar', { id, ligada })
-    if (!r.ok && r.erro === 'limite') mensagem('aviso', t('lives.limite', { n: s.config.lives.porConta }))
-  }
+async function adicionar() {
+  if (!canal.trim()) return
+  const r = await chamar<'lives.adicionar', { ok: boolean; erro?: string }>('lives.adicionar', {
+    contaId,
+    plataforma,
+    canal: canal.trim(),
+  })
+  if (r.ok) canal = ''
+  else mensagem('erro', t('adicionar.urlInvalida'))
+}
+async function ligar(id: string, ligada: boolean) {
+  const r = await chamar<'lives.ligar', { ok: boolean; erro?: string }>('lives.ligar', { id, ligada })
+  if (!r.ok && r.erro === 'limite') mensagem('aviso', t('lives.limite', { n: s.config.lives.porConta }))
+}
 </script>
 
 <Modal titulo={t('lives.titulo', { conta: conta?.nome ?? '' })} {aoFechar} largura={600}>

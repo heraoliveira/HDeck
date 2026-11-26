@@ -1,14 +1,19 @@
-import { BrowserWindow } from 'electron'
-import { seletoresDasLives, type SeletoresPlataforma } from '@shared/dados/catalogo.ts'
+import { type SeletoresPlataforma, seletoresDasLives } from '@shared/dados/catalogo.ts'
 import { PADROES } from '@shared/dados/padroes-config.ts'
 import type { Live, PlataformaLive } from '@shared/tipos/dominio.ts'
 import { dominioDe, dominioPertence } from '@shared/util/texto.ts'
+import { BrowserWindow } from 'electron'
 import { z } from 'zod'
 import type { EstadoLidoLive, EventosLive, FabricaLives, Log, PaginaLive } from '../../nucleo/portas.ts'
 import { particaoDa } from './pagina-conta.ts'
 import { MUNDO_ISOLADO, scriptEstadoLive, scriptQualidade } from './scripts-pagina.ts'
 
-const estadoSchema = z.object({ aoVivo: z.boolean(), offline: z.boolean(), pedeLogin: z.boolean(), tocando: z.boolean() })
+const estadoSchema = z.object({
+  aoVivo: z.boolean(),
+  offline: z.boolean(),
+  pedeLogin: z.boolean(),
+  tocando: z.boolean(),
+})
 
 const prefsPagina = (contaId: string) => ({
   partition: particaoDa(contaId),
@@ -31,7 +36,7 @@ class PaginaLiveElectron implements PaginaLive {
   constructor(
     private readonly live: Live,
     private readonly sel: SeletoresPlataforma,
-    private readonly ev: EventosLive,
+    ev: EventosLive,
   ) {
     this.janela = new BrowserWindow({
       show: false,
@@ -59,7 +64,9 @@ class PaginaLiveElectron implements PaginaLive {
       if (!valor || this.qualidadeAplicada) return
       this.qualidadeAplicada = true
       void wc
-        .executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [{ code: scriptQualidade(this.sel.qualidade.chave, valor) }])
+        .executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [
+          { code: scriptQualidade(this.sel.qualidade.chave, valor) },
+        ])
         .then((mudou) => {
           if (mudou === true && !wc.isDestroyed()) wc.reload()
         })
@@ -151,7 +158,12 @@ export class FabricaLivesElectron implements FabricaLives {
 
   abrirLogin(live: Live): void {
     const url = live.plataforma === 'twitch' ? 'https://www.twitch.tv/login' : 'https://kick.com/login'
-    const w = new BrowserWindow({ width: 520, height: 760, autoHideMenuBar: true, webPreferences: prefsPagina(live.contaId) })
+    const w = new BrowserWindow({
+      width: 520,
+      height: 760,
+      autoHideMenuBar: true,
+      webPreferences: prefsPagina(live.contaId),
+    })
     void w.loadURL(this.urlDeTeste ? this.urlDoCanal(live.plataforma, live.canal) : url).catch(() => {})
   }
 }

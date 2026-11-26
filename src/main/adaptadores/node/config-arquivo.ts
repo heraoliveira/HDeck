@@ -1,6 +1,6 @@
 import { closeSync, existsSync, fsyncSync, openSync, readFileSync, renameSync, writeSync } from 'node:fs'
-import type { ArmazemConfig, Log } from '../../nucleo/portas.ts'
 import { type Config, configPadrao, migrarConfig } from '@shared/config/esquema.ts'
+import type { ArmazemConfig, Log } from '../../nucleo/portas.ts'
 
 /**
  * `config.json` com escrita atômica (tmp + rename) e cópia `.bak` do último arquivo bom.

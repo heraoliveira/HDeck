@@ -1,9 +1,18 @@
+import {
+  type Canal,
+  canais,
+  canalIpc,
+  type Entrada,
+  nomesDosCanais,
+  type RespostaIpc,
+} from '@shared/ipc/contrato.ts'
 import { type IpcMainInvokeEvent, ipcMain, type WebContents } from 'electron'
-import { type Canal, canais, canalIpc, type Entrada, nomesDosCanais, type RespostaIpc } from '@shared/ipc/contrato.ts'
 import type { Log } from '../nucleo/portas.ts'
 
 export type Contexto = { janela: string; wc: WebContents }
-export type Manipuladores = { [C in Canal]: (entrada: Entrada<C>, ctx: Contexto) => unknown | Promise<unknown> }
+export type Manipuladores = {
+  [C in Canal]: (entrada: Entrada<C>, ctx: Contexto) => unknown | Promise<unknown>
+}
 
 /**
  * Roteador IPC (Seção 4.4): confere o remetente (só a interface do HDeck), valida a entrada com
@@ -31,7 +40,10 @@ export function registrarIpc(
       const r = canais[canal].safeParse(dados ?? {})
       if (!r.success) return { ok: false, erro: 'entrada' }
       try {
-        const valor = await (m[canal] as (x: unknown, c: Contexto) => unknown)(r.data, { janela, wc: e.sender })
+        const valor = await (m[canal] as (x: unknown, c: Contexto) => unknown)(r.data, {
+          janela,
+          wc: e.sender,
+        })
         return { ok: true, valor: valor ?? null }
       } catch (err) {
         o.log.erro('erro no IPC', { canal, erro: String(err) })

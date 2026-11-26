@@ -75,7 +75,8 @@ export function lerZip(arquivo: Uint8Array): EntradaZip[] {
     const bruto = b.subarray(inicio, inicio + tamComp)
     const dados = metodo === 8 ? inflateRawSync(bruto) : Buffer.from(bruto)
     if (crc32(dados) !== crc) throw new Error(`zip corrompido: ${nome}`)
-    if (nome.includes('..') || nome.startsWith('/') || /^[a-zA-Z]:/.test(nome)) throw new Error('caminho inválido no zip')
+    if (nome.includes('..') || nome.startsWith('/') || /^[a-zA-Z]:/.test(nome))
+      throw new Error('caminho inválido no zip')
     out.push({ nome, dados })
     p += 46 + tamNome + tamExtra + tamComent
   }

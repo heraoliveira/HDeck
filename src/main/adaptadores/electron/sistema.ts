@@ -1,5 +1,13 @@
-import { app, type BrowserWindow, nativeImage, Notification, net, powerMonitor, powerSaveBlocker } from 'electron'
 import type { Aviso } from '@shared/tipos/dominio.ts'
+import {
+  app,
+  type BrowserWindow,
+  Notification,
+  nativeImage,
+  net,
+  powerMonitor,
+  powerSaveBlocker,
+} from 'electron'
 import type { CanaisLocais, Metrica, Rede, Sistema } from '../../nucleo/portas.ts'
 import { bitmapSelo } from './icones.ts'
 
@@ -71,7 +79,11 @@ export class CanaisLocaisElectron implements CanaisLocais {
     this.o.aoSelo?.(naoLidos)
     if (!w || w.isDestroyed()) return
     if (naoLidos <= 0) w.setOverlayIcon(null, '')
-    else w.setOverlayIcon(nativeImage.createFromBitmap(bitmapSelo(naoLidos), { width: 16, height: 16 }), String(naoLidos))
+    else
+      w.setOverlayIcon(
+        nativeImage.createFromBitmap(bitmapSelo(naoLidos), { width: 16, height: 16 }),
+        String(naoLidos),
+      )
   }
 
   piscar(): void {

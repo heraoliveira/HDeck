@@ -1,6 +1,4 @@
 import { DatabaseSync } from 'node:sqlite'
-import { aplicarRetencaoMetricas, eventosParaApagar } from '../../nucleo/painel/painel.ts'
-import type { Armazem, LinhaMetrica, LinhaPing } from '../../nucleo/portas.ts'
 import {
   type Aviso,
   type Conta,
@@ -15,6 +13,8 @@ import {
   type TextoVigiado,
   textoVigiadoSchema,
 } from '@shared/tipos/dominio.ts'
+import { aplicarRetencaoMetricas, eventosParaApagar } from '../../nucleo/painel/painel.ts'
+import type { Armazem, LinhaMetrica, LinhaPing } from '../../nucleo/portas.ts'
 
 /**
  * Armazém em SQLite (`node:sqlite`, sem módulo nativo; ADR 0007), modelo da Seção 4.5.
@@ -116,7 +116,9 @@ export class ArmazemSqlite implements Armazem {
   }
   salvarJogo(j: Jogo): void {
     this.db
-      .prepare('INSERT INTO jogos (id, dados, origem) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET dados = excluded.dados, origem = excluded.origem')
+      .prepare(
+        'INSERT INTO jogos (id, dados, origem) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET dados = excluded.dados, origem = excluded.origem',
+      )
       .run(j.id, JSON.stringify(j), j.origem)
   }
   apagarJogo(id: string): void {
@@ -125,7 +127,15 @@ export class ArmazemSqlite implements Armazem {
 
   // ---- grupos ----
   listarGrupos(): Grupo[] {
-    type L = { id: string; nome: string; cor: string; ordem: number; ligado: number; visao: string; layout_json: string }
+    type L = {
+      id: string
+      nome: string
+      cor: string
+      ordem: number
+      ligado: number
+      visao: string
+      layout_json: string
+    }
     return (this.db.prepare('SELECT * FROM grupos ORDER BY ordem').all() as L[])
       .map((r) =>
         grupoSchema.safeParse({
@@ -216,7 +226,14 @@ export class ArmazemSqlite implements Armazem {
 
   // ---- lives ----
   listarLives(): Live[] {
-    type L = { id: string; conta_id: string; plataforma: string; canal: string; ligada: number; ordem: number }
+    type L = {
+      id: string
+      conta_id: string
+      plataforma: string
+      canal: string
+      ligada: number
+      ordem: number
+    }
     return (this.db.prepare('SELECT * FROM lives ORDER BY ordem').all() as L[])
       .map((r) =>
         liveSchema.safeParse({
@@ -249,7 +266,13 @@ export class ArmazemSqlite implements Armazem {
     type L = { id: string; texto: string; escopo: string; alvo_id: string | null; ativo: number }
     return (this.db.prepare('SELECT * FROM textos_vigiados').all() as L[])
       .map((r) =>
-        textoVigiadoSchema.safeParse({ id: r.id, texto: r.texto, escopo: r.escopo, alvoId: r.alvo_id, ativo: r.ativo === 1 }),
+        textoVigiadoSchema.safeParse({
+          id: r.id,
+          texto: r.texto,
+          escopo: r.escopo,
+          alvoId: r.alvo_id,
+          ativo: r.ativo === 1,
+        }),
       )
       .filter((r) => r.success)
       .map((r) => r.data)
@@ -274,13 +297,29 @@ export class ArmazemSqlite implements Armazem {
       .run(a.id, a.contaId, a.tipo, a.mensagem, a.criadoEm, n(a.lido))
   }
   listarAvisos(limite: number): Aviso[] {
-    type L = { id: string; conta_id: string | null; tipo: Aviso['tipo']; mensagem: string; criado_em: number; lido: number }
-    return (this.db.prepare('SELECT * FROM avisos ORDER BY criado_em DESC, rowid DESC LIMIT ?').all(limite) as L[]).map(
-      (r) => ({ id: r.id, contaId: r.conta_id, tipo: r.tipo, mensagem: r.mensagem, criadoEm: r.criado_em, lido: r.lido === 1 }),
-    )
+    type L = {
+      id: string
+      conta_id: string | null
+      tipo: Aviso['tipo']
+      mensagem: string
+      criado_em: number
+      lido: number
+    }
+    return (
+      this.db.prepare('SELECT * FROM avisos ORDER BY criado_em DESC, rowid DESC LIMIT ?').all(limite) as L[]
+    ).map((r) => ({
+      id: r.id,
+      contaId: r.conta_id,
+      tipo: r.tipo,
+      mensagem: r.mensagem,
+      criadoEm: r.criado_em,
+      lido: r.lido === 1,
+    }))
   }
   contarNaoLidos(): number {
-    return Number((this.db.prepare('SELECT COUNT(*) AS n FROM avisos WHERE lido = 0').get() as { n: number }).n)
+    return Number(
+      (this.db.prepare('SELECT COUNT(*) AS n FROM avisos WHERE lido = 0').get() as { n: number }).n,
+    )
   }
   marcarAvisosLidos(): void {
     this.db.exec('UPDATE avisos SET lido = 1 WHERE lido = 0')
@@ -288,13 +327,17 @@ export class ArmazemSqlite implements Armazem {
 
   // ---- eventos, métricas, ping ----
   registrarEvento(e: EventoConta): void {
-    this.db.prepare('INSERT INTO eventos_conta (conta_id, tipo, motivo, em) VALUES (?, ?, ?, ?)').run(e.contaId, e.tipo, e.motivo, e.em)
+    this.db
+      .prepare('INSERT INTO eventos_conta (conta_id, tipo, motivo, em) VALUES (?, ?, ?, ?)')
+      .run(e.contaId, e.tipo, e.motivo, e.em)
   }
   listarEventos(desde: number, contaId?: string): EventoConta[] {
     type L = { conta_id: string; tipo: EventoConta['tipo']; motivo: string; em: number }
     const linhas = (
       contaId
-        ? this.db.prepare('SELECT * FROM eventos_conta WHERE em >= ? AND conta_id = ? ORDER BY em').all(desde, contaId)
+        ? this.db
+            .prepare('SELECT * FROM eventos_conta WHERE em >= ? AND conta_id = ? ORDER BY em')
+            .all(desde, contaId)
         : this.db.prepare('SELECT * FROM eventos_conta WHERE em >= ? ORDER BY em').all(desde)
     ) as L[]
     return linhas.map((r) => ({ contaId: r.conta_id, tipo: r.tipo, motivo: r.motivo, em: r.em }))
@@ -309,7 +352,9 @@ export class ArmazemSqlite implements Armazem {
   }
   listarMetricas(desde: number): LinhaMetrica[] {
     type L = { conta_id: string; minuto: number; ram_mb: number; cpu_pct: number; estado: string }
-    return (this.db.prepare('SELECT * FROM metricas WHERE minuto >= ? ORDER BY minuto').all(desde) as L[]).map((r) => ({
+    return (
+      this.db.prepare('SELECT * FROM metricas WHERE minuto >= ? ORDER BY minuto').all(desde) as L[]
+    ).map((r) => ({
       contaId: r.conta_id,
       minuto: r.minuto,
       ramMb: r.ram_mb,
@@ -318,7 +363,9 @@ export class ArmazemSqlite implements Armazem {
     }))
   }
   registrarPing(p: LinhaPing): void {
-    this.db.prepare('INSERT INTO ping (jogo_id, em, ms, status) VALUES (?, ?, ?, ?)').run(p.jogoId, p.em, p.ms, p.status)
+    this.db
+      .prepare('INSERT INTO ping (jogo_id, em, ms, status) VALUES (?, ?, ?, ?)')
+      .run(p.jogoId, p.em, p.ms, p.status)
   }
   listarPing(desde: number): LinhaPing[] {
     type L = { jogo_id: string; em: number; ms: number | null; status: number }
@@ -349,7 +396,12 @@ export class ArmazemSqlite implements Armazem {
 
   // ---- cofre (bytes já cifrados) ----
   lerCofre(): { contaId: string; usuario: Uint8Array; senha: Uint8Array; campos: string | null }[] {
-    type L = { conta_id: string; usuario_cifrado: Uint8Array; senha_cifrada: Uint8Array; campos_json: string | null }
+    type L = {
+      conta_id: string
+      usuario_cifrado: Uint8Array
+      senha_cifrada: Uint8Array
+      campos_json: string | null
+    }
     return (this.db.prepare('SELECT * FROM cofre').all() as L[]).map((r) => ({
       contaId: r.conta_id,
       usuario: r.usuario_cifrado,
@@ -370,14 +422,18 @@ export class ArmazemSqlite implements Armazem {
     this.db.prepare('DELETE FROM cofre WHERE conta_id = ?').run(contaId)
   }
   lerMeta(chave: string): Uint8Array | null {
-    const r = this.db.prepare('SELECT valor FROM cofre_meta WHERE chave = ?').get(chave) as { valor: Uint8Array } | undefined
+    const r = this.db.prepare('SELECT valor FROM cofre_meta WHERE chave = ?').get(chave) as
+      | { valor: Uint8Array }
+      | undefined
     return r?.valor ?? null
   }
   gravarMeta(chave: string, valor: Uint8Array | null): void {
     if (valor === null) this.db.prepare('DELETE FROM cofre_meta WHERE chave = ?').run(chave)
     else
       this.db
-        .prepare('INSERT INTO cofre_meta (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor')
+        .prepare(
+          'INSERT INTO cofre_meta (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor',
+        )
         .run(chave, valor)
   }
 }

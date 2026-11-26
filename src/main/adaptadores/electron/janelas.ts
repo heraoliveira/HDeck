@@ -6,7 +6,13 @@ import { bitmapLogo } from './icones.ts'
 
 const posicaoSchema = z.record(
   z.string(),
-  z.object({ x: z.number(), y: z.number(), largura: z.number(), altura: z.number(), maximizada: z.boolean() }),
+  z.object({
+    x: z.number(),
+    y: z.number(),
+    largura: z.number(),
+    altura: z.number(),
+    maximizada: z.boolean(),
+  }),
 )
 type Posicoes = z.infer<typeof posicaoSchema>
 
@@ -49,7 +55,8 @@ export class GerenciadorJanelas {
   constructor(private readonly o: OpcoesJanelas) {
     this.arquivo = join(o.pastaDados, 'janelas.json')
     try {
-      if (existsSync(this.arquivo)) this.posicoes = posicaoSchema.parse(JSON.parse(readFileSync(this.arquivo, 'utf8')))
+      if (existsSync(this.arquivo))
+        this.posicoes = posicaoSchema.parse(JSON.parse(readFileSync(this.arquivo, 'utf8')))
     } catch {
       this.posicoes = {}
     }
@@ -143,7 +150,9 @@ export class GerenciadorJanelas {
       this.grupos.delete(grupoId)
       this.o.aoFecharJanelaGrupo(grupoId)
     })
-    void w.loadURL(this.o.urlInterface(`janela=${encodeURIComponent(chave)}&grupo=${encodeURIComponent(grupoId)}`))
+    void w.loadURL(
+      this.o.urlInterface(`janela=${encodeURIComponent(chave)}&grupo=${encodeURIComponent(grupoId)}`),
+    )
     this.grupos.set(grupoId, w)
     return w
   }
@@ -158,7 +167,8 @@ export class GerenciadorJanelas {
 
   /** Qual janela de interface mandou a mensagem (ou null se não for nossa). */
   idDaInterface(wc: WebContents): string | null {
-    if (this.principal && !this.principal.isDestroyed() && this.principal.webContents === wc) return 'principal'
+    if (this.principal && !this.principal.isDestroyed() && this.principal.webContents === wc)
+      return 'principal'
     for (const [g, w] of this.grupos) if (!w.isDestroyed() && w.webContents === wc) return `grupo:${g}`
     return null
   }
@@ -183,15 +193,27 @@ export class GerenciadorJanelas {
     if (!p) return { width: largura, height: altura }
     // Só restaura se o lugar ainda cabe num monitor ligado (dois monitores com escalas diferentes).
     const area = screen.getDisplayMatching({ x: p.x, y: p.y, width: p.largura, height: p.altura }).workArea
-    const cabe = p.x + 40 >= area.x && p.y + 20 >= area.y && p.x < area.x + area.width - 40 && p.y < area.y + area.height - 40
-    return cabe ? { x: p.x, y: p.y, width: p.largura, height: p.altura } : { width: p.largura, height: p.altura }
+    const cabe =
+      p.x + 40 >= area.x &&
+      p.y + 20 >= area.y &&
+      p.x < area.x + area.width - 40 &&
+      p.y < area.y + area.height - 40
+    return cabe
+      ? { x: p.x, y: p.y, width: p.largura, height: p.altura }
+      : { width: p.largura, height: p.altura }
   }
 
   private lembrar(w: BrowserWindow, chave: string): void {
     const salvar = () => {
       if (w.isDestroyed()) return
       const b = w.getNormalBounds()
-      this.posicoes[chave] = { x: b.x, y: b.y, largura: b.width, altura: b.height, maximizada: w.isMaximized() }
+      this.posicoes[chave] = {
+        x: b.x,
+        y: b.y,
+        largura: b.width,
+        altura: b.height,
+        maximizada: w.isMaximized(),
+      }
       try {
         writeFileSync(this.arquivo, JSON.stringify(this.posicoes))
       } catch {

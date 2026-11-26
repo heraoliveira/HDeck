@@ -1,58 +1,69 @@
 <script lang="ts">
-  import { t } from '@shared/i18n/index.ts'
-  import Modal from '../componentes/Modal.svelte'
-  import { chamar, tentar } from '../estado/api.ts'
-  import { loja, mensagem } from '../estado/loja.svelte.ts'
+import { t } from '@shared/i18n/index.ts'
+import Modal from '../componentes/Modal.svelte'
+import { chamar, tentar } from '../estado/api.ts'
+import { loja, mensagem } from '../estado/loja.svelte.ts'
 
-  let { contaId, aoFechar }: { contaId: string; aoFechar: () => void } = $props()
-  const conta = $derived(loja.snap?.contas.find((c) => c.id === contaId))
-  type Info = { aberto: boolean; usuario: string | null; temLogin: boolean; seletores: { usuario: string; senha: string } | null }
-  let info: Info | null = $state(null)
-  let usuario = $state('')
-  let senha = $state('')
-  let senhaMestra = $state('')
-  let ensinando = $state(false)
-  const visivel = $derived(loja.senhaVisivel[contaId])
+let { contaId, aoFechar }: { contaId: string; aoFechar: () => void } = $props()
+const conta = $derived(loja.snap?.contas.find((c) => c.id === contaId))
+type Info = {
+  aberto: boolean
+  usuario: string | null
+  temLogin: boolean
+  seletores: { usuario: string; senha: string } | null
+}
+let info: Info | null = $state(null)
+let usuario = $state('')
+let senha = $state('')
+let senhaMestra = $state('')
+let ensinando = $state(false)
+const visivel = $derived(loja.senhaVisivel[contaId])
 
-  async function carregar() {
-    info = await tentar<'cofre.obter', Info>('cofre.obter', { contaId })
-    if (info?.usuario) usuario = info.usuario
-  }
-  $effect(() => {
-    void loja.snap?.cofre.aberto
-    void carregar()
-  })
+async function carregar() {
+  info = await tentar<'cofre.obter', Info>('cofre.obter', { contaId })
+  if (info?.usuario) usuario = info.usuario
+}
+$effect(() => {
+  void loja.snap?.cofre.aberto
+  void carregar()
+})
 
-  async function destrancar() {
-    const r = await chamar<'cofre.destrancar', { ok: boolean }>('cofre.destrancar', { senha: senhaMestra })
-    senhaMestra = ''
-    if (!r.ok) mensagem('erro', t('cofre.senhaErrada'))
+async function destrancar() {
+  const r = await chamar<'cofre.destrancar', { ok: boolean }>('cofre.destrancar', { senha: senhaMestra })
+  senhaMestra = ''
+  if (!r.ok) mensagem('erro', t('cofre.senhaErrada'))
+  await carregar()
+}
+async function salvar() {
+  const r = await chamar<'cofre.salvar', { ok: boolean }>('cofre.salvar', { contaId, usuario, senha })
+  if (r.ok) {
+    senha = ''
+    mensagem('ok', t('cofre.salvo'))
     await carregar()
   }
-  async function salvar() {
-    const r = await chamar<'cofre.salvar', { ok: boolean }>('cofre.salvar', { contaId, usuario, senha })
-    if (r.ok) {
-      senha = ''
-      mensagem('ok', t('cofre.salvo'))
-      await carregar()
-    }
-  }
-  /** RN-143: mostrar exige o cofre aberto e some em 10 s. */
-  async function mostrar() {
-    const r = await chamar<'cofre.mostrarSenha', { senha: string | null }>('cofre.mostrarSenha', { contaId })
-    if (r.senha) loja.senhaVisivel[contaId] = r.senha
-  }
-  async function preencher() {
-    const r = await chamar<'cofre.preencher', { preenchidas: string[]; semCampos: string[] }>('cofre.preencher', { ids: [contaId] })
-    mensagem(r.preenchidas.length > 0 ? 'ok' : 'aviso', r.preenchidas.length > 0 ? t('cofre.preenchido') : t('cofre.semCampos'))
-  }
-  async function ensinar() {
-    ensinando = true
-    loja.dialogos = []
-    const r = await tentar<'cofre.ensinar', { ok: boolean }>('cofre.ensinar', { contaId })
-    ensinando = false
-    mensagem(r?.ok ? 'ok' : 'aviso', r?.ok ? t('cofre.salvo') : t('cofre.semCampos'))
-  }
+}
+/** RN-143: mostrar exige o cofre aberto e some em 10 s. */
+async function mostrar() {
+  const r = await chamar<'cofre.mostrarSenha', { senha: string | null }>('cofre.mostrarSenha', { contaId })
+  if (r.senha) loja.senhaVisivel[contaId] = r.senha
+}
+async function preencher() {
+  const r = await chamar<'cofre.preencher', { preenchidas: string[]; semCampos: string[] }>(
+    'cofre.preencher',
+    { ids: [contaId] },
+  )
+  mensagem(
+    r.preenchidas.length > 0 ? 'ok' : 'aviso',
+    r.preenchidas.length > 0 ? t('cofre.preenchido') : t('cofre.semCampos'),
+  )
+}
+async function ensinar() {
+  ensinando = true
+  loja.dialogos = []
+  const r = await tentar<'cofre.ensinar', { ok: boolean }>('cofre.ensinar', { contaId })
+  ensinando = false
+  mensagem(r?.ok ? 'ok' : 'aviso', r?.ok ? t('cofre.salvo') : t('cofre.semCampos'))
+}
 </script>
 
 <Modal titulo={t('cofre.titulo', { conta: conta?.nome ?? '' })} {aoFechar} largura={480}>

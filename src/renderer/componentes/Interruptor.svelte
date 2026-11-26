@@ -1,10 +1,10 @@
 <script lang="ts">
-  let {
-    ligado,
-    rotulo,
-    desabilitado = false,
-    aoMudar,
-  }: { ligado: boolean; rotulo: string; desabilitado?: boolean; aoMudar: (v: boolean) => void } = $props()
+let {
+  ligado,
+  rotulo,
+  desabilitado = false,
+  aoMudar,
+}: { ligado: boolean; rotulo: string; desabilitado?: boolean; aoMudar: (v: boolean) => void } = $props()
 </script>
 
 <button

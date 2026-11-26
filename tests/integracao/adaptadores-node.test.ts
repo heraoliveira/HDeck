@@ -1,6 +1,4 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { createServer } from 'node:http'
-import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -14,9 +12,9 @@ import { criarZip, lerZip } from '../../src/main/adaptadores/node/zip.ts'
 import { FilaEnvio } from '../../src/main/nucleo/avisos/envio.ts'
 import { configPadrao } from '../../src/shared/config/esquema.ts'
 import { layoutGrupoSchema } from '../../src/shared/tipos/dominio.ts'
-import { iniciarServidorFalso } from '../fixtures/servidor.ts'
 import { jogoFalso } from '../falsos/montar-motor.ts'
 import { RelogioFalso } from '../falsos/relogio.ts'
+import { iniciarServidorFalso } from '../fixtures/servidor.ts'
 
 const pastas: string[] = []
 const pasta = () => {
@@ -36,7 +34,15 @@ const protecao: ProtecaoSistema = {
 }
 const custoBaixo = { N: 2 ** 10, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }
 
-const grupo = { id: 'g1', nome: 'G', cor: '#7c6cf0', ordem: 0, ligado: true, visao: 'grade' as const, layout: layoutGrupoSchema.parse({}) }
+const grupo = {
+  id: 'g1',
+  nome: 'G',
+  cor: '#7c6cf0',
+  ordem: 0,
+  ligado: true,
+  visao: 'grade' as const,
+  layout: layoutGrupoSchema.parse({}),
+}
 const conta = {
   id: 'c1',
   grupoId: 'g1',
@@ -83,7 +89,14 @@ describe('armazém SQLite', () => {
     const a = new ArmazemSqlite(':memory:')
     const agora = 100 * 86_400_000
     a.registrarAviso({ id: 'a1', contaId: 'c1', tipo: 'caiu', mensagem: 'm', criadoEm: agora, lido: false })
-    a.registrarAviso({ id: 'a0', contaId: null, tipo: 'caiu', mensagem: 'velho', criadoEm: agora - 40 * 86_400_000, lido: false })
+    a.registrarAviso({
+      id: 'a0',
+      contaId: null,
+      tipo: 'caiu',
+      mensagem: 'velho',
+      criadoEm: agora - 40 * 86_400_000,
+      lido: false,
+    })
     expect(a.contarNaoLidos()).toBe(2)
     a.marcarAvisosLidos()
     expect(a.listarAvisos(10).every((x) => x.lido)).toBe(true)
@@ -120,7 +133,11 @@ describe('armazém SQLite', () => {
     a.apagarTexto('t')
     a.apagarLive('l1')
     expect(a.listarJogos().length + a.listarGrupos().length + a.listarTextos().length).toBe(0)
-    expect(() => a.transacao(() => { throw new Error('x') })).toThrow()
+    expect(() =>
+      a.transacao(() => {
+        throw new Error('x')
+      }),
+    ).toThrow()
   })
 })
 
@@ -148,7 +165,11 @@ describe('cofre', () => {
     c.iniciar()
     expect(c.aberto()).toBe(true)
     expect(c.salvar('c1', 'eu@x.com', 'segredo', { usuario: '#u', senha: '#s' })).toBeNull()
-    expect(c.dados('c1')).toEqual({ usuario: 'eu@x.com', senha: 'segredo', seletores: { usuario: '#u', senha: '#s' } })
+    expect(c.dados('c1')).toEqual({
+      usuario: 'eu@x.com',
+      senha: 'segredo',
+      seletores: { usuario: '#u', senha: '#s' },
+    })
     expect(c.usuario('c1')).toBe('eu@x.com')
     const bruto = a.lerCofre()[0]!
     expect(Buffer.from(bruto.senha).includes(Buffer.from('segredo'))).toBe(false)
@@ -216,7 +237,16 @@ describe('cofre', () => {
     expect(c.segredo('telegram')).toBeNull()
     c.definirSegredo('discord', '')
     expect(c.segredo('discord')).toBeNull()
-    const quebrado = new Cofre(a, { ...protecao, desproteger: () => { throw new Error() } }, custoBaixo)
+    const quebrado = new Cofre(
+      a,
+      {
+        ...protecao,
+        desproteger: () => {
+          throw new Error()
+        },
+      },
+      custoBaixo,
+    )
     c.definirSegredo('telegram', 'x')
     expect(quebrado.segredo('telegram')).toBeNull()
   })
@@ -234,7 +264,9 @@ describe('backup', () => {
     origem.salvarConta(conta)
     origem.salvarTexto({ id: 't1', texto: 'captcha', escopo: 'todas', alvoId: null, ativo: true })
     cofre.salvar('c1', 'eu', 'senha-secreta')
-    expect(exportarBackup({ armazem: origem, config: cfgOrigem, cofre, agora: 1 }, { incluirCofre: true })).toBe('senha')
+    expect(
+      exportarBackup({ armazem: origem, config: cfgOrigem, cofre, agora: 1 }, { incluirCofre: true }),
+    ).toBe('senha')
     const arquivo = exportarBackup(
       { armazem: origem, config: cfgOrigem, cofre, agora: 1 },
       { incluirCofre: true, senhaBackup: 'bkp' },
@@ -250,14 +282,22 @@ describe('backup', () => {
     const deps = { armazem: destino, config: cfgDestino, cofre: cofreDestino, pastaSessoes: pasta() }
     expect(importarBackup(arquivo, deps)).toBe('senha')
     expect(importarBackup(arquivo, deps, 'errada')).toBe('senha')
-    expect(importarBackup(arquivo, deps, 'bkp')).toEqual({ grupos: 1, contas: 1, textos: 1, logins: 1, sessoes: 0 })
+    expect(importarBackup(arquivo, deps, 'bkp')).toEqual({
+      grupos: 1,
+      contas: 1,
+      textos: 1,
+      logins: 1,
+      sessoes: 0,
+    })
     expect(destino.listarContas()).toEqual([conta])
     expect(destino.listarGrupos()).toEqual([grupo])
     expect(destino.listarTextos()).toHaveLength(1)
     expect(cofreDestino.dados('c1')?.senha).toBe('senha-secreta')
     expect(cfgDestino.ler().ping.intervaloMin).toBe(12)
     expect(importarBackup(Buffer.from('lixo'), deps)).toBe('formato')
-    expect(importarBackup(criarZip([{ nome: 'manifesto.json', dados: Buffer.from('{}') }]), deps)).toBe('formato')
+    expect(importarBackup(criarZip([{ nome: 'manifesto.json', dados: Buffer.from('{}') }]), deps)).toBe(
+      'formato',
+    )
   })
 
   it('RN-161 incluir as sessões copia as pastas das contas', () => {
@@ -270,10 +310,18 @@ describe('backup', () => {
     const cofre = new Cofre(origem, protecao, custoBaixo)
     cofre.iniciar()
     const cfg = new ConfigArquivo(join(pasta(), 'c.json'))
-    const arq = exportarBackup({ armazem: origem, config: cfg, cofre, agora: 1 }, { incluirCofre: false, pastaSessoes: sessoes })
+    const arq = exportarBackup(
+      { armazem: origem, config: cfg, cofre, agora: 1 },
+      { incluirCofre: false, pastaSessoes: sessoes },
+    )
     if (typeof arq === 'string') throw new Error(arq)
     const destino = pasta()
-    const r = importarBackup(arq, { armazem: new ArmazemSqlite(':memory:'), config: cfg, cofre, pastaSessoes: destino })
+    const r = importarBackup(arq, {
+      armazem: new ArmazemSqlite(':memory:'),
+      config: cfg,
+      cofre,
+      pastaSessoes: destino,
+    })
     expect(r).toMatchObject({ sessoes: 2 })
     expect(readFileSync(join(destino, 'conta-c1', 'Cookies'), 'utf8')).toBe('biscoito')
   })
@@ -307,7 +355,10 @@ describe('Discord e Telegram contra servidor local', () => {
       }
       expect(await fim).toBe('enviado')
       expect(s.estado.discord).toEqual([{ content: 'caiu' }])
-      const tg = await http.postar({ url: `${s.url}/telegram/bot1/sendMessage`, corpo: { chat_id: '1', text: 'oi' } })
+      const tg = await http.postar({
+        url: `${s.url}/telegram/bot1/sendMessage`,
+        corpo: { chat_id: '1', text: 'oi' },
+      })
       expect(tg.status).toBe(200)
       expect(s.estado.telegram).toEqual([{ chat_id: '1', text: 'oi' }])
       const ping = await http.medir(`${s.url}/ping`)
@@ -322,7 +373,9 @@ describe('Discord e Telegram contra servidor local', () => {
 
   it('RN-115 lê o "espere" do Discord, do Telegram e do cabeçalho', async () => {
     expect(await lerEspera(new Response(JSON.stringify({ retry_after: 1.5 }), { status: 429 }))).toBe(1.5)
-    expect(await lerEspera(new Response(JSON.stringify({ parameters: { retry_after: 7 } }), { status: 429 }))).toBe(7)
+    expect(
+      await lerEspera(new Response(JSON.stringify({ parameters: { retry_after: 7 } }), { status: 429 })),
+    ).toBe(7)
     expect(await lerEspera(new Response('x', { status: 429, headers: { 'retry-after': '3' } }))).toBe(3)
     expect(await lerEspera(new Response('x', { status: 429 }))).toBeNull()
   })

@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { type BaseWindow, type Input, session, WebContentsView } from 'electron'
 import { PADROES } from '@shared/dados/padroes-config.ts'
 import type { Conta } from '@shared/tipos/dominio.ts'
+import { type BaseWindow, type Input, session, WebContentsView } from 'electron'
 import { validarEncontrados } from '../../nucleo/avisos/textos.ts'
 import type {
   DadosLogin,
@@ -13,7 +13,12 @@ import type {
   PaginaConta,
   Seletores,
 } from '../../nucleo/portas.ts'
-import { MUNDO_ISOLADO, scriptExisteSeletor, scriptPreencher, scriptProcurarTextos } from './scripts-pagina.ts'
+import {
+  MUNDO_ISOLADO,
+  scriptExisteSeletor,
+  scriptPreencher,
+  scriptProcurarTextos,
+} from './scripts-pagina.ts'
 import { VigiaRede } from './vigia-rede.ts'
 
 export type DependenciasPaginas = {
@@ -143,7 +148,10 @@ class PaginaContaElectron implements PaginaConta {
     const wc = this.view.webContents
     if (wc.isDestroyed() || wc.isLoading() || wc.isCrashed()) return
     const respondeu = await Promise.race([
-      wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [{ code: '1' }]).then(() => true, () => true),
+      wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [{ code: '1' }]).then(
+        () => true,
+        () => true,
+      ),
       new Promise<false>((r) => setTimeout(() => r(false), 5000)),
     ])
     if (!respondeu && !this.semResposta) {
@@ -157,7 +165,8 @@ class PaginaContaElectron implements PaginaConta {
 
   private anexar(j: BaseWindow | null): void {
     if (!j || j.isDestroyed() || j === this.janelaAtual) return
-    if (this.janelaAtual && !this.janelaAtual.isDestroyed()) this.janelaAtual.contentView.removeChildView(this.view)
+    if (this.janelaAtual && !this.janelaAtual.isDestroyed())
+      this.janelaAtual.contentView.removeChildView(this.view)
     j.contentView.addChildView(this.view)
     this.janelaAtual = j
   }
@@ -190,20 +199,28 @@ class PaginaContaElectron implements PaginaConta {
     this.vigia.definir(false)
     // RN-011: grava os cookies no disco antes de soltar a página.
     void this.view.webContents.session.cookies.flushStore().catch(() => {})
-    if (this.janelaAtual && !this.janelaAtual.isDestroyed()) this.janelaAtual.contentView.removeChildView(this.view)
+    if (this.janelaAtual && !this.janelaAtual.isDestroyed())
+      this.janelaAtual.contentView.removeChildView(this.view)
     this.janelaAtual = null
     if (!this.view.webContents.isDestroyed()) this.view.webContents.close()
   }
 
   urlAtual(): string {
-    return this.view.webContents.isDestroyed() ? this.conta.url : this.view.webContents.getURL() || this.conta.url
+    return this.view.webContents.isDestroyed()
+      ? this.conta.url
+      : this.view.webContents.getURL() || this.conta.url
   }
 
   exibir(e: Exibicao): void {
     this.vivaAgora = e.modo === 'viva'
     if (e.modo === 'viva') {
       this.anexar(this.d.janela(e.janela) ?? this.d.principal())
-      this.view.setBounds({ x: e.retangulo.x, y: e.retangulo.y, width: e.retangulo.largura, height: e.retangulo.altura })
+      this.view.setBounds({
+        x: e.retangulo.x,
+        y: e.retangulo.y,
+        width: e.retangulo.largura,
+        height: e.retangulo.altura,
+      })
       this.view.setVisible(true)
       return
     }
@@ -235,9 +252,13 @@ class PaginaContaElectron implements PaginaConta {
     // A foto é do tamanho do espaço na tela (Seção 4.4): a view assume esse tamanho mesmo escondida.
     if (largura > 0 && altura > 0 && !this.vivaAgora) {
       const b = this.view.getBounds()
-      if (b.width !== largura || b.height !== altura) this.view.setBounds({ ...FORA, width: largura, height: altura })
+      if (b.width !== largura || b.height !== altura)
+        this.view.setBounds({ ...FORA, width: largura, height: altura })
     }
-    const img = await Promise.race([wc.capturePage(), new Promise<null>((r) => setTimeout(() => r(null), 3000))])
+    const img = await Promise.race([
+      wc.capturePage(),
+      new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+    ])
     if (!img || img.isEmpty()) return null
     if (largura === 0 || altura === 0) return img.toPNG()
     const { width } = img.getSize()
@@ -255,7 +276,9 @@ class PaginaContaElectron implements PaginaConta {
   async procurarTextos(textos: string[]): Promise<string[]> {
     const wc = this.view.webContents
     if (wc.isDestroyed() || textos.length === 0) return []
-    const r = await wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [{ code: scriptProcurarTextos(textos) }])
+    const r = await wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [
+      { code: scriptProcurarTextos(textos) },
+    ])
     return validarEncontrados(r)
   }
 
@@ -271,7 +294,10 @@ class PaginaContaElectron implements PaginaConta {
   async existeSeletor(seletor: string): Promise<boolean> {
     const wc = this.view.webContents
     if (wc.isDestroyed()) return false
-    return (await wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [{ code: scriptExisteSeletor(seletor) }])) === true
+    return (
+      (await wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [{ code: scriptExisteSeletor(seletor) }])) ===
+      true
+    )
   }
 
   async limparCache(): Promise<void> {
@@ -284,7 +310,9 @@ class PaginaContaElectron implements PaginaConta {
   }
 
   telaCheia(): void {
-    const j = this.janelaAtual as (BaseWindow & { setFullScreen?: (v: boolean) => void; isFullScreen?: () => boolean }) | null
+    const j = this.janelaAtual as
+      | (BaseWindow & { setFullScreen?: (v: boolean) => void; isFullScreen?: () => boolean })
+      | null
     if (j?.setFullScreen && j.isFullScreen) j.setFullScreen(!j.isFullScreen())
   }
 }
@@ -312,7 +340,9 @@ export class FabricaPaginasElectron implements FabricaPaginas {
   async gravarSessoes(): Promise<void> {
     await Promise.all(
       [...this.paginas.values()].map((p) =>
-        p.view.webContents.isDestroyed() ? undefined : p.view.webContents.session.cookies.flushStore().catch(() => {}),
+        p.view.webContents.isDestroyed()
+          ? undefined
+          : p.view.webContents.session.cookies.flushStore().catch(() => {}),
       ),
     )
   }
@@ -341,7 +371,9 @@ export class FabricaPaginasElectron implements FabricaPaginas {
 
   private pendentes(): string[] {
     try {
-      return existsSync(this.arquivoPendentes) ? (JSON.parse(readFileSync(this.arquivoPendentes, 'utf8')) as string[]) : []
+      return existsSync(this.arquivoPendentes)
+        ? (JSON.parse(readFileSync(this.arquivoPendentes, 'utf8')) as string[])
+        : []
     } catch {
       return []
     }

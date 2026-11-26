@@ -1,5 +1,5 @@
-import { contextBridge, ipcRenderer } from 'electron'
 import { canalIpc, eventoIpc, eventos, NOMES_CANAIS } from '@shared/ipc/nomes.ts'
+import { contextBridge, ipcRenderer } from 'electron'
 
 /**
  * Preload da interface (a única página com preload; Seção 0, regra 4).

@@ -1,47 +1,50 @@
 <script lang="ts">
-  import { t } from '@shared/i18n/index.ts'
-  import type { Conta } from '@shared/tipos/dominio.ts'
-  import { chamar } from '../estado/api.ts'
-  import { registrarEspaco } from '../estado/espacos.ts'
-  import { loja } from '../estado/loja.svelte.ts'
-  import Icone from './Icone.svelte'
-  import SeloEstado from './SeloEstado.svelte'
+import { t } from '@shared/i18n/index.ts'
+import type { Conta } from '@shared/tipos/dominio.ts'
+import { chamar } from '../estado/api.ts'
+import { registrarEspaco } from '../estado/espacos.ts'
+import { loja } from '../estado/loja.svelte.ts'
+import Icone from './Icone.svelte'
+import SeloEstado from './SeloEstado.svelte'
 
-  let {
-    conta,
-    tipo = 'conta',
-    faixa = true,
-    aoClicar,
-  }: { conta: Conta; tipo?: 'conta' | 'miniatura'; faixa?: boolean; aoClicar?: () => void } = $props()
+let {
+  conta,
+  tipo = 'conta',
+  faixa = true,
+  aoClicar,
+}: { conta: Conta; tipo?: 'conta' | 'miniatura'; faixa?: boolean; aoClicar?: () => void } = $props()
 
-  let corpo: HTMLDivElement | undefined = $state()
-  const est = $derived(loja.snap?.estados[conta.id])
-  const estado = $derived(est?.estado ?? 'desligada')
-  const ativa = $derived(loja.snap?.ativaId === conta.id)
-  const foto = $derived(loja.fotos[conta.id])
-  const temLive = $derived((loja.snap?.lives ?? []).some((l) => l.contaId === conta.id && l.ligada))
-  const ligada = $derived(estado !== 'desligada')
-  const aoVivo = $derived(estado === 'ativa' && tipo === 'conta' && loja.dialogos.length === 0)
+let corpo: HTMLDivElement | undefined = $state()
+const est = $derived(loja.snap?.estados[conta.id])
+const estado = $derived(est?.estado ?? 'desligada')
+const ativa = $derived(loja.snap?.ativaId === conta.id)
+const foto = $derived(loja.fotos[conta.id])
+const temLive = $derived((loja.snap?.lives ?? []).some((l) => l.contaId === conta.id && l.ligada))
+const ligada = $derived(estado !== 'desligada')
+const aoVivo = $derived(estado === 'ativa' && tipo === 'conta' && loja.dialogos.length === 0)
 
-  $effect(() => {
-    if (!corpo) return
-    return registrarEspaco({ contaId: conta.id, el: corpo, tipo, visivel: () => true })
+$effect(() => {
+  if (!corpo) return
+  return registrarEspaco({ contaId: conta.id, el: corpo, tipo, visivel: () => true })
+})
+
+function clicar() {
+  if (aoClicar) aoClicar()
+  else void chamar('contas.ativar', { id: conta.id })
+}
+
+function menu(e: MouseEvent) {
+  const b = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  void chamar('contas.menu', { id: conta.id, x: Math.round(b.left), y: Math.round(b.bottom) })
+}
+
+async function ligar() {
+  const r = await chamar<'contas.lote', { ok: boolean; excessos?: unknown[] }>('contas.lote', {
+    ids: [conta.id],
+    acao: 'ligar',
   })
-
-  function clicar() {
-    if (aoClicar) aoClicar()
-    else void chamar('contas.ativar', { id: conta.id })
-  }
-
-  function menu(e: MouseEvent) {
-    const b = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    void chamar('contas.menu', { id: conta.id, x: Math.round(b.left), y: Math.round(b.bottom) })
-  }
-
-  async function ligar() {
-    const r = await chamar<'contas.lote', { ok: boolean; excessos?: unknown[] }>('contas.lote', { ids: [conta.id], acao: 'ligar' })
-    if (!r.ok && r.excessos) void chamar('contas.lote', { ids: [conta.id], acao: 'ligar', confirmado: true })
-  }
+  if (!r.ok && r.excessos) void chamar('contas.lote', { ids: [conta.id], acao: 'ligar', confirmado: true })
+}
 </script>
 
 <div class="moldura" class:ativa class:miniatura={tipo === 'miniatura'} style:--cor-conta={conta.cor} data-conta={conta.id}>

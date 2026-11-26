@@ -22,22 +22,24 @@ test('toda página tem sandbox e isolamento, sem nodeIntegration nem preload (ex
       const t = (globalThis as H).hdeckTeste
       const interfaces = new Set(t.janelas.interfaces().map((w: { id: number }) => w.id))
       const todas = webContents.getAllWebContents().filter((wc) => !wc.getURL().startsWith('devtools://'))
-      return Promise.all(todas.map(async (wc) => {
-        const p = wc.getLastWebPreferences() ?? {}
-        // Só a interface recebe a ponte do preload.
-        const ponte = await wc.executeJavaScript('typeof window.hdeck').catch(() => 'erro')
-        return {
-          url: wc.getURL(),
-          interface: interfaces.has(wc.id),
-          sandbox: p.sandbox,
-          isolamento: p.contextIsolation,
-          node: p.nodeIntegration,
-          preload: ponte === 'object',
-          webview: p.webviewTag,
-          travaWebview: wc.listenerCount('will-attach-webview') > 0,
-          travaNavegacao: wc.listenerCount('will-navigate') > 0,
-        }
-      }))
+      return Promise.all(
+        todas.map(async (wc) => {
+          const p = (wc as H).getLastWebPreferences?.() ?? {}
+          // Só a interface recebe a ponte do preload.
+          const ponte = await wc.executeJavaScript('typeof window.hdeck').catch(() => 'erro')
+          return {
+            url: wc.getURL(),
+            interface: interfaces.has(wc.id),
+            sandbox: p.sandbox,
+            isolamento: p.contextIsolation,
+            node: p.nodeIntegration,
+            preload: ponte === 'object',
+            webview: p.webviewTag,
+            travaWebview: wc.listenerCount('will-attach-webview') > 0,
+            travaNavegacao: wc.listenerCount('will-navigate') > 0,
+          }
+        }),
+      )
     })
     expect(paginas.length).toBeGreaterThanOrEqual(3)
     for (const p of paginas) {
@@ -86,9 +88,12 @@ test('RN-153 navegação para file:, javascript: e esquemas externos bloqueada',
     for (const destino of ['file:///C:/Windows/win.ini', 'steam://run/1', 'http://example.com/']) {
       await naConta(a, c!, `location.href = ${JSON.stringify(destino)}`)
       await new Promise((r) => setTimeout(r, 800))
-      expect(await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.getURL(), c!)).toContain(
-        '/jogo',
-      )
+      expect(
+        await a.app.evaluate(
+          (_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.getURL(),
+          c!,
+        ),
+      ).toContain('/jogo')
     }
   } finally {
     await a.fechar()
@@ -114,13 +119,19 @@ test('RN-005 o HDeck não bloqueia anúncios nem conteúdo dos sites', async () 
 test('IPC de remetente estranho é recusado', async () => {
   const a = await abrirApp()
   try {
-    const r = await a.app.evaluate(async ({ BrowserWindow }, preload) => {
-      const w = new BrowserWindow({ show: false, webPreferences: { preload, sandbox: true, contextIsolation: true } })
-      await w.loadURL('app://hdeck/index.html?janela=intrusa')
-      const resposta = await w.webContents.executeJavaScript('window.hdeck.estado.obter()')
-      w.destroy()
-      return resposta
-    }, join(process.cwd(), 'out/preload/shell.cjs'))
+    const r = await a.app.evaluate(
+      async ({ BrowserWindow }, preload) => {
+        const w = new BrowserWindow({
+          show: false,
+          webPreferences: { preload, sandbox: true, contextIsolation: true },
+        })
+        await w.loadURL('app://hdeck/index.html?janela=intrusa')
+        const resposta = await w.webContents.executeJavaScript('window.hdeck.estado.obter()')
+        w.destroy()
+        return resposta
+      },
+      join(process.cwd(), 'out/preload/shell.cjs'),
+    )
     expect(r).toEqual({ ok: false, erro: 'remetente' })
     // A interface de verdade consegue.
     const ok = await a.janela.evaluate(() => (window as H).hdeck.estado.obter())
@@ -146,7 +157,9 @@ test('RN-003 RN-004 sem contas, o app não fala com nenhum servidor', async () =
       await new Promise((r) => setTimeout(r, 15_000))
       return vistos
     })
-    const externos = destinos.filter((u) => !/^(app|devtools|chrome|data|blob):/.test(u) && !u.startsWith('http://localhost'))
+    const externos = destinos.filter(
+      (u) => !/^(app|devtools|chrome|data|blob):/.test(u) && !u.startsWith('http://localhost'),
+    )
     expect(externos).toEqual([])
   } finally {
     await a.fechar()
@@ -179,4 +192,32 @@ test('fuses do executável empacotado com os valores da Seção 11', async () =>
   expect(f[FuseV1Options.EnableEmbeddedAsarIntegrityValidation]).toBe(49)
   expect(f[FuseV1Options.OnlyLoadAppFromAsar]).toBe(49)
   expect(f[FuseV1Options.GrantFileProtocolExtraPrivileges]).toBe(48)
+})
+
+test('RN-172 o executável empacotado abre a interface com o app de dentro do asar', async () => {
+  const exe = join(process.cwd(), 'dist/win-unpacked/HDeck.exe')
+  test.skip(!existsSync(exe), 'rode pnpm dist antes para gerar o executável')
+  const { spawn } = await import('node:child_process')
+  const { mkdtempSync, readFileSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const pasta = mkdtempSync(join(tmpdir(), 'hdeck-exe-'))
+  // Com as fuses, o Playwright não consegue se ligar ao executável (sem --inspect): confere pelo log.
+  const p = spawn(exe, [], { env: { ...process.env, HDECK_DADOS: pasta } })
+  try {
+    const log = () => {
+      try {
+        return readFileSync(join(pasta, 'logs', 'main.log'), 'utf8')
+      } catch {
+        return ''
+      }
+    }
+    await expect.poll(log, { timeout: 30_000 }).toContain('interface carregada')
+    // RunAsNode desligado: o executável não vira um Node com ELECTRON_RUN_AS_NODE.
+    const r = spawnSync(exe, ['-e', 'console.log(1+1)'], { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, timeout: 5000 })
+    expect(String(r.stdout ?? '').trim()).not.toBe('2')
+  } finally {
+    p.kill()
+    await new Promise((r) => setTimeout(r, 1500))
+    rmSync(pasta, { recursive: true, force: true, maxRetries: 5 })
+  }
 })

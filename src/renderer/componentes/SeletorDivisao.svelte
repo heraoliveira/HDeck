@@ -1,74 +1,96 @@
 <script lang="ts">
-  import { t, tDinamico } from '@shared/i18n/index.ts'
-  import { calcularEspacos } from '@shared/layout/layout.ts'
-  import { type Divisao, divisaoSchema, type Grupo, type RetanguloNorm, type Visao } from '@shared/tipos/dominio.ts'
-  import { chamar } from '../estado/api.ts'
-  import Modal from './Modal.svelte'
+import { t, tDinamico } from '@shared/i18n/index.ts'
+import { calcularEspacos } from '@shared/layout/layout.ts'
+import {
+  type Divisao,
+  divisaoSchema,
+  type Grupo,
+  type RetanguloNorm,
+  type Visao,
+} from '@shared/tipos/dominio.ts'
+import { untrack } from 'svelte'
+import { chamar } from '../estado/api.ts'
+import Modal from './Modal.svelte'
 
-  /** Seletor de visão e divisão com prévia em miniatura (Seção 7.2) e editor da Personalizada. */
-  let { grupo, aoFechar }: { grupo: Grupo; aoFechar: () => void } = $props()
-  const visoes: Visao[] = ['grade', 'principal', 'foco', 'painel']
-  const divisoes = divisaoSchema.options
-  let editando = $state(grupo.layout.divisao === 'personalizada')
-  let colunas = $state(cortesIniciais('x'))
-  let linhas = $state(cortesIniciais('y'))
+/** Seletor de visão e divisão com prévia em miniatura (Seção 7.2) e editor da Personalizada. */
+let { grupo, aoFechar }: { grupo: Grupo; aoFechar: () => void } = $props()
+const visoes: Visao[] = ['grade', 'principal', 'foco', 'painel']
+const divisoes = divisaoSchema.options
+let editando = $state(untrack(() => grupo.layout.divisao === 'personalizada'))
+let colunas = $state(cortesIniciais('x'))
+let linhas = $state(cortesIniciais('y'))
 
-  function cortesIniciais(eixo: 'x' | 'y'): number[] {
-    const p = grupo.layout.personalizada
-    if (p.length === 0) return [0.5]
-    const v = [...new Set(p.map((r) => (eixo === 'x' ? r.x : r.y)).filter((n) => n > 0.001))].sort()
-    return v.length > 0 ? v : [0.5]
-  }
+function cortesIniciais(eixo: 'x' | 'y'): number[] {
+  const p = untrack(() => grupo.layout.personalizada)
+  if (p.length === 0) return [0.5]
+  const v = [...new Set(p.map((r) => (eixo === 'x' ? r.x : r.y)).filter((n) => n > 0.001))].sort()
+  return v.length > 0 ? v : [0.5]
+}
 
-  async function escolher(visao: Visao, divisao?: Divisao) {
-    await chamar('grupos.layout', { id: grupo.id, visao, ...(divisao ? { layout: { divisao } } : {}) })
-    if (divisao === 'personalizada') editando = true
-    else aoFechar()
-  }
+async function escolher(visao: Visao, divisao?: Divisao) {
+  await chamar('grupos.layout', { id: grupo.id, visao, ...(divisao ? { layout: { divisao } } : {}) })
+  if (divisao === 'personalizada') editando = true
+  else aoFechar()
+}
 
-  /** A grade personalizada vira retângulos sem sobreposição (RN-042). */
-  function retangulos(): RetanguloNorm[] {
-    const xs = [0, ...colunas, 1]
-    const ys = [0, ...linhas, 1]
-    const out: RetanguloNorm[] = []
-    for (let j = 0; j < ys.length - 1; j++)
-      for (let i = 0; i < xs.length - 1; i++)
-        out.push({ x: xs[i]!, y: ys[j]!, l: Math.max(0.02, xs[i + 1]! - xs[i]!), a: Math.max(0.02, ys[j + 1]! - ys[j]!) })
-    return out.slice(0, 16)
-  }
-  async function salvarPersonalizada() {
-    await chamar('grupos.layout', { id: grupo.id, visao: 'grade', layout: { divisao: 'personalizada', personalizada: retangulos() } })
-    aoFechar()
-  }
+/** A grade personalizada vira retângulos sem sobreposição (RN-042). */
+function retangulos(): RetanguloNorm[] {
+  const xs = [0, ...colunas, 1]
+  const ys = [0, ...linhas, 1]
+  const out: RetanguloNorm[] = []
+  for (let j = 0; j < ys.length - 1; j++)
+    for (let i = 0; i < xs.length - 1; i++)
+      out.push({
+        x: xs[i]!,
+        y: ys[j]!,
+        l: Math.max(0.02, xs[i + 1]! - xs[i]!),
+        a: Math.max(0.02, ys[j + 1]! - ys[j]!),
+      })
+  return out.slice(0, 16)
+}
+async function salvarPersonalizada() {
+  await chamar('grupos.layout', {
+    id: grupo.id,
+    visao: 'grade',
+    layout: { divisao: 'personalizada', personalizada: retangulos() },
+  })
+  aoFechar()
+}
 
-  let area: HTMLDivElement | undefined = $state()
-  function arrastar(e: PointerEvent, eixo: 'x' | 'y', i: number) {
-    const el = area
-    if (!el) return
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    const mover = (ev: PointerEvent) => {
-      const b = el.getBoundingClientRect()
-      const lista = eixo === 'x' ? colunas : linhas
-      const min = (lista[i - 1] ?? 0) + 0.08
-      const max = (lista[i + 1] ?? 1) - 0.08
-      const v = eixo === 'x' ? (ev.clientX - b.left) / b.width : (ev.clientY - b.top) / b.height
-      lista[i] = Math.min(max, Math.max(min, v))
-    }
-    const soltar = () => {
-      window.removeEventListener('pointermove', mover)
-      window.removeEventListener('pointerup', soltar)
-    }
-    window.addEventListener('pointermove', mover)
-    window.addEventListener('pointerup', soltar)
-  }
-  function tecla(e: KeyboardEvent, eixo: 'x' | 'y', i: number) {
+let area: HTMLDivElement | undefined = $state()
+function arrastar(e: PointerEvent, eixo: 'x' | 'y', i: number) {
+  const el = area
+  if (!el) return
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  const mover = (ev: PointerEvent) => {
+    const b = el.getBoundingClientRect()
     const lista = eixo === 'x' ? colunas : linhas
-    const passo = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 0.02 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -0.02 : 0
-    if (!passo) return
-    e.preventDefault()
-    lista[i] = Math.min((lista[i + 1] ?? 1) - 0.08, Math.max((lista[i - 1] ?? 0) + 0.08, lista[i]! + passo))
+    const min = (lista[i - 1] ?? 0) + 0.08
+    const max = (lista[i + 1] ?? 1) - 0.08
+    const v = eixo === 'x' ? (ev.clientX - b.left) / b.width : (ev.clientY - b.top) / b.height
+    lista[i] = Math.min(max, Math.max(min, v))
   }
-  const previa = (d: Divisao) => calcularEspacos(d, { largura: 64, altura: 40 }, { contas: 4, personalizada: grupo.layout.personalizada })
+  const soltar = () => {
+    window.removeEventListener('pointermove', mover)
+    window.removeEventListener('pointerup', soltar)
+  }
+  window.addEventListener('pointermove', mover)
+  window.addEventListener('pointerup', soltar)
+}
+function tecla(e: KeyboardEvent, eixo: 'x' | 'y', i: number) {
+  const lista = eixo === 'x' ? colunas : linhas
+  const passo =
+    e.key === 'ArrowRight' || e.key === 'ArrowDown'
+      ? 0.02
+      : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+        ? -0.02
+        : 0
+  if (!passo) return
+  e.preventDefault()
+  lista[i] = Math.min((lista[i + 1] ?? 1) - 0.08, Math.max((lista[i - 1] ?? 0) + 0.08, lista[i]! + passo))
+}
+const previa = (d: Divisao) =>
+  calcularEspacos(d, { largura: 64, altura: 40 }, { contas: 4, personalizada: grupo.layout.personalizada })
 </script>
 
 <Modal titulo={t('titulo.divisao')} {aoFechar} largura={720}>

@@ -1,173 +1,199 @@
 <script lang="ts">
-  import type { Especial } from '@shared/configuracoes/catalogo.ts'
-  import { ATALHOS_PADRAO, COMANDOS, textoDaTecla } from '@shared/dados/atalhos.ts'
-  import { type ChaveTexto, t, tDinamico } from '@shared/i18n/index.ts'
-  import { type Aviso, type Jogo, type TextoVigiado, tiposAviso } from '@shared/tipos/dominio.ts'
-  import { chamar, tentar } from '../estado/api.ts'
-  import { loja, mensagem } from '../estado/loja.svelte.ts'
+import type { Especial } from '@shared/configuracoes/catalogo.ts'
+import { ATALHOS_PADRAO, COMANDOS, textoDaTecla } from '@shared/dados/atalhos.ts'
+import { type ChaveTexto, t, tDinamico } from '@shared/i18n/index.ts'
+import { type Aviso, type Jogo, type TextoVigiado, tiposAviso } from '@shared/tipos/dominio.ts'
+import { chamar, tentar } from '../estado/api.ts'
+import { loja, mensagem } from '../estado/loja.svelte.ts'
 
-  let { qual }: { qual: Especial } = $props()
-  const s = $derived(loja.snap!)
+let { qual }: { qual: Especial } = $props()
+const s = $derived(loja.snap!)
 
-  // ---------- atalhos ----------
-  let gravando: string | null = $state(null)
-  function gravarTecla(e: KeyboardEvent, cmd: string) {
-    if (gravando !== cmd) return
-    e.preventDefault()
-    e.stopPropagation()
-    if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return
-    const tecla = textoDaTecla({ key: e.key, control: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, meta: e.metaKey })
-    gravando = null
-    void chamar('config.alterar', { caminho: 'geral.atalhos', valor: { ...s.config.geral.atalhos, [cmd]: tecla } })
-  }
-  const nomeComando = (c: string) => {
-    if (/^conta\.\d$/.test(c)) return `${t('visao.foco')} ${c.slice(-1)}`
-    if (/^grupo\.\d$/.test(c)) return `${t('lateral.grupos')} ${c.slice(-1)}`
-    const mapa: Record<string, ChaveTexto> = {
-      'conta.proxima': 'paleta.dica',
-      'conta.anterior': 'paleta.dica',
-      'conta.recarregar': 'conta.recarregar',
-      'grupo.recarregar': 'titulo.recarregarGrupo',
-      'conta.som': 'titulo.som',
-      'economia.alternar': 'titulo.economia',
-      paleta: 'paleta.dica',
-      configuracoes: 'titulo.configuracoes',
-      'conta.telaCheia': 'visao.foco',
-      'conta.preencherLogin': 'conta.preencherLogin',
-    }
-    if (c === 'conta.proxima') return '→'
-    if (c === 'conta.anterior') return '←'
-    return t(mapa[c] ?? 'paleta.dica')
-  }
-
-  // ---------- jogos ----------
-  let editando: (Jogo & { dominiosTexto: string }) | null = $state(null)
-  const novoJogo = (): Jogo & { dominiosTexto: string } => ({
-    id: `jogo-${Date.now().toString(36)}`,
-    nome: '',
-    dominios: [],
-    dominiosTexto: '',
-    urlInicial: 'https://',
-    icone: '🎮',
-    farmaEscondido: true,
-    dadosContinuos: false,
-    semDadosMinPadrao: 0,
-    limiteContas: null,
-    bonusLive: false,
-    plataformasLive: [],
-    wsPrincipal: null,
-    seletoresLogin: null,
-    seletorPedeLogin: null,
-    canvas: false,
-    origem: 'usuario',
+// ---------- atalhos ----------
+let gravando: string | null = $state(null)
+function gravarTecla(e: KeyboardEvent, cmd: string) {
+  if (gravando !== cmd) return
+  e.preventDefault()
+  e.stopPropagation()
+  if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return
+  const tecla = textoDaTecla({
+    key: e.key,
+    control: e.ctrlKey,
+    shift: e.shiftKey,
+    alt: e.altKey,
+    meta: e.metaKey,
   })
-  async function salvarJogo() {
-    if (!editando) return
-    const { dominiosTexto, ...j } = editando
-    const dominios = dominiosTexto.split(',').map((d) => d.trim().toLowerCase()).filter(Boolean)
-    const r = await tentar('jogos.salvar', { ...j, dominios })
-    if (r === null) mensagem('erro', t('adicionar.urlInvalida'))
-    else editando = null
-  }
-  async function apagarJogo(id: string) {
-    const ok = await chamar<'jogos.apagar', boolean>('jogos.apagar', { id })
-    if (!ok) mensagem('aviso', t('cfg.jogos.emUso'))
-  }
-
-  // ---------- tipos de aviso ----------
-  const canais = ['windows', 'som', 'selo', 'discord', 'telegram'] as const
-  function alternarTipo(tipo: (typeof tiposAviso)[number], canal: (typeof canais)[number]) {
-    const atual = s.config.avisos.tipos[tipo][canal]
-    void chamar('config.alterar', { caminho: 'avisos.tipos', valor: { ...s.config.avisos.tipos, [tipo]: { ...s.config.avisos.tipos[tipo], [canal]: !atual } } })
-  }
-
-  // ---------- textos vigiados ----------
-  let novoTexto = $state('')
-  let novoEscopo: TextoVigiado['escopo'] = $state('todas')
-  let novoAlvo = $state('')
-  async function adicionarTexto() {
-    if (!novoTexto.trim()) return
-    await chamar('textos.salvar', { texto: novoTexto.trim(), escopo: novoEscopo, alvoId: novoEscopo === 'todas' ? null : novoAlvo || null, ativo: true })
-    novoTexto = ''
-  }
-  /** RN-124: jogos desenhados só em canvas não têm texto para ler. */
-  const jogosCanvas = $derived(s.jogos.filter((j) => j.canvas && s.contas.some((c) => c.jogoId === j.id)))
-
-  // ---------- histórico ----------
-  let historico: Aviso[] = $state([])
-  $effect(() => {
-    if (qual !== 'historico') return
-    void s.naoLidos
-    void tentar<'avisos.listar', Aviso[]>('avisos.listar', { limite: 200 }).then((a) => (historico = a ?? []))
+  gravando = null
+  void chamar('config.alterar', {
+    caminho: 'geral.atalhos',
+    valor: { ...s.config.geral.atalhos, [cmd]: tecla },
   })
+}
+const nomeComando = (c: string) => {
+  if (/^conta\.\d$/.test(c)) return `${t('visao.foco')} ${c.slice(-1)}`
+  if (/^grupo\.\d$/.test(c)) return `${t('lateral.grupos')} ${c.slice(-1)}`
+  const mapa: Record<string, ChaveTexto> = {
+    'conta.proxima': 'paleta.dica',
+    'conta.anterior': 'paleta.dica',
+    'conta.recarregar': 'conta.recarregar',
+    'grupo.recarregar': 'titulo.recarregarGrupo',
+    'conta.som': 'titulo.som',
+    'economia.alternar': 'titulo.economia',
+    paleta: 'paleta.dica',
+    configuracoes: 'titulo.configuracoes',
+    'conta.telaCheia': 'visao.foco',
+    'conta.preencherLogin': 'conta.preencherLogin',
+  }
+  if (c === 'conta.proxima') return '→'
+  if (c === 'conta.anterior') return '←'
+  return t(mapa[c] ?? 'paleta.dica')
+}
 
-  // ---------- segredos ----------
-  let segredo = $state('')
-  async function salvarSegredo(canal: 'discord' | 'telegram') {
-    const r = await chamar<'avisos.segredo', { ok: boolean }>('avisos.segredo', { canal, valor: segredo })
-    if (r.ok) {
-      segredo = ''
-      mensagem('ok', t('comum.salvar'))
-    } else mensagem('erro', t('adicionar.urlInvalida'))
-  }
-  async function testar(canal: 'discord' | 'telegram') {
-    const r = await tentar<'avisos.testar', { ok: boolean; status: number }>('avisos.testar', { canal })
-    if (r?.ok) mensagem('ok', t('avisos.testeOk'))
-    else mensagem('erro', t('avisos.testeFalhou', { erro: String(r?.status ?? '?') }))
-  }
+// ---------- jogos ----------
+let editando: (Jogo & { dominiosTexto: string }) | null = $state(null)
+const novoJogo = (): Jogo & { dominiosTexto: string } => ({
+  id: `jogo-${Date.now().toString(36)}`,
+  nome: '',
+  dominios: [],
+  dominiosTexto: '',
+  urlInicial: 'https://',
+  icone: '🎮',
+  farmaEscondido: true,
+  dadosContinuos: false,
+  semDadosMinPadrao: 0,
+  limiteContas: null,
+  bonusLive: false,
+  plataformasLive: [],
+  wsPrincipal: null,
+  seletoresLogin: null,
+  seletorPedeLogin: null,
+  canvas: false,
+  origem: 'usuario',
+})
+async function salvarJogo() {
+  if (!editando) return
+  const { dominiosTexto, ...j } = editando
+  const dominios = dominiosTexto
+    .split(',')
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean)
+  const r = await tentar('jogos.salvar', { ...j, dominios })
+  if (r === null) mensagem('erro', t('adicionar.urlInvalida'))
+  else editando = null
+}
+async function apagarJogo(id: string) {
+  const ok = await chamar<'jogos.apagar', boolean>('jogos.apagar', { id })
+  if (!ok) mensagem('aviso', t('cfg.jogos.emUso'))
+}
 
-  // ---------- cofre ----------
-  let senha = $state('')
-  let senha2 = $state('')
-  async function criarSenha() {
-    if (senha.length < 4 || senha !== senha2) {
-      mensagem('erro', t('cofre.naoConfere'))
-      return
-    }
-    await chamar('cofre.criarSenha', { senha })
-    senha = senha2 = ''
-  }
-  async function removerSenha() {
-    const r = await chamar<'cofre.removerSenha', { ok: boolean }>('cofre.removerSenha', { senha })
-    if (!r.ok) mensagem('erro', t('cofre.senhaErrada'))
-    senha = ''
-  }
-  async function destrancar() {
-    const r = await chamar<'cofre.destrancar', { ok: boolean }>('cofre.destrancar', { senha })
-    if (!r.ok) mensagem('erro', t('cofre.senhaErrada'))
-    senha = ''
-  }
+// ---------- tipos de aviso ----------
+const canais = ['windows', 'som', 'selo', 'discord', 'telegram'] as const
+function alternarTipo(tipo: (typeof tiposAviso)[number], canal: (typeof canais)[number]) {
+  const atual = s.config.avisos.tipos[tipo][canal]
+  void chamar('config.alterar', {
+    caminho: 'avisos.tipos',
+    valor: { ...s.config.avisos.tipos, [tipo]: { ...s.config.avisos.tipos[tipo], [canal]: !atual } },
+  })
+}
 
-  // ---------- backup ----------
-  let incluirCofre = $state(false)
-  let incluirSessoes = $state(false)
-  let senhaBackup = $state('')
-  async function exportar() {
-    const r = await tentar<'backup.exportar', { ok: boolean; arquivo?: string; erro?: string }>('backup.exportar', {
+// ---------- textos vigiados ----------
+let novoTexto = $state('')
+let novoEscopo: TextoVigiado['escopo'] = $state('todas')
+let novoAlvo = $state('')
+async function adicionarTexto() {
+  if (!novoTexto.trim()) return
+  await chamar('textos.salvar', {
+    texto: novoTexto.trim(),
+    escopo: novoEscopo,
+    alvoId: novoEscopo === 'todas' ? null : novoAlvo || null,
+    ativo: true,
+  })
+  novoTexto = ''
+}
+/** RN-124: jogos desenhados só em canvas não têm texto para ler. */
+const jogosCanvas = $derived(s.jogos.filter((j) => j.canvas && s.contas.some((c) => c.jogoId === j.id)))
+
+// ---------- histórico ----------
+let historico: Aviso[] = $state([])
+$effect(() => {
+  if (qual !== 'historico') return
+  void s.naoLidos
+  void tentar<'avisos.listar', Aviso[]>('avisos.listar', { limite: 200 }).then((a) => (historico = a ?? []))
+})
+
+// ---------- segredos ----------
+let segredo = $state('')
+async function salvarSegredo(canal: 'discord' | 'telegram') {
+  const r = await chamar<'avisos.segredo', { ok: boolean }>('avisos.segredo', { canal, valor: segredo })
+  if (r.ok) {
+    segredo = ''
+    mensagem('ok', t('comum.salvar'))
+  } else mensagem('erro', t('adicionar.urlInvalida'))
+}
+async function testar(canal: 'discord' | 'telegram') {
+  const r = await tentar<'avisos.testar', { ok: boolean; status: number }>('avisos.testar', { canal })
+  if (r?.ok) mensagem('ok', t('avisos.testeOk'))
+  else mensagem('erro', t('avisos.testeFalhou', { erro: String(r?.status ?? '?') }))
+}
+
+// ---------- cofre ----------
+let senha = $state('')
+let senha2 = $state('')
+async function criarSenha() {
+  if (senha.length < 4 || senha !== senha2) {
+    mensagem('erro', t('cofre.naoConfere'))
+    return
+  }
+  await chamar('cofre.criarSenha', { senha })
+  senha = senha2 = ''
+}
+async function removerSenha() {
+  const r = await chamar<'cofre.removerSenha', { ok: boolean }>('cofre.removerSenha', { senha })
+  if (!r.ok) mensagem('erro', t('cofre.senhaErrada'))
+  senha = ''
+}
+async function destrancar() {
+  const r = await chamar<'cofre.destrancar', { ok: boolean }>('cofre.destrancar', { senha })
+  if (!r.ok) mensagem('erro', t('cofre.senhaErrada'))
+  senha = ''
+}
+
+// ---------- backup ----------
+let incluirCofre = $state(false)
+let incluirSessoes = $state(false)
+let senhaBackup = $state('')
+async function exportar() {
+  const r = await tentar<'backup.exportar', { ok: boolean; arquivo?: string; erro?: string }>(
+    'backup.exportar',
+    {
       incluirCofre,
       incluirSessoes,
       ...(senhaBackup ? { senhaBackup } : {}),
-    })
-    if (r?.ok) mensagem('ok', t('backup.feito', { arquivo: r.arquivo ?? '' }))
-    else if (r?.erro) mensagem('erro', t('backup.erro', { erro: r.erro }))
-  }
-  async function importar() {
-    const r = await tentar<'backup.importar', { ok: boolean; erro?: string }>('backup.importar', senhaBackup ? { senhaBackup } : {})
-    if (r?.ok) mensagem('ok', t('backup.importado'))
-    else if (r?.erro === 'senha') mensagem('erro', t('backup.senhaErrada'))
-    else if (r?.erro) mensagem('erro', t('backup.erro', { erro: r.erro }))
-  }
+    },
+  )
+  if (r?.ok) mensagem('ok', t('backup.feito', { arquivo: r.arquivo ?? '' }))
+  else if (r?.erro) mensagem('erro', t('backup.erro', { erro: r.erro }))
+}
+async function importar() {
+  const r = await tentar<'backup.importar', { ok: boolean; erro?: string }>(
+    'backup.importar',
+    senhaBackup ? { senhaBackup } : {},
+  )
+  if (r?.ok) mensagem('ok', t('backup.importado'))
+  else if (r?.erro === 'senha') mensagem('erro', t('backup.senhaErrada'))
+  else if (r?.erro) mensagem('erro', t('backup.erro', { erro: r.erro }))
+}
 
-  // ---------- versão ----------
-  async function procurar() {
-    mensagem('ok', t('atualizacao.procurando'))
-    const r = await tentar<'app.verificarAtualizacao', { tipo: string }>('app.verificarAtualizacao')
-    if (r?.tipo === 'nenhuma') mensagem('ok', t('atualizacao.nenhuma'))
-    else if (r?.tipo === 'erro') mensagem('erro', t('atualizacao.erro'))
-  }
+// ---------- versão ----------
+async function procurar() {
+  mensagem('ok', t('atualizacao.procurando'))
+  const r = await tentar<'app.verificarAtualizacao', { tipo: string }>('app.verificarAtualizacao')
+  if (r?.tipo === 'nenhuma') mensagem('ok', t('atualizacao.nenhuma'))
+  else if (r?.tipo === 'erro') mensagem('erro', t('atualizacao.erro'))
+}
 
-  let contaDevtools = $state('')
-  let confirmarRedefinir = $state(false)
+let contaDevtools = $state('')
+let confirmarRedefinir = $state(false)
 </script>
 
 {#if qual === 'atalhos'}

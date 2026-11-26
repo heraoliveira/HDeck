@@ -263,7 +263,7 @@ export const canais = {
 export type Canal = keyof typeof canais
 export type Entrada<C extends Canal> = z.infer<(typeof canais)[C]>
 
-export { canalIpc, type Evento, eventoIpc, eventos } from './nomes.ts'
+export { canalIpc, type Evento, eventoIpc } from './nomes.ts'
 
 export const nomesDosCanais = Object.keys(canais) as Canal[]
 

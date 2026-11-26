@@ -48,7 +48,11 @@ export function scriptExisteSeletor(seletor: string): string {
  * Usa os seletores ensinados/do catálogo ou, sem eles, o primeiro campo de senha visível
  * e o campo de texto/e-mail antes dele.
  */
-export function scriptPreencher(usuario: string, senha: string, seletores: { usuario: string; senha: string } | null): string {
+export function scriptPreencher(
+  usuario: string,
+  senha: string,
+  seletores: { usuario: string; senha: string } | null,
+): string {
   return `(() => {
     const visivel = (el) => !!el && el.offsetParent !== null && !el.disabled;
     let u = null, s = null;
@@ -103,7 +107,12 @@ export function scriptEnsinar(): string {
 }
 
 /** Estado de uma live (Seção 8.4): só lê elementos do player. */
-export function scriptEstadoLive(s: { video: string; aoVivo: string; offline: string; pedeLogin: string }): string {
+export function scriptEstadoLive(s: {
+  video: string
+  aoVivo: string
+  offline: string
+  pedeLogin: string
+}): string {
   return `(() => {
     const q = (x) => { try { return document.querySelector(x) } catch { return null } };
     const v = q(${json(s.video)});

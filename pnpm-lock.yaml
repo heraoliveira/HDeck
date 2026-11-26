@@ -207,7 +207,7 @@ importers:
         specifier: 24.19.4
         version: 24.19.4
       '@types/ws':
-        specifier: ^8.18.2
+        specifier: 8.18.2
         version: 8.18.2
       '@vitest/coverage-v8':
         specifier: 5.1.2
@@ -243,7 +243,7 @@ importers:
         specifier: 5.1.2
         version: 5.1.2(@types/node@24.19.4)(@vitest/coverage-v8@5.1.2)(happy-dom@21.0.4)(vite@8.4.0(@types/node@24.19.4)(jiti@2.7.0)(yaml@2.9.1))
       ws:
-        specifier: ^8.23.0
+        specifier: 8.23.0
         version: 8.23.0
 
 packages:

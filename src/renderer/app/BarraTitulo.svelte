@@ -1,23 +1,23 @@
 <script lang="ts">
-  import { t, tDinamico } from '@shared/i18n/index.ts'
-  import Icone from '../componentes/Icone.svelte'
-  import { chamar } from '../estado/api.ts'
-  import { abrirDialogo, contasDoGrupo, grupoAtual, loja } from '../estado/loja.svelte.ts'
+import { t, tDinamico } from '@shared/i18n/index.ts'
+import Icone from '../componentes/Icone.svelte'
+import { chamar } from '../estado/api.ts'
+import { abrirDialogo, contasDoGrupo, grupoAtual, loja } from '../estado/loja.svelte.ts'
 
-  let { painel = $bindable(false) }: { painel?: boolean } = $props()
-  const g = $derived(grupoAtual())
-  const s = $derived(loja.snap)
-  const eco = $derived(s?.config.economia.modoEconomico ?? true)
-  const ram = $derived(loja.metricas ? `${(loja.metricas.total.ramMb / 1024).toFixed(1)} GB` : '—')
-  const cpu = $derived(loja.metricas ? loja.metricas.total.cpuPct.toFixed(0) : '—')
+let { painel = $bindable(false) }: { painel?: boolean } = $props()
+const g = $derived(grupoAtual())
+const s = $derived(loja.snap)
+const eco = $derived(s?.config.economia.modoEconomico ?? true)
+const ram = $derived(loja.metricas ? `${(loja.metricas.total.ramMb / 1024).toFixed(1)} GB` : '—')
+const cpu = $derived(loja.metricas ? loja.metricas.total.cpuPct.toFixed(0) : '—')
 
-  function recarregarGrupo() {
-    if (!g || !s) return
-    const ids = contasDoGrupo(g.id)
-      .map((c) => c.id)
-      .filter((id) => s.estados[id]?.estado !== 'desligada')
-    if (ids.length > 0) void chamar('contas.lote', { ids, acao: 'recarregar' })
-  }
+function recarregarGrupo() {
+  if (!g || !s) return
+  const ids = contasDoGrupo(g.id)
+    .map((c) => c.id)
+    .filter((id) => s.estados[id]?.estado !== 'desligada')
+  if (ids.length > 0) void chamar('contas.lote', { ids, acao: 'recarregar' })
+}
 </script>
 
 <header class="titulo">
@@ -64,8 +64,7 @@
     border-bottom: 1px solid var(--borda);
     -webkit-app-region: drag;
   }
-  .titulo button,
-  .titulo select {
+  .titulo button {
     -webkit-app-region: no-drag;
   }
   .logo {

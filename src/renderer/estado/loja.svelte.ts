@@ -4,8 +4,8 @@ import { chamar, ouvir } from './api.ts'
 
 export type Mensagem = { id: number; tipo: 'ok' | 'aviso' | 'erro'; texto: string }
 export type DialogoAberto =
-  | { qual: 'configuracoes'; secao?: string; busca?: string }
-  | { qual: 'adicionarConta'; grupoId?: string }
+  | { qual: 'configuracoes'; secao?: string | undefined; busca?: string | undefined }
+  | { qual: 'adicionarConta'; grupoId?: string | undefined }
   | { qual: 'editarConta' | 'apagarConta' | 'lives' | 'cofre'; id: string }
   | { qual: 'editarGrupo' | 'apagarGrupo'; id: string }
   | { qual: 'novoGrupo' }

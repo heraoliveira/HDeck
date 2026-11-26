@@ -20,10 +20,10 @@ test('RN-010 RN-011 cada conta tem login próprio e ele continua depois de reabr
     [c1!, 'alice'],
     [c2!, 'bruno'],
   ] as const) {
-    await a.app.evaluate(
-      (_e, { id, url }) => (globalThis as H).hdeckTeste.motor.pagina(id).carregar(url),
-      { id, url: `${a.servidor.url}/definir-login?u=${usuario}` },
-    )
+    await a.app.evaluate((_e, { id, url }) => (globalThis as H).hdeckTeste.motor.pagina(id).carregar(url), {
+      id,
+      url: `${a.servidor.url}/definir-login?u=${usuario}`,
+    })
   }
   await expect.poll(() => naConta(a, c1!, "document.getElementById('usuario')?.textContent")).toBe('alice')
   await expect.poll(() => naConta(a, c2!, "document.getElementById('usuario')?.textContent")).toBe('bruno')
@@ -48,7 +48,8 @@ test('RN-050 minimizada, na bandeja e coberta por 2 min: os timers seguem', asyn
   try {
     await garantirJogoFalso(a)
     const [c] = await criarContas(a, 1)
-    const ticks = () => naConta<{ intervalo: number; visivelSempre: boolean }>(a, c!, '({...window.__contagem})')
+    const ticks = () =>
+      naConta<{ intervalo: number; visivelSempre: boolean }>(a, c!, '({...window.__contagem})')
     const antes = await ticks()
     const t0 = Date.now()
     await a.app.evaluate(() => (globalThis as H).hdeckTeste.janelas.principal.minimize())
@@ -97,7 +98,10 @@ test('RN-052 RN-053 RN-044 modo econômico: foto continua farmando, clique põe 
     // Abrir as Configurações troca as views por fotos; fechar devolve.
     await a.janela.getByRole('button', { name: 'Configurações' }).click()
     await esperarEstado(a, c2!, ['economica'])
-    const visivel = await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).getVisible(), c2!)
+    const visivel = await a.app.evaluate(
+      (_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).getVisible(),
+      c2!,
+    )
     expect(visivel).toBe(false)
     await a.janela.keyboard.press('Escape')
     await esperarEstado(a, c2!, ['ativa'])
@@ -112,18 +116,23 @@ test('RN-031 RN-032 trocar para o grupo B desliga o A e abre o B aos poucos', as
     await garantirJogoFalso(a)
     const ids = await criarContas(a, 2)
     const pidsA = await a.app.evaluate(
-      (_e, ids) => ids.map((id: string) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.getOSProcessId()),
+      (_e, ids) =>
+        ids.map((id: string) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.getOSProcessId()),
       ids,
     )
     const { b, contasB } = await a.app.evaluate((_e, url) => {
       const m = (globalThis as H).hdeckTeste.motor
       const b = m.criarGrupo('B')
-      const contasB = [0, 1].map((i) => m.adicionarConta({ grupoId: b.id, jogoId: 'falso', url, nome: `B${i}` }).valor.id)
+      const contasB = [0, 1].map(
+        (i) => m.adicionarConta({ grupoId: b.id, jogoId: 'falso', url, nome: `B${i}` }).valor.id,
+      )
       return { b: b.id, contasB }
     }, `${a.servidor.url}/jogo`)
     const t0 = Date.now()
     await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.motor.trocarGrupo(id, true), b)
-    await expect.poll(() => a.app.evaluate(() => (globalThis as H).hdeckTeste.motor.contasLigadas())).toBeLessThanOrEqual(2)
+    await expect
+      .poll(() => a.app.evaluate(() => (globalThis as H).hdeckTeste.motor.contasLigadas()))
+      .toBeLessThanOrEqual(2)
     for (const id of ids) await esperarEstado(a, id, ['desligada'])
     // Processos do grupo A fechados.
     const vivos = await a.app.evaluate(({ app }, pids) => {
@@ -144,27 +153,31 @@ test('RN-041 RN-042 divisões 2×2, 1+3 e personalizada posicionam as views; red
   try {
     await garantirJogoFalso(a)
     const ids = await criarContas(a, 4)
-    await a.app.evaluate(() => (globalThis as H).hdeckTeste.motor.alterarConfig('economia.modoEconomico', false))
+    await a.app.evaluate(() =>
+      (globalThis as H).hdeckTeste.motor.alterarConfig('economia.modoEconomico', false),
+    )
     const conferir = async () => {
       // A view de cada conta fica exatamente sobre o espaço da moldura na interface.
       for (const id of ids) {
         await expect
           .poll(async () => {
             const caixa = await a.janela.locator(`[data-conta="${id}"] .corpo`).boundingBox()
-            const v = await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).getBounds(), id)
-            return caixa ? Math.abs(caixa.x - v.x) + Math.abs(caixa.y - v.y) + Math.abs(caixa.width - v.width) : 999
+            const v = await a.app.evaluate(
+              (_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).getBounds(),
+              id,
+            )
+            return caixa
+              ? Math.abs(caixa.x - v.x) + Math.abs(caixa.y - v.y) + Math.abs(caixa.width - v.width)
+              : 999
           })
           .toBeLessThanOrEqual(4)
       }
     }
     for (const divisao of ['2x2', '1+3'] as const) {
-      await a.app.evaluate(
-        (_e, d) => {
-          const m = (globalThis as H).hdeckTeste.motor
-          m.definirLayout(m.listarGrupos()[0].id, 'grade', { divisao: d })
-        },
-        divisao,
-      )
+      await a.app.evaluate((_e, d) => {
+        const m = (globalThis as H).hdeckTeste.motor
+        m.definirLayout(m.listarGrupos()[0].id, 'grade', { divisao: d })
+      }, divisao)
       await conferir()
     }
     await a.app.evaluate(() => {
@@ -194,7 +207,9 @@ test('RN-019 conta solta em janela própria e de volta sem recarregar', async ()
     const [c] = await criarContas(a, 1)
     const antes = await naConta<number>(a, c!, 'window.__contagem.intervalo')
     await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.motor.soltar(id), c!)
-    await expect.poll(() => a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.janelas.soltas.has(id), c!)).toBe(true)
+    await expect
+      .poll(() => a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.janelas.soltas.has(id), c!))
+      .toBe(true)
     await expect
       .poll(() =>
         a.app.evaluate((_e, id) => {
@@ -204,10 +219,14 @@ test('RN-019 conta solta em janela própria e de volta sem recarregar', async ()
       )
       .toBe(true)
     await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.janelas.soltas.get(id).close(), c!)
-    await expect.poll(() => a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.janelas.soltas.has(id), c!)).toBe(false)
+    await expect
+      .poll(() => a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.janelas.soltas.has(id), c!))
+      .toBe(false)
     const depois = await naConta<number>(a, c!, 'window.__contagem.intervalo')
     expect(depois).toBeGreaterThan(antes) // o contador não zerou: mesma página
-    expect(await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.motor.snapshot().estados[id].solta, c!)).toBe(false)
+    expect(
+      await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.motor.snapshot().estados[id].solta, c!),
+    ).toBe(false)
   } finally {
     await a.fechar()
   }
@@ -219,7 +238,9 @@ test('RN-070 a interface cai e volta sem recarregar as contas', async () => {
     await garantirJogoFalso(a)
     const [c] = await criarContas(a, 1)
     const antes = await naConta<number>(a, c!, 'window.__contagem.intervalo')
-    await a.app.evaluate(() => (globalThis as H).hdeckTeste.janelas.principal.webContents.forcefullyCrashRenderer())
+    await a.app.evaluate(() =>
+      (globalThis as H).hdeckTeste.janelas.principal.webContents.forcefullyCrashRenderer(),
+    )
     await expect
       .poll(
         () =>

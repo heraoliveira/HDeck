@@ -38,12 +38,18 @@ function medir(): EspacoTela[] {
   const vh = window.innerHeight
   for (const r of registros) {
     const b = r.el.getBoundingClientRect()
-    const naTela = r.visivel() && b.width > 1 && b.height > 1 && b.right > 0 && b.bottom > 0 && b.left < vw && b.top < vh
+    const naTela =
+      r.visivel() && b.width > 1 && b.height > 1 && b.right > 0 && b.bottom > 0 && b.left < vw && b.top < vh
     out.push({
       contaId: r.contaId,
       tipo: r.tipo,
       retangulo: naTela
-        ? { x: Math.round(b.left), y: Math.round(b.top), largura: Math.round(b.width), altura: Math.round(b.height) }
+        ? {
+            x: Math.round(b.left),
+            y: Math.round(b.top),
+            largura: Math.round(b.width),
+            altura: Math.round(b.height),
+          }
         : null,
     })
   }

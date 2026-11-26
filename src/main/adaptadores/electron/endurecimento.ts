@@ -1,6 +1,6 @@
-import { app, BrowserWindow, type Session, shell, type WebContents } from 'electron'
 import { t } from '@shared/i18n/index.ts'
 import { dominioDe, dominioPertence, urlSemParametros } from '@shared/util/texto.ts'
+import { app, BrowserWindow, type Session, shell, type WebContents } from 'electron'
 import type { Log } from '../../nucleo/portas.ts'
 import {
   decidirPopup,
@@ -84,7 +84,8 @@ export function endurecerPagina(wc: WebContents, o: OpcoesEndurecimento): void {
   const filtrarNavegacao = (e: { preventDefault: () => void }, url: string) => {
     if (interface_()) {
       // A interface nunca sai da própria página.
-      if (dominioDe(url) !== dominioDe(wc.getURL()) || !url.startsWith(new URL(wc.getURL()).origin)) e.preventDefault()
+      if (dominioDe(url) !== dominioDe(wc.getURL()) || !url.startsWith(new URL(wc.getURL()).origin))
+        e.preventDefault()
       return
     }
     if (!navegacaoPermitida(url)) {
@@ -95,7 +96,8 @@ export function endurecerPagina(wc: WebContents, o: OpcoesEndurecimento): void {
   wc.on('will-navigate', (e) => filtrarNavegacao(e, e.url))
   wc.on('will-redirect', (e) => filtrarNavegacao(e, e.url))
   wc.on('will-frame-navigate', (e) => {
-    if (!e.isMainFrame && !interface_() && !navegacaoPermitida(e.url) && !e.url.startsWith('about:')) e.preventDefault()
+    if (!e.isMainFrame && !interface_() && !navegacaoPermitida(e.url) && !e.url.startsWith('about:'))
+      e.preventDefault()
   })
 
   // RN-151: pop-ups.
@@ -134,7 +136,12 @@ export function endurecerPagina(wc: WebContents, o: OpcoesEndurecimento): void {
     const origem = dominioDe(wc.getURL())
     filha.webContents.on('did-navigate', (_e, url) => {
       const host = dominioDe(url)
-      if (origem && host && (dominioPertence(host, origem) || dominioPertence(origem, host)) && !filha.isDestroyed())
+      if (
+        origem &&
+        host &&
+        (dominioPertence(host, origem) || dominioPertence(origem, host)) &&
+        !filha.isDestroyed()
+      )
         setTimeout(() => !filha.isDestroyed() && filha.close(), 1000)
     })
   })

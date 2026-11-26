@@ -1,45 +1,47 @@
 <script lang="ts">
-  import { t } from '@shared/i18n/index.ts'
-  import type { Conta } from '@shared/tipos/dominio.ts'
-  import { formatarDuracao } from '@shared/util/texto.ts'
-  import SeloEstado from '../../componentes/SeloEstado.svelte'
-  import { registrarEspaco } from '../../estado/espacos.ts'
-  import { loja } from '../../estado/loja.svelte.ts'
+import { t } from '@shared/i18n/index.ts'
+import type { Conta } from '@shared/tipos/dominio.ts'
+import { formatarDuracao } from '@shared/util/texto.ts'
+import SeloEstado from '../../componentes/SeloEstado.svelte'
+import { registrarEspaco } from '../../estado/espacos.ts'
+import { loja } from '../../estado/loja.svelte.ts'
 
-  let {
-    conta,
-    resumo,
-    selecionada,
-    agora,
-    aoClicar,
-  }: {
-    conta: Conta
-    resumo: { quedasHoje: number; recargasHoje: number; onlineDesde: number | null; ultimoDado: number | null } | undefined
-    selecionada: boolean
-    agora: number
-    aoClicar: (e: MouseEvent) => void
-  } = $props()
+let {
+  conta,
+  resumo,
+  selecionada,
+  agora,
+  aoClicar,
+}: {
+  conta: Conta
+  resumo:
+    | { quedasHoje: number; recargasHoje: number; onlineDesde: number | null; ultimoDado: number | null }
+    | undefined
+  selecionada: boolean
+  agora: number
+  aoClicar: (e: MouseEvent) => void
+} = $props()
 
-  let mini: HTMLDivElement | undefined = $state()
-  let visivel = $state(false)
-  const est = $derived(loja.snap?.estados[conta.id])
-  const m = $derived(loja.metricas?.porConta[conta.id])
-  const lives = $derived((loja.snap?.lives ?? []).filter((l) => l.contaId === conta.id))
-  const grupo = $derived(loja.snap?.grupos.find((g) => g.id === conta.grupoId))
+let mini: HTMLDivElement | undefined = $state()
+let visivel = $state(false)
+const est = $derived(loja.snap?.estados[conta.id])
+const m = $derived(loja.metricas?.porConta[conta.id])
+const lives = $derived((loja.snap?.lives ?? []).filter((l) => l.contaId === conta.id))
+const grupo = $derived(loja.snap?.grupos.find((g) => g.id === conta.grupoId))
 
-  // Só os cartões visíveis na rolagem recebem foto nova (Seção 7.1).
-  $effect(() => {
-    if (!mini) return
-    const io = new IntersectionObserver((e) => {
-      visivel = e.some((x) => x.isIntersecting)
-    })
-    io.observe(mini)
-    return () => io.disconnect()
+// Só os cartões visíveis na rolagem recebem foto nova (Seção 7.1).
+$effect(() => {
+  if (!mini) return
+  const io = new IntersectionObserver((e) => {
+    visivel = e.some((x) => x.isIntersecting)
   })
-  $effect(() => {
-    if (!mini || !visivel || est?.estado === 'desligada') return
-    return registrarEspaco({ contaId: conta.id, el: mini, tipo: 'miniatura', visivel: () => visivel })
-  })
+  io.observe(mini)
+  return () => io.disconnect()
+})
+$effect(() => {
+  if (!mini || !visivel || est?.estado === 'desligada') return
+  return registrarEspaco({ contaId: conta.id, el: mini, tipo: 'miniatura', visivel: () => visivel })
+})
 </script>
 
 <button class="cartao" class:selecionada onclick={aoClicar} style:--cor-conta={conta.cor} aria-pressed={selecionada}>

@@ -30,7 +30,11 @@ export class ClienteHttpFetch implements ClienteHttp {
   async medir(url: string): Promise<{ ms: number | null; status: number }> {
     const t0 = this.agora()
     try {
-      const r = await this.buscar(url, { method: 'HEAD', signal: AbortSignal.timeout(this.limiteMs), cache: 'no-store' })
+      const r = await this.buscar(url, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(this.limiteMs),
+        cache: 'no-store',
+      })
       return { ms: Math.round(this.agora() - t0), status: r.status }
     } catch {
       return { ms: null, status: 0 }

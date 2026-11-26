@@ -5,7 +5,7 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { _electron as electron, type ElectronApplication, expect, type Page } from '@playwright/test'
+import { type ElectronApplication, _electron as electron, expect, type Page } from '@playwright/test'
 import { iniciarServidorFalso, type ServidorFalso } from '../fixtures/servidor.ts'
 
 export type App = {
@@ -34,7 +34,9 @@ export async function abrirApp(
   })
   const janela = await app.firstWindow()
   await janela.waitForLoadState('domcontentloaded')
-  await expect.poll(() => app.evaluate(() => Boolean((globalThis as { hdeckTeste?: unknown }).hdeckTeste))).toBe(true)
+  await expect
+    .poll(() => app.evaluate(() => Boolean((globalThis as { hdeckTeste?: unknown }).hdeckTeste)))
+    .toBe(true)
   return {
     app,
     janela,
@@ -86,7 +88,8 @@ export async function criarContas(a: App, n: number, caminho = '/jogo'): Promise
 
 export async function garantirJogoFalso(a: App): Promise<void> {
   await a.app.evaluate((_e, url) => {
-    const h = (globalThis as unknown as { hdeckTeste: { motor: { salvarJogo(j: unknown): void } } }).hdeckTeste
+    const h = (globalThis as unknown as { hdeckTeste: { motor: { salvarJogo(j: unknown): void } } })
+      .hdeckTeste
     h.motor.salvarJogo({
       id: 'falso',
       nome: 'Jogo Falso',
@@ -113,7 +116,8 @@ export async function esperarEstado(a: App, id: string, estados: string[], timeo
     .poll(
       () =>
         a.app.evaluate(
-          (_e, id) => (globalThis as unknown as { hdeckTeste: Teste }).hdeckTeste.motor.snapshot().estados[id]?.estado,
+          (_e, id) =>
+            (globalThis as unknown as { hdeckTeste: Teste }).hdeckTeste.motor.snapshot().estados[id]?.estado,
           id,
         ),
       { timeout },
@@ -123,15 +127,27 @@ export async function esperarEstado(a: App, id: string, estados: string[], timeo
 
 /** Executa código na página de uma conta (no mundo da página, só para ler contadores do jogo falso). */
 export async function naConta<T>(a: App, id: string, codigo: string): Promise<T> {
-  return a.app.evaluate(
-    async (_e, { id, codigo }) => {
-      const h = (globalThis as unknown as { hdeckTeste: { fabrica: { view(id: string): { webContents: { executeJavaScript(c: string): Promise<unknown> } } | undefined } } }).hdeckTeste
-      try {
-        return await h.fabrica.view(id)?.webContents.executeJavaScript(codigo)
-      } catch {
-        return undefined
-      }
-    },
-    { id, codigo },
-  ).catch(() => undefined) as Promise<T>
+  return a.app
+    .evaluate(
+      async (_e, { id, codigo }) => {
+        const h = (
+          globalThis as unknown as {
+            hdeckTeste: {
+              fabrica: {
+                view(
+                  id: string,
+                ): { webContents: { executeJavaScript(c: string): Promise<unknown> } } | undefined
+              }
+            }
+          }
+        ).hdeckTeste
+        try {
+          return await h.fabrica.view(id)?.webContents.executeJavaScript(codigo)
+        } catch {
+          return undefined
+        }
+      },
+      { id, codigo },
+    )
+    .catch(() => undefined) as Promise<T>
 }

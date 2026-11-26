@@ -1,9 +1,15 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
+import { configSchema } from '@shared/config/esquema.ts'
+import {
+  contaSchema,
+  grupoSchema,
+  jogoSchema,
+  liveSchema,
+  textoVigiadoSchema,
+} from '@shared/tipos/dominio.ts'
 import { z } from 'zod'
 import type { Armazem, ArmazemConfig } from '../../nucleo/portas.ts'
-import { configSchema } from '@shared/config/esquema.ts'
-import { contaSchema, grupoSchema, jogoSchema, liveSchema, textoVigiadoSchema } from '@shared/tipos/dominio.ts'
 import type { Cofre } from './cofre.ts'
 import { criarZip, type EntradaZip, lerZip } from './zip.ts'
 
@@ -12,7 +18,11 @@ import { criarZip, type EntradaZip, lerZip } from './zip.ts'
  * cofre só cifrado com a senha do backup; sessões (cookies) só se pedido.
  */
 
-const manifestoSchema = z.object({ formato: z.literal('hdeck-backup'), versao: z.literal(1), criadoEm: z.number() })
+const manifestoSchema = z.object({
+  formato: z.literal('hdeck-backup'),
+  versao: z.literal(1),
+  criadoEm: z.number(),
+})
 const dadosSchema = z.object({
   jogos: z.array(jogoSchema),
   grupos: z.array(grupoSchema),
@@ -52,7 +62,10 @@ export function exportarBackup(
 ): Buffer | ErroBackup {
   const a = deps.armazem
   const entradas: EntradaZip[] = [
-    { nome: 'manifesto.json', dados: Buffer.from(JSON.stringify({ formato: 'hdeck-backup', versao: 1, criadoEm: deps.agora })) },
+    {
+      nome: 'manifesto.json',
+      dados: Buffer.from(JSON.stringify({ formato: 'hdeck-backup', versao: 1, criadoEm: deps.agora })),
+    },
     { nome: 'config.json', dados: Buffer.from(JSON.stringify(deps.config.ler())) },
     {
       nome: 'dados.json',
@@ -88,7 +101,13 @@ export function exportarBackup(
   return criarZip(entradas)
 }
 
-export type ResumoImportacao = { grupos: number; contas: number; textos: number; logins: number; sessoes: number }
+export type ResumoImportacao = {
+  grupos: number
+  contas: number
+  textos: number
+  logins: number
+  sessoes: number
+}
 
 /** RN-162: restaura tudo o que foi exportado numa pasta de dados (nova ou não). */
 export function importarBackup(

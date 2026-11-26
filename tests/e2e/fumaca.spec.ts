@@ -10,7 +10,11 @@ test('RN-040 o app abre, mostra a grade e as contas do jogo falso', async () => 
     await a.janela.locator('.moldura').first().click()
     await a.janela.screenshot({ path: 'test-results/fumaca-grade.png' })
     const estado = await a.app.evaluate(() => {
-      const h = (globalThis as unknown as { hdeckTeste: { motor: { snapshot(): { estados: Record<string, { estado: string }> } } } }).hdeckTeste
+      const h = (
+        globalThis as unknown as {
+          hdeckTeste: { motor: { snapshot(): { estados: Record<string, { estado: string }> } } }
+        }
+      ).hdeckTeste
       return h.motor.snapshot().estados
     })
     expect(Object.keys(estado)).toEqual(expect.arrayContaining(ids))

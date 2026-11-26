@@ -1,6 +1,16 @@
-import type { CofreLogins, DadosLogin, Seletores } from '../../nucleo/portas.ts'
 import { z } from 'zod'
-import { type CustoScrypt, cifrar, cifrarTexto, decifrar, decifrarTexto, derivarChave, novaChave, novoSal, SCRYPT } from './cripto.ts'
+import type { CofreLogins, DadosLogin, Seletores } from '../../nucleo/portas.ts'
+import {
+  type CustoScrypt,
+  cifrar,
+  cifrarTexto,
+  decifrar,
+  decifrarTexto,
+  derivarChave,
+  novaChave,
+  novoSal,
+  SCRYPT,
+} from './cripto.ts'
 
 /** O `safeStorage` do Electron (DPAPI), por porta para os testes usarem um falso. */
 export interface ProtecaoSistema {
@@ -46,7 +56,8 @@ export class Cofre implements CofreLogins {
       this.chave = k
       return
     }
-    if (!this.senhaMestraLigada()) this.chave = Buffer.from(this.sistema.desproteger(this.armazem.lerMeta('chave')!))
+    if (!this.senhaMestraLigada())
+      this.chave = Buffer.from(this.sistema.desproteger(this.armazem.lerMeta('chave')!))
   }
 
   senhaMestraLigada(): boolean {
@@ -102,7 +113,12 @@ export class Cofre implements CofreLogins {
     }
   }
 
-  salvar(contaId: string, usuario: string, senha: string, seletores: Seletores | null = null): ErroCofre | null {
+  salvar(
+    contaId: string,
+    usuario: string,
+    senha: string,
+    seletores: Seletores | null = null,
+  ): ErroCofre | null {
     if (!this.chave) return 'trancado'
     this.armazem.gravarCofre(
       contaId,
@@ -179,13 +195,25 @@ export class Cofre implements CofreLogins {
     try {
       const k = derivarChave(senhaBackup, Buffer.from(pacote.sal, 'base64'), this.custo)
       itens = z
-        .array(z.object({ contaId: z.string(), usuario: z.string(), senha: z.string(), campos: z.string().nullable() }))
+        .array(
+          z.object({
+            contaId: z.string(),
+            usuario: z.string(),
+            senha: z.string(),
+            campos: z.string().nullable(),
+          }),
+        )
         .parse(JSON.parse(decifrarTexto(k, Buffer.from(pacote.dados, 'base64'))))
     } catch {
       return 'senha'
     }
     for (const i of itens)
-      this.armazem.gravarCofre(i.contaId, cifrarTexto(this.chave, i.usuario), cifrarTexto(this.chave, i.senha), i.campos)
+      this.armazem.gravarCofre(
+        i.contaId,
+        cifrarTexto(this.chave, i.usuario),
+        cifrarTexto(this.chave, i.senha),
+        i.campos,
+      )
     return itens.length
   }
 }

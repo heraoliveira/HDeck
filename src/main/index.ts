@@ -6,6 +6,12 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { extname, join, normalize, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { type Config, configPadrao } from '@shared/config/esquema.ts'
+import { type Comando, comandoDaTecla, mapaDeAtalhos } from '@shared/dados/atalhos.ts'
+import { catalogoDeJogos } from '@shared/dados/catalogo.ts'
+import { t } from '@shared/i18n/index.ts'
+import { type Evento, eventoIpc } from '@shared/ipc/contrato.ts'
+import type { Conta, Grupo } from '@shared/tipos/dominio.ts'
 import {
   app,
   BrowserWindow,
@@ -21,31 +27,39 @@ import {
   shell,
   type WebContents,
 } from 'electron'
-import { type Config, configPadrao } from '@shared/config/esquema.ts'
-import { type Comando, comandoDaTecla, mapaDeAtalhos } from '@shared/dados/atalhos.ts'
-import { catalogoDeJogos } from '@shared/dados/catalogo.ts'
-import { t } from '@shared/i18n/index.ts'
-import { eventoIpc, type Evento } from '@shared/ipc/contrato.ts'
-import type { Conta, Grupo } from '@shared/tipos/dominio.ts'
-import { Atualizador } from './adaptadores/updater.ts'
 import { Bandeja } from './adaptadores/electron/bandeja.ts'
 import { instalarEndurecimento } from './adaptadores/electron/endurecimento.ts'
 import { GerenciadorJanelas } from './adaptadores/electron/janelas.ts'
 import { FabricaLivesElectron } from './adaptadores/electron/live-offscreen.ts'
 import { FabricaPaginasElectron, particaoDa } from './adaptadores/electron/pagina-conta.ts'
-import { type Perguntador, PerguntadorDeTeste, PerguntadorNativo } from './adaptadores/electron/perguntador.ts'
+import {
+  type Perguntador,
+  PerguntadorDeTeste,
+  PerguntadorNativo,
+} from './adaptadores/electron/perguntador.ts'
 import { MUNDO_ISOLADO, scriptEnsinar } from './adaptadores/electron/scripts-pagina.ts'
-import { CanaisLocaisElectron, ouvirEnergia, redeElectron, SistemaElectron } from './adaptadores/electron/sistema.ts'
+import {
+  CanaisLocaisElectron,
+  ouvirEnergia,
+  redeElectron,
+  SistemaElectron,
+} from './adaptadores/electron/sistema.ts'
 import { ArmazemSqlite } from './adaptadores/node/armazem-sqlite.ts'
 import { exportarBackup, importarBackup } from './adaptadores/node/backup.ts'
 import { Cofre } from './adaptadores/node/cofre.ts'
 import { ConfigArquivo } from './adaptadores/node/config-arquivo.ts'
 import { ClienteHttpFetch } from './adaptadores/node/http.ts'
 import { criarLog } from './adaptadores/node/log.ts'
-import { type Contexto, type Manipuladores, registrarIpc } from './ipc/roteador.ts'
+import { Atualizador } from './adaptadores/updater.ts'
+import { type Manipuladores, registrarIpc } from './ipc/roteador.ts'
 import { sugerirJogo } from './nucleo/contas/contas.ts'
+import {
+  aoFecharJanela,
+  iniciarEscondido,
+  opcoesDeInicio,
+  precisaConfirmarSaida,
+} from './nucleo/geral/geral.ts'
 import { Motor } from './nucleo/motor.ts'
-import { aoFecharJanela, iniciarEscondido, opcoesDeInicio, precisaConfirmarSaida } from './nucleo/geral/geral.ts'
 import { podeReabrir } from './nucleo/painel/painel.ts'
 import type { Relogio } from './nucleo/portas.ts'
 import { userAgentLimpo } from './nucleo/seguranca/politicas.ts'
@@ -109,22 +123,35 @@ async function iniciar(): Promise<void> {
   const pastaInterface = normalize(join(import.meta.dirname, '../renderer'))
   protocol.handle('app', async (req) => {
     const u = new URL(req.url)
-    const arq = normalize(join(pastaInterface, decodeURIComponent(u.pathname === '/' ? '/index.html' : u.pathname)))
-    if (!arq.startsWith(pastaInterface + sep) && arq !== pastaInterface) return new Response('proibido', { status: 403 })
+    const arq = normalize(
+      join(pastaInterface, decodeURIComponent(u.pathname === '/' ? '/index.html' : u.pathname)),
+    )
+    if (!arq.startsWith(pastaInterface + sep) && arq !== pastaInterface)
+      return new Response('proibido', { status: 403 })
     const r = await net.fetch(pathToFileURL(arq).toString())
-    const tipos: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' }
+    const tipos: Record<string, string> = {
+      '.html': 'text/html',
+      '.js': 'text/javascript',
+      '.css': 'text/css',
+      '.svg': 'image/svg+xml',
+    }
     return new Response(r.body, {
       status: r.status,
-      headers: { 'content-type': tipos[extname(arq)] ?? 'application/octet-stream', 'content-security-policy': CSP },
+      headers: {
+        'content-type': tipos[extname(arq)] ?? 'application/octet-stream',
+        'content-security-policy': CSP,
+      },
     })
   })
   const urlDev = !app.isPackaged ? process.env.ELECTRON_RENDERER_URL : undefined
   const origemInterface = urlDev ? new URL(urlDev).origin : 'app://hdeck'
-  const urlInterface = (consulta: string) => (urlDev ? `${urlDev}?${consulta}` : `app://hdeck/index.html?${consulta}`)
+  const urlInterface = (consulta: string) =>
+    urlDev ? `${urlDev}?${consulta}` : `app://hdeck/index.html?${consulta}`
 
   const perguntador: Perguntador = modoTeste ? new PerguntadorDeTeste() : new PerguntadorNativo()
   const armazem = new ArmazemSqlite(join(pastaDados, 'hdeck.db'))
-  for (const j of catalogoDeJogos()) if (!armazem.listarJogos().some((x) => x.id === j.id)) armazem.salvarJogo(j)
+  for (const j of catalogoDeJogos())
+    if (!armazem.listarJogos().some((x) => x.id === j.id)) armazem.salvarJogo(j)
   const protecao = {
     disponivel: () => safeStorage.isEncryptionAvailable(),
     proteger: (d: Uint8Array) => safeStorage.encryptString(Buffer.from(d).toString('base64')),
@@ -147,7 +174,9 @@ async function iniciar(): Promise<void> {
     preload: join(import.meta.dirname, '../preload/shell.cjs'),
     urlInterface,
     aoMedirSolta: (contaId, largura, altura) =>
-      motor?.definirEspacos(`solta:${contaId}`, [{ contaId, retangulo: { x: 0, y: 0, largura, altura }, tipo: 'conta' }]),
+      motor?.definirEspacos(`solta:${contaId}`, [
+        { contaId, retangulo: { x: 0, y: 0, largura, altura }, tipo: 'conta' },
+      ]),
     aoFecharSolta: (contaId) => {
       fabrica.voltarParaPrincipal(contaId)
       motor?.definirEspacos(`solta:${contaId}`, [])
@@ -170,11 +199,14 @@ async function iniciar(): Promise<void> {
   instalarEndurecimento({
     ehInterface: (wc) => janelas.idDaInterface(wc) !== null,
     notificacoesDaSessao: (s) =>
-      motor?.listarContas().some((c) => c.notificacoesDaPagina && session.fromPartition(particaoDa(c.id)) === s) ?? false,
+      motor
+        ?.listarContas()
+        .some((c) => c.notificacoesDaPagina && session.fromPartition(particaoDa(c.id)) === s) ?? false,
     modoTeste,
     perguntador,
     log,
-    aoBloquearDownload: (nome) => emitir('mensagem', { tipo: 'aviso', texto: t('dialogo.downloadBloqueado', { nome }) }),
+    aoBloquearDownload: (nome) =>
+      emitir('mensagem', { tipo: 'aviso', texto: t('dialogo.downloadBloqueado', { nome }) }),
   })
 
   const fabrica = new FabricaPaginasElectron({
@@ -205,7 +237,12 @@ async function iniciar(): Promise<void> {
     try {
       const b = readFileSync(c.somArquivo)
       if (b.length > 2 * 1024 * 1024) return {}
-      const tipo = extname(c.somArquivo).toLowerCase() === '.wav' ? 'audio/wav' : extname(c.somArquivo) === '.ogg' ? 'audio/ogg' : 'audio/mpeg'
+      const tipo =
+        extname(c.somArquivo).toLowerCase() === '.wav'
+          ? 'audio/wav'
+          : extname(c.somArquivo) === '.ogg'
+            ? 'audio/ogg'
+            : 'audio/mpeg'
       return { arquivo: `data:${tipo};base64,${b.toString('base64')}` }
     } catch {
       return {}
@@ -240,7 +277,11 @@ async function iniciar(): Promise<void> {
       devolver: (id) => janelas.devolver(id),
     },
     ...(modoTeste && process.env.HDECK_TESTE_TELEGRAM_URL
-      ? { endpoints: { telegram: (tk: string) => `${process.env.HDECK_TESTE_TELEGRAM_URL}/bot${tk}/sendMessage` } }
+      ? {
+          endpoints: {
+            telegram: (tk: string) => `${process.env.HDECK_TESTE_TELEGRAM_URL}/bot${tk}/sendMessage`,
+          },
+        }
       : {}),
   })
   const m = motor
@@ -251,10 +292,17 @@ async function iniciar(): Promise<void> {
     const c = s.config
     if (c !== configAnterior) {
       if (c.geral.atalhos !== configAnterior.geral.atalhos) mapa = mapaDeAtalhos(c.geral.atalhos)
-      if (c.geral.tema !== configAnterior.geral.tema) nativeTheme.themeSource = c.geral.tema === 'sistema' ? 'system' : c.geral.tema === 'claro' ? 'light' : 'dark'
-      if (c.geral.iniciarComWindows !== configAnterior.geral.iniciarComWindows && app.isPackaged && !modoTeste)
+      if (c.geral.tema !== configAnterior.geral.tema)
+        nativeTheme.themeSource =
+          c.geral.tema === 'sistema' ? 'system' : c.geral.tema === 'claro' ? 'light' : 'dark'
+      if (
+        c.geral.iniciarComWindows !== configAnterior.geral.iniciarComWindows &&
+        app.isPackaged &&
+        !modoTeste
+      )
         app.setLoginItemSettings(opcoesDeInicio(c)) // RN-170
-      if (c.atualizacao.canal !== configAnterior.atualizacao.canal) atualizador.definirCanal(c.atualizacao.canal)
+      if (c.atualizacao.canal !== configAnterior.atualizacao.canal)
+        atualizador.definirCanal(c.atualizacao.canal)
       configAnterior = c
     }
     bandeja.atualizar(s.naoLidos)
@@ -376,7 +424,8 @@ async function iniciar(): Promise<void> {
   }
   const ligarGrupoComConfirmacao = async (id: string, trocar: boolean) => {
     let r = trocar ? m.trocarGrupo(id) : m.ligarGrupo(id, true)
-    if (!r.ok && (await confirmarExcessos(r.erro.excessos))) r = trocar ? m.trocarGrupo(id, true) : m.ligarGrupo(id, true, true)
+    if (!r.ok && (await confirmarExcessos(r.erro.excessos)))
+      r = trocar ? m.trocarGrupo(id, true) : m.ligarGrupo(id, true, true)
     return r
   }
 
@@ -394,16 +443,26 @@ async function iniciar(): Promise<void> {
       ligada
         ? { label: t('conta.desligar'), click: () => m.desligarConta(id) }
         : { label: t('conta.ligar'), click: () => void m.lote([id], 'ligar') },
-      { label: c.som ? t('conta.silenciar') : t('conta.ativarSom'), click: () => m.editarConta(id, { som: !c.som }) },
+      {
+        label: c.som ? t('conta.silenciar') : t('conta.ativarSom'),
+        click: () => m.editarConta(id, { som: !c.som }),
+      },
       { type: 'separator' },
       { label: t('conta.soltar'), enabled: ligada, click: () => m.soltar(id) },
-      ...(mostrarLives ? [{ label: `${t('conta.lives')}…`, click: () => dialogoNaInterface('lives', id) }] : []),
+      ...(mostrarLives
+        ? [{ label: `${t('conta.lives')}…`, click: () => dialogoNaInterface('lives', id) }]
+        : []),
       { label: `${t('cfg.cofre.t')}…`, click: () => dialogoNaInterface('cofre', id) },
       { label: t('conta.preencherLogin'), enabled: ligada, click: () => void m.preencherLogin([id]) },
       {
         label: t('conta.foraDaTela'),
         submenu: (['padrao_do_jogo', 'manter', 'economizar'] as const).map((p) => ({
-          label: p === 'padrao_do_jogo' ? t('conta.politicaPadrao') : p === 'manter' ? t('grupo.manterFarmando') : t('grupo.economizar'),
+          label:
+            p === 'padrao_do_jogo'
+              ? t('conta.politicaPadrao')
+              : p === 'manter'
+                ? t('grupo.manterFarmando')
+                : t('grupo.economizar'),
           type: 'radio' as const,
           checked: c.politicaForaTela === p,
           click: () => m.editarConta(id, { politicaForaTela: p }),
@@ -483,10 +542,16 @@ async function iniciar(): Promise<void> {
     url === '' ||
     /^https:\/\/((canary|ptb)\.)?discord(app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(url) ||
     (modoTeste && /^http:\/\/localhost:\d+\//.test(url))
-  const validarToken = (tk: string) => tk === '' || /^\d{5,}:[\w-]{20,}$/.test(tk) || (modoTeste && /^teste:/.test(tk))
+  const validarToken = (tk: string) =>
+    tk === '' || /^\d{5,}:[\w-]{20,}$/.test(tk) || (modoTeste && /^teste:/.test(tk))
 
-  const caminhoDeTeste = () => (globalThis as { hdeckTeste?: { proximoArquivo?: string } }).hdeckTeste?.proximoArquivo
-  async function escolherArquivo(salvar: boolean, nome: string, filtros: Electron.FileFilter[]): Promise<string | null> {
+  const caminhoDeTeste = () =>
+    (globalThis as { hdeckTeste?: { proximoArquivo?: string } }).hdeckTeste?.proximoArquivo
+  async function escolherArquivo(
+    salvar: boolean,
+    nome: string,
+    filtros: Electron.FileFilter[],
+  ): Promise<string | null> {
     const teste = caminhoDeTeste()
     if (modoTeste && teste) return teste
     const w = janelas.principal
@@ -509,7 +574,10 @@ async function iniciar(): Promise<void> {
   }
 
   const desligarTudoDurante = async <T>(fn: () => Promise<T> | T): Promise<T> => {
-    const ligados = m.listarGrupos().filter((g) => g.ligado).map((g) => g.id)
+    const ligados = m
+      .listarGrupos()
+      .filter((g) => g.ligado)
+      .map((g) => g.id)
     for (const g of ligados) m.ligarGrupo(g, false)
     await new Promise((r) => setTimeout(r, 1500)) // o Chromium solta os arquivos das sessões
     try {
@@ -567,13 +635,16 @@ async function iniciar(): Promise<void> {
         if (!pasta) return { ok: false }
         mkdirSync(pasta, { recursive: true })
         const data = new Date().toISOString().replace(/[:.]/g, '-')
-        for (const f of fotos) writeFileSync(join(pasta, `${f.nome.replace(/[^\w\s-]/g, '_')}-${data}.png`), f.dados)
+        for (const f of fotos)
+          writeFileSync(join(pasta, `${f.nome.replace(/[^\w\s-]/g, '_')}-${data}.png`), f.dados)
         emitir('mensagem', { tipo: 'ok', texto: t('lote.fotosSalvas', { n: fotos.length, pasta }) })
         return { ok: true, feitas: fotos.length }
       }
       const r = await m.lote(e.ids, e.acao, { zoom: e.zoom, grupoId: e.grupoId, confirmado: e.confirmado })
       if (r.ok) return { ok: true, ...r.valor }
-      return typeof r.erro === 'string' ? { ok: false, erro: r.erro } : { ok: false, excessos: r.erro.excessos }
+      return typeof r.erro === 'string'
+        ? { ok: false, erro: r.erro }
+        : { ok: false, excessos: r.erro.excessos }
     },
     'contas.espacos': (e, ctx) => m.definirEspacos(ctx.janela, e.espacos),
     'contas.sugerirJogo': (e) => sugerirJogo(e.url, m.listarJogos())?.id ?? null,
@@ -598,7 +669,17 @@ async function iniciar(): Promise<void> {
     'avisos.marcarLidos': () => m.marcarAvisosLidos(),
     'avisos.testar': async (e) => {
       if (e.canal === 'windows') {
-        locais.notificar({ id: 'teste', contaId: null, tipo: 'caiu', mensagem: t('avisos.teste'), criadoEm: Date.now(), lido: true }, t('app.nome'))
+        locais.notificar(
+          {
+            id: 'teste',
+            contaId: null,
+            tipo: 'caiu',
+            mensagem: t('avisos.teste'),
+            criadoEm: Date.now(),
+            lido: true,
+          },
+          t('app.nome'),
+        )
         return { ok: true }
       }
       if (e.canal === 'som') {
@@ -642,15 +723,29 @@ async function iniciar(): Promise<void> {
     'cofre.trancar': () => m.trancarCofre(),
     'cofre.salvar': (e) => {
       m.usarCofre()
-      const erro = cofre.salvar(e.contaId, e.usuario, e.senha, e.seletores ?? cofre.dados(e.contaId)?.seletores ?? null)
+      const erro = cofre.salvar(
+        e.contaId,
+        e.usuario,
+        e.senha,
+        e.seletores ?? cofre.dados(e.contaId)?.seletores ?? null,
+      )
       return { ok: !erro, erro }
     },
     'cofre.obter': (e) => {
       m.usarCofre()
       const d = cofre.dados(e.contaId)
-      return { aberto: cofre.aberto(), usuario: d?.usuario ?? null, temLogin: cofre.contasComLogin().includes(e.contaId), seletores: d?.seletores ?? null }
+      return {
+        aberto: cofre.aberto(),
+        usuario: d?.usuario ?? null,
+        temLogin: cofre.contasComLogin().includes(e.contaId),
+        seletores: d?.seletores ?? null,
+      }
     },
-    'cofre.mostrarSenha': (e) => ({ senha: m.mostrarSenha(e.contaId, () => emitir('mensagem', { tipo: 'esconderSenha', contaId: e.contaId })) }),
+    'cofre.mostrarSenha': (e) => ({
+      senha: m.mostrarSenha(e.contaId, () =>
+        emitir('mensagem', { tipo: 'esconderSenha', contaId: e.contaId }),
+      ),
+    }),
     'cofre.apagar': (e) => cofre.apagar(e.contaId),
     'cofre.preencher': (e) => m.preencherLogin(e.ids),
     'cofre.ensinar': async (e) => {
@@ -677,7 +772,11 @@ async function iniciar(): Promise<void> {
         const gerar = () =>
           exportarBackup(
             { armazem, config: arquivoConfig, cofre, agora: Date.now() },
-            { incluirCofre: e.incluirCofre, senhaBackup: e.senhaBackup, pastaSessoes: e.incluirSessoes ? join(pastaDados, 'Partitions') : undefined },
+            {
+              incluirCofre: e.incluirCofre,
+              senhaBackup: e.senhaBackup,
+              pastaSessoes: e.incluirSessoes ? join(pastaDados, 'Partitions') : undefined,
+            },
           )
         const r = e.incluirSessoes ? await desligarTudoDurante(gerar) : gerar() // RN-161
         if (typeof r === 'string') return { ok: false, erro: r }
@@ -689,7 +788,11 @@ async function iniciar(): Promise<void> {
         const arq = await escolherArquivo(false, '', [{ name: 'Backup do HDeck', extensions: ['hdeck'] }])
         if (!arq) return { ok: false }
         const r = await desligarTudoDurante(() =>
-          importarBackup(readFileSync(arq), { armazem, config: arquivoConfig, cofre, pastaSessoes: join(pastaDados, 'Partitions') }, e.senhaBackup),
+          importarBackup(
+            readFileSync(arq),
+            { armazem, config: arquivoConfig, cofre, pastaSessoes: join(pastaDados, 'Partitions') },
+            e.senhaBackup,
+          ),
         )
         if (typeof r === 'string') return { ok: false, erro: r }
         if (!modoTeste) {
@@ -732,6 +835,7 @@ async function iniciar(): Promise<void> {
 
   // ---------- Janela, bandeja, energia ----------
   const principal = janelas.criarPrincipal()
+  principal.webContents.on('did-finish-load', () => log.info('interface carregada'))
   principal.webContents.on('before-input-event', (ev, input: Input) => {
     if (input.type === 'keyDown' && tratarTecla(input)) ev.preventDefault()
   })

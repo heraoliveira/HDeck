@@ -1,33 +1,43 @@
 <script lang="ts">
-  import { calcularEspacos, contasNosEspacos } from '@shared/layout/layout.ts'
-  import { t } from '@shared/i18n/index.ts'
-  import type { Grupo } from '@shared/tipos/dominio.ts'
-  import MolduraConta from '../../componentes/MolduraConta.svelte'
-  import { chamar } from '../../estado/api.ts'
-  import { contasDoGrupo, loja } from '../../estado/loja.svelte.ts'
+import { t } from '@shared/i18n/index.ts'
+import { calcularEspacos, contasNosEspacos } from '@shared/layout/layout.ts'
+import type { Grupo } from '@shared/tipos/dominio.ts'
+import MolduraConta from '../../componentes/MolduraConta.svelte'
+import { chamar } from '../../estado/api.ts'
+import { contasDoGrupo, loja } from '../../estado/loja.svelte.ts'
 
-  let { grupo, escolhendo = $bindable(null) }: { grupo: Grupo; escolhendo?: number | null } = $props()
-  let largura = $state(0)
-  let altura = $state(0)
-  const GAP = 6
+let { grupo, escolhendo = $bindable(null) }: { grupo: Grupo; escolhendo?: number | null } = $props()
+let largura = $state(0)
+let altura = $state(0)
+const GAP = 6
 
-  const contas = $derived(contasDoGrupo(grupo.id))
-  const rets = $derived(
-    calcularEspacos(
-      grupo.layout.divisao,
-      { largura, altura },
-      { contas: contas.length, personalizada: grupo.layout.personalizada, proporcao169: grupo.layout.proporcao169 },
-    ),
-  )
-  const ocupacao = $derived(contasNosEspacos(rets.length, grupo.layout.espacos, contas.map((c) => c.id)))
+const contas = $derived(contasDoGrupo(grupo.id))
+const rets = $derived(
+  calcularEspacos(
+    grupo.layout.divisao,
+    { largura, altura },
+    {
+      contas: contas.length,
+      personalizada: grupo.layout.personalizada,
+      proporcao169: grupo.layout.proporcao169,
+    },
+  ),
+)
+const ocupacao = $derived(
+  contasNosEspacos(
+    rets.length,
+    grupo.layout.espacos,
+    contas.map((c) => c.id),
+  ),
+)
 
-  /** RN-041: clicar num espaço e depois na conta. */
-  async function escolher(i: number, contaId: string | null) {
-    const espacos = Array.from({ length: rets.length }, (_, k) => grupo.layout.espacos[k] ?? null)
-    espacos[i] = contaId
-    await chamar('grupos.layout', { id: grupo.id, layout: { espacos } })
-    escolhendo = null
-  }
+/** RN-041: clicar num espaço e depois na conta. */
+async function escolher(i: number, contaId: string | null) {
+  const espacos = Array.from({ length: rets.length }, (_, k) => grupo.layout.espacos[k] ?? null)
+  espacos[i] = contaId
+  await chamar('grupos.layout', { id: grupo.id, layout: { espacos } })
+  escolhendo = null
+}
 </script>
 
 <div class="grade" bind:clientWidth={largura} bind:clientHeight={altura}>

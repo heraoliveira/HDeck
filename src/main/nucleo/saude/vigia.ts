@@ -171,7 +171,10 @@ export class VigiaSaude {
     // RN-062: sem declaração no catálogo, a principal é a que mais recebeu no primeiro minuto.
     if (this.secundarias.has(wsId)) return
     if (!this.principalFixada || this.principal === null) {
-      if (this.principal === null || this.relogio.agora() - this.carregadaEm <= PADROES.janelaWsPrincipalSeg * 1000) {
+      if (
+        this.principal === null ||
+        this.relogio.agora() - this.carregadaEm <= PADROES.janelaWsPrincipalSeg * 1000
+      ) {
         const atual = this.principal ? this.ws.get(this.principal) : undefined
         if (!atual || info.quadros > atual.quadros) this.principal = wsId
         this.jaTeveWs = true

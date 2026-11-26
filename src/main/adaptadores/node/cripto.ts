@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto'
 
 /**
  * Criptografia do cofre (Seção 10, ADR 0006): AES-256-GCM e scrypt (N=2^17, r=8, p=1).
@@ -43,8 +43,4 @@ export function cifrarTexto(chave: Uint8Array, texto: string): Buffer {
 
 export function decifrarTexto(chave: Uint8Array, blob: Uint8Array): string {
   return decifrar(chave, blob).toString('utf8')
-}
-
-export function iguais(a: Uint8Array, b: Uint8Array): boolean {
-  return a.length === b.length && timingSafeEqual(a, b)
 }

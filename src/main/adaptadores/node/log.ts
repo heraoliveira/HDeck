@@ -1,8 +1,8 @@
 import { existsSync, renameSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { urlSemParametros } from '@shared/util/texto.ts'
 import electronLog from 'electron-log/main'
 import type { Log } from '../../nucleo/portas.ts'
-import { urlSemParametros } from '@shared/util/texto.ts'
 
 /** Nada de URL com parâmetro, token ou senha nos registros (Seção 3, Logs; RN-143). */
 export function limparDados(dados?: Record<string, unknown>): Record<string, unknown> | undefined {

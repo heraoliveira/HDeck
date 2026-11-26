@@ -1,71 +1,79 @@
 <script lang="ts">
-  import { t } from '@shared/i18n/index.ts'
-  import Modal from '../componentes/Modal.svelte'
-  import SeletorDivisao from '../componentes/SeletorDivisao.svelte'
-  import Configuracoes from '../configuracoes/Configuracoes.svelte'
-  import Especial from '../configuracoes/Especial.svelte'
-  import AdicionarConta from '../dialogos/AdicionarConta.svelte'
-  import Lives from '../dialogos/Lives.svelte'
-  import LoginSalvo from '../dialogos/LoginSalvo.svelte'
-  import Paleta from '../dialogos/Paleta.svelte'
-  import Simples from '../dialogos/Simples.svelte'
-  import { chamar, ouvir } from '../estado/api.ts'
-  import { agendar } from '../estado/espacos.ts'
-  import { abrirDialogo, fecharDialogo, grupoAtual, iniciarLoja, loja } from '../estado/loja.svelte.ts'
-  import { tocar } from '../estado/som.ts'
-  import VisaoFoco from '../visoes/foco/VisaoFoco.svelte'
-  import VisaoGrade from '../visoes/grade/VisaoGrade.svelte'
-  import VisaoPainel from '../visoes/painel/VisaoPainel.svelte'
-  import VisaoPrincipal from '../visoes/principal/VisaoPrincipal.svelte'
-  import BarraLateral from './BarraLateral.svelte'
-  import BarraTitulo from './BarraTitulo.svelte'
+import { t } from '@shared/i18n/index.ts'
+import Modal from '../componentes/Modal.svelte'
+import SeletorDivisao from '../componentes/SeletorDivisao.svelte'
+import Configuracoes from '../configuracoes/Configuracoes.svelte'
+import Especial from '../configuracoes/Especial.svelte'
+import AdicionarConta from '../dialogos/AdicionarConta.svelte'
+import Lives from '../dialogos/Lives.svelte'
+import LoginSalvo from '../dialogos/LoginSalvo.svelte'
+import Paleta from '../dialogos/Paleta.svelte'
+import Simples from '../dialogos/Simples.svelte'
+import { chamar, ouvir } from '../estado/api.ts'
+import { agendar } from '../estado/espacos.ts'
+import { abrirDialogo, fecharDialogo, grupoAtual, iniciarLoja, loja } from '../estado/loja.svelte.ts'
+import { tocar } from '../estado/som.ts'
+import VisaoFoco from '../visoes/foco/VisaoFoco.svelte'
+import VisaoGrade from '../visoes/grade/VisaoGrade.svelte'
+import VisaoPainel from '../visoes/painel/VisaoPainel.svelte'
+import VisaoPrincipal from '../visoes/principal/VisaoPrincipal.svelte'
+import BarraLateral from './BarraLateral.svelte'
+import BarraTitulo from './BarraTitulo.svelte'
 
-  let painel = $state(false)
-  let pronto = $state(false)
-  const grupo = $derived(grupoAtual())
-  const dialogo = $derived(loja.dialogos.at(-1))
-  const semContas = $derived((loja.snap?.contas.length ?? 0) === 0)
+let painel = $state(false)
+let pronto = $state(false)
+const grupo = $derived(grupoAtual())
+const dialogo = $derived(loja.dialogos.at(-1))
+const semContas = $derived((loja.snap?.contas.length ?? 0) === 0)
 
-  $effect(() => {
-    void iniciarLoja().then(() => (pronto = true))
-    return ouvir('comando', (c) => {
-      const x = c as { cmd: string; contaId?: string; qual?: string; id?: string; arquivo?: string }
-      switch (x.cmd) {
-        case 'paleta':
-          if (dialogo?.qual !== 'paleta') abrirDialogo({ qual: 'paleta' })
-          break
-        case 'configuracoes':
-          abrirDialogo({ qual: 'configuracoes' })
-          break
-        case 'focar':
-          if (x.contaId) loja.focoContaId = x.contaId
-          break
-        case 'tocarSom': {
-          const a = loja.snap?.config.avisos
-          if (a) tocar(a.somEscolhido, a.volume, x.arquivo)
-          break
-        }
-        case 'dialogo':
-          if (x.qual && x.id) abrirDialogo({ qual: x.qual as 'lives', id: x.id })
-          break
+$effect(() => {
+  void iniciarLoja().then(() => (pronto = true))
+  return ouvir('comando', (c) => {
+    const x = c as { cmd: string; contaId?: string; qual?: string; id?: string; arquivo?: string }
+    switch (x.cmd) {
+      case 'paleta':
+        if (dialogo?.qual !== 'paleta') abrirDialogo({ qual: 'paleta' })
+        break
+      case 'configuracoes':
+        abrirDialogo({ qual: 'configuracoes' })
+        break
+      case 'focar':
+        if (x.contaId) loja.focoContaId = x.contaId
+        break
+      case 'tocarSom': {
+        const a = loja.snap?.config.avisos
+        if (a) tocar(a.somEscolhido, a.volume, x.arquivo)
+        break
       }
-    })
+      case 'dialogo':
+        if (x.qual && x.id) abrirDialogo({ qual: x.qual as 'lives', id: x.id })
+        break
+    }
   })
+})
 
-  // Tema (Seção 12.1).
-  $effect(() => {
-    const tema = loja.snap?.config.geral.tema ?? 'escuro'
-    const claro = tema === 'claro' || (tema === 'sistema' && matchMedia('(prefers-color-scheme: light)').matches)
-    document.documentElement.dataset.tema = claro ? 'claro' : 'escuro'
-  })
+// Tema (Seção 12.1).
+$effect(() => {
+  const tema = loja.snap?.config.geral.tema ?? 'escuro'
+  const claro =
+    tema === 'claro' || (tema === 'sistema' && matchMedia('(prefers-color-scheme: light)').matches)
+  document.documentElement.dataset.tema = claro ? 'claro' : 'escuro'
+})
 
-  // Mudou a visão, a lateral ou os diálogos: mede os espaços de novo.
-  $effect(() => {
-    void [grupo?.visao, grupo?.layout, painel, loja.lateralRecolhida, loja.dialogos.length, loja.snap?.contas.length]
-    agendar()
-  })
+// Mudou a visão, a lateral ou os diálogos: mede os espaços de novo.
+$effect(() => {
+  void [
+    grupo?.visao,
+    grupo?.layout,
+    painel,
+    loja.lateralRecolhida,
+    loja.dialogos.length,
+    loja.snap?.contas.length,
+  ]
+  agendar()
+})
 
-  const visao = $derived(painel ? 'painel' : (grupo?.visao ?? 'grade'))
+const visao = $derived(painel ? 'painel' : (grupo?.visao ?? 'grade'))
 </script>
 
 <div class="app">

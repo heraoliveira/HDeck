@@ -1,5 +1,5 @@
-import { type BrowserWindow, dialog } from 'electron'
 import { t } from '@shared/i18n/index.ts'
+import { type BrowserWindow, dialog } from 'electron'
 
 export type Pergunta = { mensagem: string; botoes: string[]; janela: BrowserWindow | null; detalhe?: string }
 

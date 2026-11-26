@@ -38,7 +38,6 @@ const canaisDoTipo = z
     telegram: z.boolean().default(true),
   })
   .prefault({})
-export type CanaisDoTipo = z.infer<typeof canaisDoTipo>
 
 const tiposAvisoConfig = z
   .object(

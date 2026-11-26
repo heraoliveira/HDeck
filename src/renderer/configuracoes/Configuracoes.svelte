@@ -1,26 +1,32 @@
 <script lang="ts">
-  import { buscarConfiguracoes, LINHAS, SECOES, type Secao } from '@shared/configuracoes/catalogo.ts'
-  import { t, tDinamico } from '@shared/i18n/index.ts'
-  import Icone from '../componentes/Icone.svelte'
-  import Modal from '../componentes/Modal.svelte'
-  import Especial from './Especial.svelte'
-  import LinhaConfig from './LinhaConfig.svelte'
+import { buscarConfiguracoes, LINHAS, SECOES, type Secao } from '@shared/configuracoes/catalogo.ts'
+import { t, tDinamico } from '@shared/i18n/index.ts'
+import { untrack } from 'svelte'
+import Icone from '../componentes/Icone.svelte'
+import Modal from '../componentes/Modal.svelte'
+import Especial from './Especial.svelte'
+import LinhaConfig from './LinhaConfig.svelte'
 
-  let { aoFechar, secaoInicial = 'geral', buscaInicial = '' }: { aoFechar: () => void; secaoInicial?: string; buscaInicial?: string } = $props()
-  let secao: Secao = $state(SECOES.includes(secaoInicial as Secao) ? (secaoInicial as Secao) : 'geral')
-  let busca = $state(buscaInicial)
+let {
+  aoFechar,
+  secaoInicial = 'geral',
+  buscaInicial = '',
+}: { aoFechar: () => void; secaoInicial?: string | undefined; buscaInicial?: string | undefined } = $props()
+const ini = untrack(() => ({ secao: secaoInicial, busca: buscaInicial }))
+let secao: Secao = $state(SECOES.includes(ini.secao as Secao) ? (ini.secao as Secao) : 'geral')
+let busca = $state(ini.busca)
 
-  /** RN-175: com busca, mostra as linhas de todas as seções que combinam. */
-  const linhas = $derived(busca.trim() ? buscarConfiguracoes(busca) : LINHAS.filter((l) => l.secao === secao))
-  const grupos = $derived.by(() => {
-    const out: { grupo: string; itens: typeof linhas }[] = []
-    for (const l of linhas) {
-      const g = out.find((x) => x.grupo === l.grupo)
-      if (g) g.itens.push(l)
-      else out.push({ grupo: l.grupo, itens: [l] })
-    }
-    return out
-  })
+/** RN-175: com busca, mostra as linhas de todas as seções que combinam. */
+const linhas = $derived(busca.trim() ? buscarConfiguracoes(busca) : LINHAS.filter((l) => l.secao === secao))
+const grupos = $derived.by(() => {
+  const out: { grupo: string; itens: typeof linhas }[] = []
+  for (const l of linhas) {
+    const g = out.find((x) => x.grupo === l.grupo)
+    if (g) g.itens.push(l)
+    else out.push({ grupo: l.grupo, itens: [l] })
+  }
+  return out
+})
 </script>
 
 <Modal titulo={t('config.titulo')} {aoFechar} largura={980}>

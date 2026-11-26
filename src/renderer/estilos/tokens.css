@@ -18,7 +18,7 @@
   --raio-m: 10px;
   --raio-l: 14px;
   --esp: 4px;
-  --fonte: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --fonte: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   --t12: 12px;
   --t13: 13px;
   --t14: 14px;
@@ -30,7 +30,7 @@
   color-scheme: dark;
 }
 
-:root[data-tema='claro'] {
+:root[data-tema="claro"] {
   --fundo-app: #f4f5f8;
   --fundo-painel: #ffffff;
   --fundo-cartao: #ffffff;

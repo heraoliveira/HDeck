@@ -1,51 +1,60 @@
 <script lang="ts">
-  import { t } from '@shared/i18n/index.ts'
-  import Icone from '../componentes/Icone.svelte'
-  import Interruptor from '../componentes/Interruptor.svelte'
-  import { chamar } from '../estado/api.ts'
-  import { abrirDialogo, grupoAtual, loja } from '../estado/loja.svelte.ts'
+import { t } from '@shared/i18n/index.ts'
+import Icone from '../componentes/Icone.svelte'
+import Interruptor from '../componentes/Interruptor.svelte'
+import { chamar } from '../estado/api.ts'
+import { abrirDialogo, grupoAtual, loja } from '../estado/loja.svelte.ts'
 
-  const s = $derived(loja.snap)
-  const grupos = $derived([...(s?.grupos ?? [])].sort((a, b) => a.ordem - b.ordem))
-  let arrastandoGrupo: string | null = $state(null)
+const s = $derived(loja.snap)
+const grupos = $derived([...(s?.grupos ?? [])].sort((a, b) => a.ordem - b.ordem))
+let arrastandoGrupo: string | null = $state(null)
 
-  const contagem = (id: string) => {
-    const contas = s?.contas.filter((c) => c.grupoId === id) ?? []
-    return { total: contas.length, ligadas: contas.filter((c) => s?.estados[c.id]?.estado !== 'desligada').length }
+const contagem = (id: string) => {
+  const contas = s?.contas.filter((c) => c.grupoId === id) ?? []
+  return {
+    total: contas.length,
+    ligadas: contas.filter((c) => s?.estados[c.id]?.estado !== 'desligada').length,
   }
-  const avisosDoGrupo = (id: string) =>
-    (s?.contas ?? []).filter((c) => c.grupoId === id && ['caida', 'erro', 'travada', 'com_aviso'].includes(s?.estados[c.id]?.estado ?? '')).length
+}
+const avisosDoGrupo = (id: string) =>
+  (s?.contas ?? []).filter(
+    (c) =>
+      c.grupoId === id && ['caida', 'erro', 'travada', 'com_aviso'].includes(s?.estados[c.id]?.estado ?? ''),
+  ).length
 
-  async function ligar(id: string, ligado: boolean) {
-    const r = await chamar<'grupos.ligar', { ok: boolean; excessos?: { jogoNome: string; limite: number; total: number }[] }>('grupos.ligar', { id, ligado })
-    if (!r.ok && r.excessos?.[0]) {
-      const e = r.excessos[0]
-      loja.dialogos.push({
-        qual: 'limite',
-        texto: t('limite.texto', { jogo: e.jogoNome, limite: e.limite, total: e.total }),
-        aoConfirmar: () => void chamar('grupos.ligar', { id, ligado, confirmado: true }),
-      })
-    }
+async function ligar(id: string, ligado: boolean) {
+  const r = await chamar<
+    'grupos.ligar',
+    { ok: boolean; excessos?: { jogoNome: string; limite: number; total: number }[] }
+  >('grupos.ligar', { id, ligado })
+  if (!r.ok && r.excessos?.[0]) {
+    const e = r.excessos[0]
+    loja.dialogos.push({
+      qual: 'limite',
+      texto: t('limite.texto', { jogo: e.jogoNome, limite: e.limite, total: e.total }),
+      aoConfirmar: () => void chamar('grupos.ligar', { id, ligado, confirmado: true }),
+    })
   }
-  function menu(e: MouseEvent, id: string) {
-    const b = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    void chamar('grupos.menu', { id, x: Math.round(b.right), y: Math.round(b.top) })
-  }
+}
+function menu(e: MouseEvent, id: string) {
+  const b = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  void chamar('grupos.menu', { id, x: Math.round(b.right), y: Math.round(b.top) })
+}
 
-  /** RN-036: arrastar grupos para reordenar e contas (do Painel/abas) para outro grupo. */
-  function soltar(e: DragEvent, alvo: string) {
-    e.preventDefault()
-    const conta = e.dataTransfer?.getData('application/x-hdeck-conta')
-    if (conta) {
-      void chamar('contas.mover', { id: conta, grupoId: alvo, posicao: 1000 })
-      return
-    }
-    if (!arrastandoGrupo || arrastandoGrupo === alvo) return
-    const ids = grupos.map((g) => g.id).filter((x) => x !== arrastandoGrupo)
-    ids.splice(ids.indexOf(alvo), 0, arrastandoGrupo)
-    void chamar('grupos.reordenar', { ids })
-    arrastandoGrupo = null
+/** RN-036: arrastar grupos para reordenar e contas (do Painel/abas) para outro grupo. */
+function soltar(e: DragEvent, alvo: string) {
+  e.preventDefault()
+  const conta = e.dataTransfer?.getData('application/x-hdeck-conta')
+  if (conta) {
+    void chamar('contas.mover', { id: conta, grupoId: alvo, posicao: 1000 })
+    return
   }
+  if (!arrastandoGrupo || arrastandoGrupo === alvo) return
+  const ids = grupos.map((g) => g.id).filter((x) => x !== arrastandoGrupo)
+  ids.splice(ids.indexOf(alvo), 0, arrastandoGrupo)
+  void chamar('grupos.reordenar', { ids })
+  arrastandoGrupo = null
+}
 </script>
 
 <aside class="lateral" class:recolhida={loja.lateralRecolhida} aria-label={t('lateral.grupos')}>

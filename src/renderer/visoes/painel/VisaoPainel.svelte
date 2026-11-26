@@ -1,103 +1,108 @@
 <script lang="ts">
-  import { type ChaveTexto, t } from '@shared/i18n/index.ts'
-  import type { AcaoLote, PainelDados } from '@shared/ipc/contrato.ts'
-  import GraficoLinha from '../../componentes/GraficoLinha.svelte'
-  import { chamar, tentar } from '../../estado/api.ts'
-  import { loja, mensagem } from '../../estado/loja.svelte.ts'
-  import CartaoConta from './CartaoConta.svelte'
+import { type ChaveTexto, t } from '@shared/i18n/index.ts'
+import type { AcaoLote, PainelDados } from '@shared/ipc/contrato.ts'
+import GraficoLinha from '../../componentes/GraficoLinha.svelte'
+import { chamar, tentar } from '../../estado/api.ts'
+import { loja, mensagem } from '../../estado/loja.svelte.ts'
+import CartaoConta from './CartaoConta.svelte'
 
-  let dados: PainelDados | null = $state(null)
-  let agora = $state(Date.now())
-  let ordem: 'nome' | 'estado' | 'ram' | 'quedas' = $state('nome')
-  let filtro: 'todas' | 'ligadas' | 'problemas' = $state('todas')
-  let ultimoClique: string | null = null
+let dados = $state<PainelDados | null>(null)
+let agora = $state(Date.now())
+let ordem: 'nome' | 'estado' | 'ram' | 'quedas' = $state('nome')
+let filtro: 'todas' | 'ligadas' | 'problemas' = $state('todas')
+let ultimoClique: string | null = null
 
-  $effect(() => {
-    void chamar('painel.aberto', { aberto: true })
-    const carregar = async () => {
-      dados = await tentar<'painel.dados', PainelDados>('painel.dados')
-      agora = Date.now()
-    }
-    void carregar()
-    const h = setInterval(carregar, 10_000)
-    const r = setInterval(() => (agora = Date.now()), 1000)
-    return () => {
-      clearInterval(h)
-      clearInterval(r)
-      void chamar('painel.aberto', { aberto: false }).catch(() => {})
-    }
+$effect(() => {
+  void chamar('painel.aberto', { aberto: true })
+  const carregar = async () => {
+    dados = await tentar<'painel.dados', PainelDados>('painel.dados')
+    agora = Date.now()
+  }
+  void carregar()
+  const h = setInterval(carregar, 10_000)
+  const r = setInterval(() => (agora = Date.now()), 1000)
+  return () => {
+    clearInterval(h)
+    clearInterval(r)
+    void chamar('painel.aberto', { aberto: false }).catch(() => {})
+  }
+})
+
+const problemas = new Set(['caida', 'travada', 'erro', 'com_aviso'])
+const contas = $derived.by(() => {
+  const s = loja.snap
+  if (!s) return []
+  let lista = [...s.contas]
+  if (filtro === 'ligadas') lista = lista.filter((c) => s.estados[c.id]?.estado !== 'desligada')
+  if (filtro === 'problemas') lista = lista.filter((c) => problemas.has(s.estados[c.id]?.estado ?? ''))
+  const ram = (id: string) => loja.metricas?.porConta[id]?.ramMb ?? 0
+  return lista.sort((a, b) => {
+    if (ordem === 'ram') return ram(b.id) - ram(a.id)
+    if (ordem === 'quedas')
+      return (dados?.contas[b.id]?.quedasHoje ?? 0) - (dados?.contas[a.id]?.quedasHoje ?? 0)
+    if (ordem === 'estado')
+      return (s.estados[a.id]?.estado ?? '').localeCompare(s.estados[b.id]?.estado ?? '')
+    return a.nome.localeCompare(b.nome, 'pt-BR')
   })
+})
+const ligadas = $derived(
+  Object.values(loja.snap?.estados ?? {}).filter((e) => e.estado !== 'desligada').length,
+)
+const quedas = $derived(Object.values(dados?.contas ?? {}).reduce((s, c) => s + c.quedasHoje, 0))
 
-  const problemas = new Set(['caida', 'travada', 'erro', 'com_aviso'])
-  const contas = $derived.by(() => {
-    const s = loja.snap
-    if (!s) return []
-    let lista = [...s.contas]
-    if (filtro === 'ligadas') lista = lista.filter((c) => s.estados[c.id]?.estado !== 'desligada')
-    if (filtro === 'problemas') lista = lista.filter((c) => problemas.has(s.estados[c.id]?.estado ?? ''))
-    const ram = (id: string) => loja.metricas?.porConta[id]?.ramMb ?? 0
-    return lista.sort((a, b) => {
-      if (ordem === 'ram') return ram(b.id) - ram(a.id)
-      if (ordem === 'quedas') return (dados?.contas[b.id]?.quedasHoje ?? 0) - (dados?.contas[a.id]?.quedasHoje ?? 0)
-      if (ordem === 'estado') return (s.estados[a.id]?.estado ?? '').localeCompare(s.estados[b.id]?.estado ?? '')
-      return a.nome.localeCompare(b.nome, 'pt-BR')
+/** Seleção múltipla com Ctrl e Shift (Seção 7.4). */
+function clicar(e: MouseEvent, id: string) {
+  if (e.shiftKey && ultimoClique) {
+    const ids = contas.map((c) => c.id)
+    const [a, b] = [ids.indexOf(ultimoClique), ids.indexOf(id)].sort((x, y) => x - y) as [number, number]
+    loja.selecao = [...new Set([...loja.selecao, ...ids.slice(a, b + 1)])]
+  } else if (e.ctrlKey || e.metaKey) {
+    loja.selecao = loja.selecao.includes(id) ? loja.selecao.filter((x) => x !== id) : [...loja.selecao, id]
+  } else {
+    loja.selecao = loja.selecao.length === 1 && loja.selecao[0] === id ? [] : [id]
+  }
+  ultimoClique = id
+}
+
+const acoes: { acao: AcaoLote; rotulo: ChaveTexto }[] = [
+  { acao: 'recarregar', rotulo: 'lote.recarregar' },
+  { acao: 'recarregarSemCache', rotulo: 'lote.recarregarSemCache' },
+  { acao: 'ligar', rotulo: 'lote.ligar' },
+  { acao: 'desligar', rotulo: 'lote.desligar' },
+  { acao: 'silenciar', rotulo: 'lote.silenciar' },
+  { acao: 'ativarSom', rotulo: 'lote.ativarSom' },
+  { acao: 'economiaLigar', rotulo: 'lote.economiaLigar' },
+  { acao: 'economiaDesligar', rotulo: 'lote.economiaDesligar' },
+  { acao: 'manter', rotulo: 'lote.manter' },
+  { acao: 'economizar', rotulo: 'lote.economizar' },
+  { acao: 'zoom', rotulo: 'lote.zoom' },
+  { acao: 'preencher', rotulo: 'lote.preencher' },
+  { acao: 'livesLigar', rotulo: 'lote.livesLigar' },
+  { acao: 'livesDesligar', rotulo: 'lote.livesDesligar' },
+  { acao: 'limparCache', rotulo: 'lote.limparCache' },
+  { acao: 'fotos', rotulo: 'lote.fotos' },
+]
+let grupoDestino = $state('')
+
+async function lote(acao: AcaoLote, extra: { grupoId?: string; confirmado?: boolean } = {}) {
+  const ids = loja.selecao.length > 0 ? loja.selecao : contas.map((c) => c.id)
+  if (ids.length === 0) return
+  const r = await tentar<
+    'contas.lote',
+    { ok: boolean; excessos?: { jogoNome: string; limite: number; total: number }[] }
+  >('contas.lote', { ids, acao, ...extra })
+  if (r && !r.ok && r.excessos?.[0]) {
+    const e = r.excessos[0]
+    loja.dialogos.push({
+      qual: 'limite',
+      texto: t('limite.texto', { jogo: e.jogoNome, limite: e.limite, total: e.total }),
+      aoConfirmar: () => void lote(acao, { ...extra, confirmado: true }),
     })
-  })
-  const ligadas = $derived(Object.values(loja.snap?.estados ?? {}).filter((e) => e.estado !== 'desligada').length)
-  const quedas = $derived(Object.values(dados?.contas ?? {}).reduce((s, c) => s + c.quedasHoje, 0))
+  } else if (r?.ok)
+    mensagem('ok', `${t(acoes.find((a) => a.acao === acao)?.rotulo ?? 'lote.mover')}: ${ids.length}`)
+}
 
-  /** Seleção múltipla com Ctrl e Shift (Seção 7.4). */
-  function clicar(e: MouseEvent, id: string) {
-    if (e.shiftKey && ultimoClique) {
-      const ids = contas.map((c) => c.id)
-      const [a, b] = [ids.indexOf(ultimoClique), ids.indexOf(id)].sort((x, y) => x - y) as [number, number]
-      loja.selecao = [...new Set([...loja.selecao, ...ids.slice(a, b + 1)])]
-    } else if (e.ctrlKey || e.metaKey) {
-      loja.selecao = loja.selecao.includes(id) ? loja.selecao.filter((x) => x !== id) : [...loja.selecao, id]
-    } else {
-      loja.selecao = loja.selecao.length === 1 && loja.selecao[0] === id ? [] : [id]
-    }
-    ultimoClique = id
-  }
-
-  const acoes: { acao: AcaoLote; rotulo: ChaveTexto }[] = [
-    { acao: 'recarregar', rotulo: 'lote.recarregar' },
-    { acao: 'recarregarSemCache', rotulo: 'lote.recarregarSemCache' },
-    { acao: 'ligar', rotulo: 'lote.ligar' },
-    { acao: 'desligar', rotulo: 'lote.desligar' },
-    { acao: 'silenciar', rotulo: 'lote.silenciar' },
-    { acao: 'ativarSom', rotulo: 'lote.ativarSom' },
-    { acao: 'economiaLigar', rotulo: 'lote.economiaLigar' },
-    { acao: 'economiaDesligar', rotulo: 'lote.economiaDesligar' },
-    { acao: 'manter', rotulo: 'lote.manter' },
-    { acao: 'economizar', rotulo: 'lote.economizar' },
-    { acao: 'zoom', rotulo: 'lote.zoom' },
-    { acao: 'preencher', rotulo: 'lote.preencher' },
-    { acao: 'livesLigar', rotulo: 'lote.livesLigar' },
-    { acao: 'livesDesligar', rotulo: 'lote.livesDesligar' },
-    { acao: 'limparCache', rotulo: 'lote.limparCache' },
-    { acao: 'fotos', rotulo: 'lote.fotos' },
-  ]
-  let grupoDestino = $state('')
-
-  async function lote(acao: AcaoLote, extra: { grupoId?: string; confirmado?: boolean } = {}) {
-    const ids = loja.selecao.length > 0 ? loja.selecao : contas.map((c) => c.id)
-    if (ids.length === 0) return
-    const r = await tentar<'contas.lote', { ok: boolean; excessos?: { jogoNome: string; limite: number; total: number }[] }>(
-      'contas.lote',
-      { ids, acao, ...extra },
-    )
-    if (r && !r.ok && r.excessos?.[0]) {
-      const e = r.excessos[0]
-      loja.dialogos.push({
-        qual: 'limite',
-        texto: t('limite.texto', { jogo: e.jogoNome, limite: e.limite, total: e.total }),
-        aoConfirmar: () => void lote(acao, { ...extra, confirmado: true }),
-      })
-    } else if (r?.ok) mensagem('ok', `${t(acoes.find((a) => a.acao === acao)?.rotulo ?? 'lote.mover')}: ${ids.length}`)
-  }
-
-  const nomeJogo = (id: string) => loja.snap?.jogos.find((j) => j.id === id)?.nome ?? id
+const nomeJogo = (id: string) => loja.snap?.jogos.find((j) => j.id === id)?.nome ?? id
 </script>
 
 <div class="painel">

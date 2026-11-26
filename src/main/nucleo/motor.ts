@@ -881,7 +881,11 @@ export class Motor {
       if (solta !== janela.startsWith('solta:')) continue
       for (const e of lista) {
         if (e.contaId !== id) continue
-        if (!achado || (achado.tipo === 'miniatura' && e.tipo === 'conta') || (achado.retangulo === null && e.retangulo))
+        if (
+          !achado ||
+          (achado.tipo === 'miniatura' && e.tipo === 'conta') ||
+          (achado.retangulo === null && e.retangulo)
+        )
           achado = { janela, retangulo: e.retangulo, tipo: e.tipo }
       }
     }

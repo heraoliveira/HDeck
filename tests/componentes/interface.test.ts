@@ -38,7 +38,9 @@ const VisaoFoco = (await import('../../src/renderer/visoes/foco/VisaoFoco.svelte
 const MolduraConta = (await import('../../src/renderer/componentes/MolduraConta.svelte')).default
 
 function preparar(mexer?: (m: ReturnType<typeof montarMotor>) => void) {
-  const m = montarMotor({ jogos: [jogoFalso, { ...jogoFalso, id: 'tela', nome: 'Jogo de Canvas', canvas: true }] })
+  const m = montarMotor({
+    jogos: [jogoFalso, { ...jogoFalso, id: 'tela', nome: 'Jogo de Canvas', canvas: true }],
+  })
   mexer?.(m)
   m.relogio.avancar(50)
   loja.snap = m.motor.snapshot()
@@ -61,7 +63,10 @@ describe('linhas de configuração', () => {
     const sw = screen.getByRole('switch', { name: 'Recarregar sozinho quando a conexão cair' })
     expect(sw.getAttribute('aria-checked')).toBe('true')
     await fireEvent.click(sw)
-    expect(chamadas).toContainEqual({ canal: 'config.alterar', dados: { caminho: 'queda.recarregarQuandoCair', valor: false } })
+    expect(chamadas).toContainEqual({
+      canal: 'config.alterar',
+      dados: { caminho: 'queda.recarregarQuandoCair', valor: false },
+    })
   })
 
   it('RN-089 linha dependente fica esmaecida com a principal desligada', () => {
@@ -77,7 +82,10 @@ describe('linhas de configuração', () => {
     const sel = container.querySelector('select') as HTMLSelectElement
     sel.value = '5'
     await fireEvent.change(sel)
-    expect(chamadas).toContainEqual({ canal: 'config.alterar', dados: { caminho: 'economia.fotoACadaSeg', valor: 5 } })
+    expect(chamadas).toContainEqual({
+      canal: 'config.alterar',
+      dados: { caminho: 'economia.fotoACadaSeg', valor: 5 },
+    })
     render(LinhaConfig, { linha: linha('aceleracao') })
     expect(screen.getByText('vale ao reiniciar')).toBeTruthy()
   })
@@ -103,7 +111,14 @@ describe('linhas de configuração', () => {
 
 describe('contas e visões', () => {
   it('RN-017 o selo mostra cada estado da conta', () => {
-    const textos = { desligada: 'Desligada', ativa: 'Ao vivo', economica: 'Foto', caida: 'Caiu', travada: 'Travada', com_aviso: 'Com aviso' }
+    const textos = {
+      desligada: 'Desligada',
+      ativa: 'Ao vivo',
+      economica: 'Foto',
+      caida: 'Caiu',
+      travada: 'Travada',
+      com_aviso: 'Com aviso',
+    }
     for (const estado of estadosConta) {
       const { container, unmount } = render(SeloEstado, { estado })
       expect(container.querySelector(`[data-estado="${estado}"]`)).toBeTruthy()
@@ -133,7 +148,10 @@ describe('contas e visões', () => {
     const opcoes = screen.getAllByRole('radio')
     expect(opcoes).toHaveLength(11)
     await fireEvent.click(screen.getByRole('radio', { name: /1 grande \+ 3/ }))
-    expect(chamadas.at(-1)).toEqual({ canal: 'grupos.layout', dados: { id: loja.snap!.grupos[0]!.id, visao: 'grade', layout: { divisao: '1+3' } } })
+    expect(chamadas.at(-1)).toEqual({
+      canal: 'grupos.layout',
+      dados: { id: loja.snap!.grupos[0]!.id, visao: 'grade', layout: { divisao: '1+3' } },
+    })
   })
 
   it('RN-176 visão Foco: abas com Ctrl+N e navegação pelo teclado', async () => {

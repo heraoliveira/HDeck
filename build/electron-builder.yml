@@ -1,0 +1,41 @@
+# Empacotamento (Seção 14, ADR 0008): NSIS por usuário, sem admin, com fuses e atualização pelo GitHub Releases.
+appId: br.hera.hdeck
+productName: HDeck
+copyright: Hera Oliveira
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - "!**/*.map"
+asar: true
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  loadBrowserProcessSpecificV8Snapshot: false
+  grantFileProtocolExtraPrivileges: false
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+  artifactName: HDeck-Setup-${version}.${ext}
+nsis:
+  oneClick: true
+  perMachine: false
+  allowElevation: false
+  createStartMenuShortcut: true
+  createDesktopShortcut: false
+  shortcutName: HDeck
+  deleteAppDataOnUninstall: false
+  include: build/installer.nsh
+publish:
+  provider: github
+  owner: heraoliveira
+  repo: HDeck
+  releaseType: release

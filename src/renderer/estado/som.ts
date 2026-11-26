@@ -1,7 +1,13 @@
 /** Os 3 sons de aviso, sintetizados (sem arquivo de terceiros), ou o arquivo escolhido (Seção 9.1). */
 let ctx: AudioContext | null = null
 
-function nota(freq: number, inicio: number, dur: number, volume: number, tipo: OscillatorType = 'sine'): void {
+function nota(
+  freq: number,
+  inicio: number,
+  dur: number,
+  volume: number,
+  tipo: OscillatorType = 'sine',
+): void {
   if (!ctx) return
   const o = ctx.createOscillator()
   const g = ctx.createGain()
