@@ -9,3 +9,4 @@ playwright-report/
 tools/bancada/resultados/
 dist-log.txt
 test-results-provas*.log
+bancada-log.txt
