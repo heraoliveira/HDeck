@@ -9,7 +9,7 @@ body,
   overflow: hidden;
 }
 body {
-  background: var(--fundo-app);
+  background: linear-gradient(to bottom right, var(--fundo-app), var(--fundo-app-2));
   color: var(--texto);
   font-family: var(--fonte);
   font-size: var(--t13);

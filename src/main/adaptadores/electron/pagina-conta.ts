@@ -74,7 +74,7 @@ class PaginaContaElectron implements PaginaConta {
         navigateOnDragDrop: false,
       },
     })
-    this.view.setBackgroundColor('#0f1117')
+    this.view.setBackgroundColor('#08111f')
     // Uma view que nunca foi desenhada não gera foto: ela começa visível fora da área da janela
     // e só se esconde depois do primeiro carregamento (ADR 0003).
     this.view.setBounds({ ...FORA, width: 960, height: 600 })

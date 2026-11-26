@@ -94,7 +94,7 @@ $effect(() => {
   }
   .mini {
     aspect-ratio: 16 / 9;
-    background: #0b0d12;
+    background: var(--fundo-conta);
   }
   .mini img {
     width: 100%;

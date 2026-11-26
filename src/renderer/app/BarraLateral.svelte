@@ -103,7 +103,8 @@ function soltar(e: DragEvent, alvo: string) {
     flex: none;
     display: flex;
     flex-direction: column;
-    background: var(--fundo-painel);
+    background: var(--fundo-lateral);
+    color: var(--lateral-texto);
     border-right: 1px solid var(--borda);
     padding: 6px;
   }
@@ -118,6 +119,7 @@ function soltar(e: DragEvent, alvo: string) {
   }
   .topo .rotulo-secao {
     margin: 0;
+    color: var(--lateral-texto-2);
   }
   ul {
     list-style: none;
@@ -134,7 +136,8 @@ function soltar(e: DragEvent, alvo: string) {
     padding-right: 2px;
   }
   li.atual {
-    background: var(--fundo-cartao);
+    background: var(--lateral-ativo);
+    box-shadow: inset 3px 0 0 var(--dourado);
   }
   .grupo {
     flex: 1;
@@ -161,7 +164,7 @@ function soltar(e: DragEvent, alvo: string) {
     white-space: nowrap;
   }
   .contagem {
-    color: var(--texto-3);
+    color: var(--lateral-texto-2);
   }
   .selo {
     min-width: 16px;

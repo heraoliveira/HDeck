@@ -71,8 +71,8 @@ export class GerenciadorJanelas {
       show: false,
       frame: false,
       titleBarStyle: 'hidden',
-      titleBarOverlay: { color: '#161a24', symbolColor: '#e8eaf0', height: 40 },
-      backgroundColor: '#0f1117',
+      titleBarOverlay: { color: '#0b2535', symbolColor: '#e5f0f6', height: 40 },
+      backgroundColor: '#08111f',
       icon: this.icone,
       title: 'HDeck',
       webPreferences: prefsInterface(this.o.preload),
@@ -101,7 +101,7 @@ export class GerenciadorJanelas {
       title: titulo,
       icon: this.icone,
       autoHideMenuBar: true,
-      backgroundColor: '#0f1117',
+      backgroundColor: '#08111f',
       webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, spellcheck: false },
     })
     this.lembrar(w, chave)
@@ -141,8 +141,8 @@ export class GerenciadorJanelas {
       icon: this.icone,
       frame: false,
       titleBarStyle: 'hidden',
-      titleBarOverlay: { color: '#161a24', symbolColor: '#e8eaf0', height: 40 },
-      backgroundColor: '#0f1117',
+      titleBarOverlay: { color: '#0b2535', symbolColor: '#e5f0f6', height: 40 },
+      backgroundColor: '#08111f',
       webPreferences: prefsInterface(this.o.preload),
     })
     this.lembrar(w, chave)

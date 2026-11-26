@@ -60,7 +60,7 @@ function recarregarGrupo() {
     gap: 6px;
     height: var(--altura-titulo);
     padding: 0 150px 0 10px; /* espaço dos botões do Windows (titleBarOverlay) */
-    background: var(--fundo-painel);
+    background: var(--fundo-titulo);
     border-bottom: 1px solid var(--borda);
     -webkit-app-region: drag;
   }
@@ -71,7 +71,8 @@ function recarregarGrupo() {
     width: 22px;
     height: 22px;
     border-radius: 6px;
-    background: var(--destaque);
+    background: linear-gradient(135deg, #00e5ff, #07b6d5 58%, #075985);
+    box-shadow: inset 0 0 0 1px rgb(255 215 0 / 0.55);
     display: grid;
     place-items: center;
     color: #fff;
@@ -79,6 +80,7 @@ function recarregarGrupo() {
     font-size: 13px;
   }
   .nome-app {
+    color: var(--marca);
     font-size: var(--t14);
   }
   .sep {

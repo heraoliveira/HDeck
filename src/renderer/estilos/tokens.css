@@ -1,19 +1,33 @@
-/* Tokens visuais (Seção 12.1). Contraste conferido para AA nos pares texto/fundo usados. */
+/*
+ * Tokens visuais (Seção 12.1, ADR 0012): mesma identidade do HFinance — ciano e dourado como
+ * sinais principais, fundo azul-marinho no escuro e claro-azulado no claro.
+ * Contraste conferido para AA nos pares texto/fundo usados.
+ */
 :root {
-  --fundo-app: #0f1117;
-  --fundo-painel: #161a24;
-  --fundo-cartao: #1c2130;
-  --fundo-cartao-hover: #222838;
-  --borda: #2a3042;
-  --texto: #e8eaf0;
-  --texto-2: #a3aabb;
-  --texto-3: #7d8497;
-  --destaque: #7c6cf0;
-  --destaque-forte: #6a58e8;
-  --destaque-texto: #ffffff;
-  --perigo: #e5534b;
-  --aviso: #d9a23b;
-  --ok: #3fb27f;
+  --fundo-app: #08111f;
+  --fundo-app-2: #101b2d;
+  --fundo-painel: #101b2d;
+  --fundo-lateral: linear-gradient(to bottom, #063d52, #071a2d);
+  --fundo-titulo: linear-gradient(to right, #101b2d, #0b2535);
+  --lateral-texto: #e0f2fe;
+  --lateral-texto-2: #a5f3fc;
+  --lateral-ativo: rgb(34 211 238 / 0.18);
+  --fundo-cartao: #142338;
+  --fundo-cartao-hover: #1a2d46;
+  --fundo-conta: #060d18;
+  --borda: #274057;
+  --texto: #e5f0f6;
+  --texto-2: #a7b3c5;
+  --texto-3: #8190a6;
+  --destaque: #22d3ee;
+  --destaque-forte: #06b6d4;
+  --destaque-suave: rgb(34 211 238 / 0.18);
+  --destaque-texto: #06202b;
+  --dourado: #facc15;
+  --marca: #ffe88a;
+  --perigo: #f87171;
+  --aviso: #fbbf24;
+  --ok: #34d399;
   --raio-s: 6px;
   --raio-m: 10px;
   --raio-l: 14px;
@@ -31,15 +45,29 @@
 }
 
 :root[data-tema="claro"] {
-  --fundo-app: #f4f5f8;
+  --fundo-app: #f4f7fb;
+  --fundo-app-2: #eaf8fc;
   --fundo-painel: #ffffff;
+  --fundo-lateral: linear-gradient(to bottom, #06b6d4, #0891b2);
+  --fundo-titulo: linear-gradient(to right, #ffffff, #ecfeff);
+  --lateral-texto: #f8fafc;
+  --lateral-texto-2: #ecfeff;
+  --lateral-ativo: rgb(255 255 255 / 0.2);
   --fundo-cartao: #ffffff;
-  --fundo-cartao-hover: #eef0f5;
-  --borda: #d8dbe4;
-  --texto: #171a22;
-  --texto-2: #4b5263;
-  --texto-3: #6b7285;
-  --destaque: #5b49e0;
-  --destaque-forte: #4a38d0;
+  --fundo-cartao-hover: #e0f7fe;
+  --fundo-conta: #e2e8f0;
+  --borda: #bfeaf3;
+  --texto: #1f2937;
+  --texto-2: #4b5563;
+  --texto-3: #64748b;
+  --destaque: #0891b2;
+  --destaque-forte: #0e7490;
+  --destaque-suave: rgb(8 145 178 / 0.12);
+  --destaque-texto: #ffffff;
+  --dourado: #ca8a04;
+  --marca: #a16207;
+  --perigo: #dc2626;
+  --aviso: #b45309;
+  --ok: #15803d;
   color-scheme: light;
 }

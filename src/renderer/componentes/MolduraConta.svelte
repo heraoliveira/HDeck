@@ -132,7 +132,7 @@ async function ligar() {
     position: relative;
     flex: 1;
     min-height: 0;
-    background: #0b0d12;
+    background: var(--fundo-conta);
   }
   .vazio {
     position: absolute;
@@ -147,7 +147,7 @@ async function ligar() {
     height: 100%;
     padding: 0;
     border: 0;
-    background: #0b0d12;
+    background: var(--fundo-conta);
   }
   .foto img {
     width: 100%;
