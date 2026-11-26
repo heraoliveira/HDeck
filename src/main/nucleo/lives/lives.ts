@@ -15,6 +15,7 @@ type Viva = {
   estado: EstadoLive
   mostrando: boolean
   conferirEm: Cancelar | null
+  carregouAoConferir?: boolean
 }
 
 const LER_A_CADA_MS = 30_000
@@ -169,6 +170,12 @@ export class ControleLives {
     const pagina = this.fabrica.criar(live, {
       carregou: () => {
         if (viva.estado === 'abrindo') this.mudar(viva, 'tocando')
+        // RN-089: ao conferir, dá um tempo para a página mostrar se está ao vivo depois de carregar.
+        if (viva.estado === 'conferindo' && !viva.carregouAoConferir) {
+          viva.carregouAoConferir = true
+          viva.conferirEm?.()
+          viva.conferirEm = this.relogio.depois(ESPERA_CONFERIR_MS, () => void this.concluirConferencia(viva))
+        }
       },
       navegou: (url) => this.navegou(viva, url),
       morreu: () => {
@@ -181,7 +188,8 @@ export class ControleLives {
     pagina.carregar(this.fabrica.urlDoCanal(live.plataforma, live.canal), cfg.qualidade)
     this.avisos.mudou(live.id, viva.estado)
     if (conferindo) {
-      viva.conferirEm = this.relogio.depois(ESPERA_CONFERIR_MS, () => void this.concluirConferencia(viva))
+      // Se a página nem carregar, conclui depois de um tempo maior (conta como encerrada).
+      viva.conferirEm = this.relogio.depois(ESPERA_CONFERIR_MS * 3, () => void this.concluirConferencia(viva))
     }
   }
 

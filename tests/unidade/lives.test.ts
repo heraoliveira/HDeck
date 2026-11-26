@@ -159,6 +159,7 @@ describe('lives', () => {
     const p2 = m.fab.abertas()[0]!
     expect(m.c.estado('a')).toBe('conferindo')
     p2.estadoLido = { aoVivo: false, offline: true, pedeLogin: false, tocando: false }
+    p2.ev.carregou('x')
     m.r.avancar(20_000)
     await esvaziarPromessas()
     expect(p2.fechada).toBe(true)
@@ -166,7 +167,7 @@ describe('lives', () => {
     m.r.avancar(2 * 3_600_000)
     const p3 = m.fab.abertas()[0]!
     p3.estadoLido = { aoVivo: true, offline: false, pedeLogin: false, tocando: true }
-    m.r.avancar(20_000)
+    m.r.avancar(60_000)
     await esvaziarPromessas()
     expect(m.c.estado('a')).toBe('tocando')
     expect(m.avisos).toContain('voltou:a')

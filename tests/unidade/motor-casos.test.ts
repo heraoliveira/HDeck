@@ -196,6 +196,7 @@ describe('motor: casos de borda', () => {
     await m.motor.lerLives()
     expect(m.armazem.avisos.at(-1)!.mensagem).toContain('encerrou')
     m.relogio.avancar(2 * 3_600_000)
+    m.lives.abertas()[0]!.ev.carregou('x')
     m.relogio.avancar(20_000)
     await esvaziarPromessas()
     expect(m.armazem.avisos.at(-1)!.mensagem).toContain('voltou')
