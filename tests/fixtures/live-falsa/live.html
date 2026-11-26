@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Live falsa {{CANAL}}</title>
+<style>body { margin: 0; background: #000; color: #fff; font: 12px system-ui; } video { width: 100%; }</style>
+</head>
+<body>
+<div class="live-indicator-container" id="ao-vivo">AO VIVO {{CANAL}}</div>
+<video id="v" muted autoplay playsinline></video>
+<canvas id="fonte" width="160" height="90" hidden></canvas>
+<script>
+  const canal = '{{CANAL}}'
+  const c = { intervalo: 0, assistidoSeg: 0, visivelSempre: true, pausas: 0, qualidade: localStorage.getItem('video-quality') }
+  window.__live = c
+  const fonte = document.getElementById('fonte')
+  const ctx = fonte.getContext('2d')
+  let n = 0
+  setInterval(() => { ctx.fillStyle = `hsl(${(n += 7) % 360} 70% 50%)`; ctx.fillRect(0, 0, 160, 90) }, 100)
+  const v = document.getElementById('v')
+  v.srcObject = fonte.captureStream(10)
+  v.play().catch(() => {})
+  v.addEventListener('pause', () => c.pausas++)
+  let pendente = 0
+  setInterval(() => {
+    c.intervalo++
+    if (document.visibilityState !== 'visible') c.visivelSempre = false
+    if (!v.paused && document.visibilityState === 'visible') { c.assistidoSeg++; pendente++ }
+    if (pendente >= 5) {
+      fetch('/live/assistido', { method: 'POST', body: JSON.stringify({ canal, seg: pendente }) })
+      pendente = 0
+    }
+  }, 1000)
+  setInterval(async () => {
+    const e = await (await fetch(`/live/estado?canal=${canal}`)).json()
+    if (e.raidPara) { location.href = `/live/${e.raidPara}`; return }
+    const indicador = document.getElementById('ao-vivo')
+    if (!e.aoVivo && indicador) {
+      indicador.remove()
+      v.pause()
+      const off = document.createElement('div')
+      off.setAttribute('data-a-target', 'player-overlay-offline')
+      off.textContent = 'offline'
+      document.body.appendChild(off)
+    }
+  }, 1000)
+</script>
+</body>
+</html>

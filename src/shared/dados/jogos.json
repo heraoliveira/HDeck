@@ -1,0 +1,41 @@
+{
+  "versao": 1,
+  "jogos": [
+    {
+      "id": "pokeidle",
+      "nome": "PokéIdle",
+      "dominios": ["pokeidle.io"],
+      "urlInicial": "https://pokeidle.io/",
+      "icone": "⚡",
+      "farmaEscondido": false,
+      "dadosContinuos": false,
+      "semDadosMinPadrao": 0,
+      "limiteContas": null,
+      "bonusLive": false,
+      "plataformasLive": [],
+      "wsPrincipal": null,
+      "seletoresLogin": null,
+      "seletorPedeLogin": null,
+      "canvas": false,
+      "origem": "catalogo"
+    },
+    {
+      "id": "lolidle",
+      "nome": "LoL Idle",
+      "dominios": ["lolidle.com"],
+      "urlInicial": "https://lolidle.com/",
+      "icone": "🗡",
+      "farmaEscondido": false,
+      "dadosContinuos": false,
+      "semDadosMinPadrao": 0,
+      "limiteContas": null,
+      "bonusLive": false,
+      "plataformasLive": [],
+      "wsPrincipal": null,
+      "seletoresLogin": null,
+      "seletorPedeLogin": null,
+      "canvas": false,
+      "origem": "catalogo"
+    }
+  ]
+}

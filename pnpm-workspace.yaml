@@ -1,0 +1,6 @@
+allowBuilds:
+  electron: true
+  esbuild: true
+  electron-winstaller: false
+minimumReleaseAgeExclude:
+  - vite@8.4.0
