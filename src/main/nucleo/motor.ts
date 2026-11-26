@@ -157,6 +157,7 @@ export class Motor {
   private dialogoAberto = false
   private painelAberto = false
   private aoVivoManual = new Set<string>()
+  private espacosPorJanela = new Map<string, EspacoTela[]>()
   private filaLigar: FilaEscalonada
   private otimizacao: AgendaOtimizacao
   private ping: AgendaPing
@@ -280,7 +281,8 @@ export class Motor {
 
   // ======================= início e fim =======================
 
-  iniciar(): void {
+  /** @param reaberto o app reabriu depois de um erro (RN-070): restaura os grupos que estavam ligados. */
+  iniciar(opcoes: { reaberto?: boolean } = {}): void {
     const d = this.d
     this.config = d.configArquivo.ler()
     this.jogos = d.armazem.listarJogos()
@@ -292,7 +294,10 @@ export class Motor {
     this.grupoAtualId = this.grupos[0]?.id ?? null
     this.filaLigar.definirIntervalo(this.config.geral.abrirAosPoucosSeg * 1000)
     // RN-033: restaura os grupos.
-    const ligar = new Set(gruposAoAbrir(this.config, this.grupos))
+    const cfgAbrir = opcoes.reaberto
+      ? { ...this.config, geral: { ...this.config.geral, restaurarAoAbrir: 'ligados' as const } }
+      : this.config
+    const ligar = new Set(gruposAoAbrir(cfgAbrir, this.grupos))
     for (const g of this.grupos) this.salvarGrupo({ ...g, ligado: ligar.has(g.id) })
     const primeiroLigado = this.grupos.find((g) => g.ligado)
     if (primeiroLigado) this.grupoAtualId = primeiroLigado.id
@@ -724,6 +729,7 @@ export class Motor {
         if (rtRef) rtRef.devtools = aberto
         this.emitirEstado()
       },
+      interagiu: () => this.usou(contaId),
       tituloMudou: (titulo) => {
         if (rtRef && googleRecusou(pagina.urlAtual(), titulo)) {
           rtRef.google = true
@@ -748,6 +754,7 @@ export class Motor {
       ultimaMemoria: 0,
     }
     this.rt.set(id, rtRef)
+    rtRef.espaco = this.espacoDe(id, false)
     pagina.definirZoom(c.zoom)
     pagina.vigiar(this.precisaVigia(id))
     pagina.carregar(c.url)
@@ -811,6 +818,8 @@ export class Motor {
     const c = this.conta(id)
     if (!rt || !c || rt.solta) return false
     rt.solta = true
+    rt.espaco = this.espacoDe(id, true)
+    this.aplicarExibicao(id)
     this.d.janelas.soltar(id, c.nome)
     this.emitirEstado()
     return true
@@ -821,7 +830,7 @@ export class Motor {
     const rt = this.rt.get(id)
     if (!rt) return
     rt.solta = false
-    rt.espaco = null
+    rt.espaco = this.espacoDe(id, false)
     this.aplicarExibicao(id)
     this.emitirEstado()
   }
@@ -858,18 +867,24 @@ export class Motor {
    * `janela` identifica a janela que mediu; espaços de outras janelas não são tocados.
    */
   definirEspacos(janela: string, espacos: readonly EspacoTela[]): void {
-    const vistos = new Set<string>()
-    for (const e of espacos) {
-      const rt = this.rt.get(e.contaId)
-      if (!rt || vistos.has(e.contaId)) continue
-      if (rt.solta && !janela.startsWith('solta:')) continue
-      vistos.add(e.contaId)
-      rt.espaco = { janela, retangulo: e.retangulo, tipo: e.tipo }
-    }
-    for (const [id, rt] of this.rt) {
-      if (rt.espaco?.janela === janela && !vistos.has(id)) rt.espaco = null
-    }
+    if (espacos.length === 0) this.espacosPorJanela.delete(janela)
+    else this.espacosPorJanela.set(janela, [...espacos])
+    for (const [id, rt] of this.rt) rt.espaco = this.espacoDe(id, rt.solta)
     this.reaplicarExibicao()
+  }
+
+  /** Onde a conta aparece: conta solta só vale na janela dela; o primeiro espaço de 'conta' vence. */
+  private espacoDe(id: string, solta: boolean): Rt['espaco'] {
+    let achado: Rt['espaco'] = null
+    for (const [janela, lista] of this.espacosPorJanela) {
+      if (solta !== janela.startsWith('solta:')) continue
+      for (const e of lista) {
+        if (e.contaId !== id) continue
+        if (!achado || (achado.tipo === 'miniatura' && e.tipo === 'conta') || (achado.retangulo === null && e.retangulo))
+          achado = { janela, retangulo: e.retangulo, tipo: e.tipo }
+      }
+    }
+    return achado
   }
 
   /** RN-044: com um diálogo aberto, as contas viram foto e continuam rodando. */

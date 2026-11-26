@@ -1,0 +1,45 @@
+/* Tokens visuais (Seção 12.1). Contraste conferido para AA nos pares texto/fundo usados. */
+:root {
+  --fundo-app: #0f1117;
+  --fundo-painel: #161a24;
+  --fundo-cartao: #1c2130;
+  --fundo-cartao-hover: #222838;
+  --borda: #2a3042;
+  --texto: #e8eaf0;
+  --texto-2: #a3aabb;
+  --texto-3: #7d8497;
+  --destaque: #7c6cf0;
+  --destaque-forte: #6a58e8;
+  --destaque-texto: #ffffff;
+  --perigo: #e5534b;
+  --aviso: #d9a23b;
+  --ok: #3fb27f;
+  --raio-s: 6px;
+  --raio-m: 10px;
+  --raio-l: 14px;
+  --esp: 4px;
+  --fonte: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --t12: 12px;
+  --t13: 13px;
+  --t14: 14px;
+  --t16: 16px;
+  --t20: 20px;
+  --altura-titulo: 40px;
+  --altura-faixa: 24px;
+  --largura-lateral: 232px;
+  color-scheme: dark;
+}
+
+:root[data-tema='claro'] {
+  --fundo-app: #f4f5f8;
+  --fundo-painel: #ffffff;
+  --fundo-cartao: #ffffff;
+  --fundo-cartao-hover: #eef0f5;
+  --borda: #d8dbe4;
+  --texto: #171a22;
+  --texto-2: #4b5263;
+  --texto-3: #6b7285;
+  --destaque: #5b49e0;
+  --destaque-forte: #4a38d0;
+  color-scheme: light;
+}

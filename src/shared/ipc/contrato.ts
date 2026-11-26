@@ -263,24 +263,8 @@ export const canais = {
 export type Canal = keyof typeof canais
 export type Entrada<C extends Canal> = z.infer<(typeof canais)[C]>
 
-/** Eventos do main para a interface. */
-export const eventos = [
-  'estado',
-  'conta.foto',
-  'conta.metricas',
-  'aviso.novo',
-  'lote.progresso',
-  'comando',
-  'atualizacao.estado',
-  'ping.resultado',
-  'mensagem',
-] as const
-export type Evento = (typeof eventos)[number]
+export { canalIpc, type Evento, eventoIpc, eventos } from './nomes.ts'
 
 export const nomesDosCanais = Object.keys(canais) as Canal[]
-
-/** Nome do canal no ipcMain. Prefixo evita colisão com canais internos do Electron. */
-export const canalIpc = (c: Canal) => `hdeck:${c}`
-export const eventoIpc = (e: Evento) => `hdeck-evento:${e}`
 
 export type RespostaIpc<T = unknown> = { ok: true; valor: T } | { ok: false; erro: string }

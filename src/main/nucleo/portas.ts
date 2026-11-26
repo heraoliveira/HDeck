@@ -45,6 +45,8 @@ export type EventosPagina = {
   navegou(url: string): void
   devtools(aberto: boolean): void
   tituloMudou(titulo: string): void
+  /** O usuário clicou ou digitou na página (RN-043, RN-053). */
+  interagiu(): void
 }
 
 export interface PaginaConta {

@@ -15,6 +15,7 @@ import { catalogoDeJogos, seletoresDasLives } from '../../src/shared/dados/catal
 import { existeTexto, t, tDinamico } from '../../src/shared/i18n/index.ts'
 import textos from '../../src/shared/i18n/pt-BR.json' with { type: 'json' }
 import { canais, canalIpc, eventoIpc, nomesDosCanais } from '../../src/shared/ipc/contrato.ts'
+import { NOMES_CANAIS } from '../../src/shared/ipc/nomes.ts'
 import { dominioDe, dominioPertence, formatarDuracao, urlSemParametros } from '../../src/shared/util/texto.ts'
 
 describe('configuração', () => {
@@ -192,6 +193,7 @@ describe('textos e dados', () => {
     expect(canalIpc('estado.obter')).toBe('hdeck:estado.obter')
     expect(eventoIpc('estado')).toBe('hdeck-evento:estado')
     expect(nomesDosCanais.length).toBeGreaterThan(40)
+    expect([...NOMES_CANAIS].sort()).toEqual([...nomesDosCanais].sort())
     expect(canais['contas.ativar'].safeParse({ id: 'a', extra: 1 }).success).toBe(false)
     expect(canais['contas.adicionar'].safeParse({ grupoId: 'g', jogoId: 'j', url: 'nada' }).success).toBe(
       false,

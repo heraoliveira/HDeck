@@ -1,0 +1,141 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#app {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  background: var(--fundo-app);
+  color: var(--texto);
+  font-family: var(--fonte);
+  font-size: var(--t13);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+:focus-visible {
+  outline: 2px solid var(--destaque);
+  outline-offset: 2px;
+}
+.botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--raio-s);
+  border: 1px solid var(--borda);
+  background: var(--fundo-cartao);
+  color: var(--texto);
+  font-size: var(--t13);
+  white-space: nowrap;
+}
+.botao:hover {
+  background: var(--fundo-cartao-hover);
+}
+.botao.primario {
+  background: var(--destaque);
+  border-color: var(--destaque);
+  color: var(--destaque-texto);
+}
+.botao.primario:hover {
+  background: var(--destaque-forte);
+}
+.botao.perigo {
+  color: var(--perigo);
+}
+.botao:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.icone-botao {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--raio-s);
+  border: 0;
+  background: transparent;
+  color: var(--texto-2);
+}
+.icone-botao:hover {
+  background: var(--fundo-cartao-hover);
+  color: var(--texto);
+}
+.icone-botao.ligado {
+  color: var(--destaque);
+}
+.campo {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--raio-s);
+  border: 1px solid var(--borda);
+  background: var(--fundo-app);
+  color: var(--texto);
+  user-select: text;
+}
+textarea.campo {
+  height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+.campo:focus {
+  border-color: var(--destaque);
+  outline: none;
+}
+select.campo {
+  padding-right: 6px;
+}
+.rotulo-secao {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-3);
+  font-weight: 600;
+  margin: 18px 0 6px;
+}
+.muted {
+  color: var(--texto-2);
+}
+.pequeno {
+  font-size: var(--t12);
+}
+.linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cresce {
+  flex: 1;
+  min-width: 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--borda);
+  border-radius: 10px;
+  border: 2px solid var(--fundo-app);
+}
