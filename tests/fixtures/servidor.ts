@@ -184,7 +184,8 @@ export async function iniciarServidorFalso(porta = 0): Promise<ServidorFalso> {
     const agora = Date.now()
     if (estado.intervaloDadosMs > 0 && agora - ultimoEnvio >= estado.intervaloDadosMs) {
       ultimoEnvio = agora
-      for (const ws of principais) ws.send(JSON.stringify({ tick: agora }))
+      const extra = process.env.QUADRO_KB ? 'x'.repeat(Number(process.env.QUADRO_KB) * 1024) : undefined
+      for (const ws of principais) ws.send(JSON.stringify({ tick: agora, extra }))
     }
   }, 25)
   const relogioSecundario = setInterval(() => {

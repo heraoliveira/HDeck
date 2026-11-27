@@ -3,11 +3,14 @@ import { dominioDe, dominioPertence, urlSemParametros } from '@shared/util/texto
 import { app, BrowserWindow, type Session, shell, type WebContents } from 'electron'
 import type { Log } from '../../nucleo/portas.ts'
 import {
+  cabecalhosLoginGoogle,
   decidirPopup,
   downloadBloqueado,
+  ehLoginGoogle,
   navegacaoPermitida,
   permissaoPermitida,
   podeAbrirFora,
+  UA_LOGIN_GOOGLE,
   userAgentLimpo,
 } from '../../nucleo/seguranca/politicas.ts'
 import type { Perguntador } from './perguntador.ts'
@@ -35,6 +38,14 @@ export function endurecerSessao(s: Session, o: OpcoesEndurecimento): void {
   if (sessoesTravadas.has(s)) return
   sessoesTravadas.add(s)
   s.setUserAgent(userAgentLimpo(s.getUserAgent()))
+  // RN-154: só no login do Google o pedido sai como Firefox, sem client hints.
+  s.webRequest.onBeforeSendHeaders(
+    { urls: ['*://accounts.google.com/*', '*://accounts.youtube.com/*', '*://myaccount.google.com/*'] },
+    (d, cb) =>
+      cb({
+        requestHeaders: ehLoginGoogle(d.url) ? cabecalhosLoginGoogle(d.requestHeaders) : d.requestHeaders,
+      }),
+  )
   s.setSpellCheckerEnabled(false)
   // RN-152: nega tudo por padrão.
   s.setPermissionRequestHandler((wc, permissao, cb) => {
@@ -79,6 +90,20 @@ export function endurecerPagina(wc: WebContents, o: OpcoesEndurecimento): void {
   if (travadas.has(wc)) return
   travadas.add(wc)
   wc.on('will-attach-webview', (e) => e.preventDefault())
+  // RN-154: na página de login do Google, o navigator.userAgent combina com o cabeçalho.
+  let uaOriginal: string | null = null
+  wc.on('did-start-navigation', (e) => {
+    if (!e.isMainFrame) return
+    if (ehLoginGoogle(e.url)) {
+      if (uaOriginal === null) {
+        uaOriginal = wc.getUserAgent()
+        wc.setUserAgent(UA_LOGIN_GOOGLE)
+      }
+    } else if (uaOriginal !== null) {
+      wc.setUserAgent(uaOriginal)
+      uaOriginal = null
+    }
+  })
   const interface_ = () => o.ehInterface(wc)
 
   const filtrarNavegacao = (e: { preventDefault: () => void }, url: string) => {

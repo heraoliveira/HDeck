@@ -5,8 +5,11 @@ import SeletorDivisao from '../componentes/SeletorDivisao.svelte'
 import Configuracoes from '../configuracoes/Configuracoes.svelte'
 import Especial from '../configuracoes/Especial.svelte'
 import AdicionarConta from '../dialogos/AdicionarConta.svelte'
+import Confirmar from '../dialogos/Confirmar.svelte'
 import Lives from '../dialogos/Lives.svelte'
 import LoginSalvo from '../dialogos/LoginSalvo.svelte'
+import PainelConta from '../dialogos/PainelConta.svelte'
+import PainelGrupo from '../dialogos/PainelGrupo.svelte'
 import Paleta from '../dialogos/Paleta.svelte'
 import Simples from '../dialogos/Simples.svelte'
 import { chamar, ouvir } from '../estado/api.ts'
@@ -125,7 +128,15 @@ const visao = $derived(painel ? 'painel' : (grupo?.visao ?? 'grade'))
     {:else if dialogo.qual === 'avisos'}
       <Modal titulo={t('avisos.titulo')} aoFechar={fecharDialogo} largura={620}><Especial qual="historico" /></Modal>
     {:else}
-      <Simples d={dialogo} aoFechar={fecharDialogo} />
+      {#if dialogo.qual === 'painelConta'}
+        <PainelConta id={dialogo.id} x={dialogo.x} y={dialogo.y} />
+      {:else if dialogo.qual === 'painelGrupo'}
+        <PainelGrupo id={dialogo.id} x={dialogo.x} y={dialogo.y} />
+      {:else if dialogo.qual === 'confirmar'}
+        <Confirmar titulo={dialogo.titulo} texto={dialogo.texto} botao={dialogo.botao} perigo={dialogo.perigo} aoConfirmar={dialogo.aoConfirmar} aoFechar={fecharDialogo} />
+      {:else}
+        <Simples d={dialogo} aoFechar={fecharDialogo} />
+      {/if}
     {/if}
   {/if}
 

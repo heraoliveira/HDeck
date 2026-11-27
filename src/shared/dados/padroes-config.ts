@@ -39,14 +39,14 @@ export const PADROES = {
 } as const
 
 export const CORES_CONTA = [
-  '#7c6cf0',
-  '#3fb27f',
-  '#d9a23b',
-  '#e5534b',
-  '#3b9bd9',
-  '#d95bb4',
-  '#8bc34a',
-  '#ff8a3d',
+  '#22d3ee',
+  '#facc15',
+  '#34d399',
+  '#f87171',
+  '#a78bfa',
+  '#f472b6',
+  '#38bdf8',
+  '#fb923c',
 ] as const
 
 /** RN-150: sempre bloqueadas. */

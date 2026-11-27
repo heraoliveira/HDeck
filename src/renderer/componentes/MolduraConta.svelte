@@ -3,7 +3,7 @@ import { t } from '@shared/i18n/index.ts'
 import type { Conta } from '@shared/tipos/dominio.ts'
 import { chamar } from '../estado/api.ts'
 import { registrarEspaco } from '../estado/espacos.ts'
-import { loja } from '../estado/loja.svelte.ts'
+import { abrirDialogo, loja } from '../estado/loja.svelte.ts'
 import Icone from './Icone.svelte'
 import SeloEstado from './SeloEstado.svelte'
 
@@ -33,9 +33,16 @@ function clicar() {
   else void chamar('contas.ativar', { id: conta.id })
 }
 
+/** Painel da conta no estilo do app (RN-007): ⋯ ou botão direito na faixa. */
 function menu(e: MouseEvent) {
+  e.preventDefault()
   const b = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  void chamar('contas.menu', { id: conta.id, x: Math.round(b.left), y: Math.round(b.bottom) })
+  abrirDialogo({
+    qual: 'painelConta',
+    id: conta.id,
+    x: Math.round(e.type === 'contextmenu' ? e.clientX : b.left),
+    y: Math.round(e.type === 'contextmenu' ? e.clientY : b.bottom),
+  })
 }
 
 async function ligar() {
@@ -49,7 +56,7 @@ async function ligar() {
 
 <div class="moldura" class:ativa class:miniatura={tipo === 'miniatura'} style:--cor-conta={conta.cor} data-conta={conta.id}>
   {#if faixa}
-    <div class="faixa">
+    <div class="faixa" role="toolbar" tabindex="-1" oncontextmenu={menu}>
       <span class="cor"></span>
       <span class="icone-conta">{conta.icone}</span>
       <span class="nome cresce" title={conta.nome}>{conta.nome}</span>

@@ -142,6 +142,7 @@ test('RN-056 RN-057 otimização programada recarrega escalonado e nunca a conta
   const a = await abrirApp({ env: { HDECK_TESTE_ACELERAR: '600' } })
   try {
     await garantirJogoFalso(a)
+    await config(a, 'otimizacao.otimizarACadaMin', 0)
     const ids = await criarContas(a, 3)
     await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.motor.ativar(id), ids[0]!)
     // Mantém a conta 1 "em uso" o tempo todo.

@@ -13,14 +13,18 @@ const grupo = $derived('id' in d ? s.grupos.find((g) => g.id === d.id) : undefin
 let apagarLogin = $state(true)
 const d0 = untrack(() => d)
 let nome = $state('id' in d0 ? (loja.snap?.grupos.find((g) => g.id === d0.id)?.nome ?? '') : '')
-let cor = $state('id' in d0 ? (loja.snap?.grupos.find((g) => g.id === d0.id)?.cor ?? '#7c6cf0') : '#7c6cf0')
+let urlPadrao = $state('')
+let cor = $state('id' in d0 ? (loja.snap?.grupos.find((g) => g.id === d0.id)?.cor ?? '#22d3ee') : '#22d3ee')
 
 async function confirmar() {
   if (d.qual === 'apagarConta' && conta) await chamar('contas.apagar', { id: conta.id, apagarLogin })
   if (d.qual === 'apagarGrupo' && grupo) await chamar('grupos.apagar', { id: grupo.id })
   if (d.qual === 'editarGrupo' && grupo && nome.trim())
     await chamar('grupos.editar', { id: grupo.id, nome: nome.trim(), cor })
-  if (d.qual === 'novoGrupo' && nome.trim()) await chamar('grupos.criar', { nome: nome.trim(), cor })
+  if (d.qual === 'novoGrupo' && nome.trim()) {
+    const g = await chamar<'grupos.criar', { id: string }>('grupos.criar', { nome: nome.trim(), cor })
+    if (urlPadrao.trim()) await chamar('grupos.layout', { id: g.id, layout: { urlPadrao: urlPadrao.trim() } })
+  }
   if (d.qual === 'limite') d.aoConfirmar()
   aoFechar()
 }
@@ -49,6 +53,9 @@ const titulo = $derived(
     {:else}
       <label>{t('cfg.jogos.nome')}<input class="campo" bind:value={nome} maxlength="60" /></label>
       <label>{t('grupo.cor')}<input class="campo" type="color" bind:value={cor} /></label>
+      {#if d.qual === 'novoGrupo'}
+        <label>{t('pg.endereco')}<input class="campo" bind:value={urlPadrao} placeholder="https://" /></label>
+      {/if}
     {/if}
     <div class="linha fim">
       <button type="button" class="botao" onclick={aoFechar}>{t('comum.cancelar')}</button>

@@ -54,6 +54,8 @@ export type EventosPagina = {
 export interface PaginaConta {
   carregar(url: string): void
   recarregar(semCache: boolean): void
+  /** RN-058: abre a mesma página num processo novo (solta a memória acumulada; login fica). */
+  renovarProcesso(): void
   fechar(): void
   urlAtual(): string
   exibir(exibicao: Exibicao): void

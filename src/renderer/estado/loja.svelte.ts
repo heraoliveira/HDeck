@@ -13,6 +13,15 @@ export type DialogoAberto =
   | { qual: 'avisos' }
   | { qual: 'divisao' }
   | { qual: 'limite'; texto: string; aoConfirmar: () => void }
+  | {
+      qual: 'confirmar'
+      titulo: string
+      texto: string
+      botao: string
+      perigo?: boolean
+      aoConfirmar: () => void
+    }
+  | { qual: 'painelConta' | 'painelGrupo'; id: string; x: number; y: number }
 
 const params = new URLSearchParams(location.search)
 

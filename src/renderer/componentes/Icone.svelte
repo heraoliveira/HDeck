@@ -28,6 +28,15 @@ const caminhos: Record<string, string> = {
   olho: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   raio: 'M13 3 5 14h6l-1 7 8-11h-6l1-7z',
   divisao: 'M4 4h16v16H4zM12 4v16M4 12h8',
+  casa: 'M4 11 12 4l8 7M6 10v10h12V10',
+  brilho:
+    'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z',
+  pasta: 'M3 7h7l2 2h9v10H3z',
+  lapis: 'M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3',
+  link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
+  subir: 'M6 15l6-6 6 6',
+  descer: 'M6 9l6 6 6-6',
+  janelaPropria: 'M14 4h6v6M20 4l-8 8M18 14v6H4V6h6',
 }
 let { nome, tamanho = 16, titulo = '' }: { nome: string; tamanho?: number; titulo?: string } = $props()
 </script>

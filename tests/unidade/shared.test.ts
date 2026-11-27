@@ -35,7 +35,12 @@ describe('configuração', () => {
   it('RN-052 RN-053 RN-056 RN-100 padrões de economia, otimização e som', () => {
     const c = configPadrao()
     expect(c.economia).toEqual({ modoEconomico: true, fotoACadaSeg: 1, voltarAFotoSeg: 0 })
-    expect(c.otimizacao).toEqual({ recarregarACadaH: 0, limiteMemoriaMB: 0, limparCacheDias: 0 })
+    expect(c.otimizacao).toEqual({
+      recarregarACadaH: 0,
+      limiteMemoriaMB: 0,
+      limparCacheDias: 0,
+      otimizarACadaMin: 60,
+    }) // RN-058
     expect(c.som.modo).toBe('todas')
   })
 

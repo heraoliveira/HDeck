@@ -10,6 +10,8 @@ export type AcoesOtimizacao = {
   recarregar(id: string, motivo: 'programada' | 'memoria'): void
   limparCache(id: string): void
   avisarMemoria(id: string, limiteMb: number): void
+  /** RN-058: reabre a página num processo novo. */
+  otimizar(id: string): void
 }
 
 const MIN = 60_000
@@ -17,11 +19,12 @@ const HORA = 60 * MIN
 const DIA = 24 * HORA
 
 /**
- * Otimização programada (RN-056, RN-057). Tudo desligado por padrão.
+ * Otimização programada (RN-056, RN-057, RN-058). Só "Otimizar sozinho" vem ligado (1 h).
  * Recargas programadas passam por uma fila de 20 s e nunca pegam a conta em uso.
  */
 export class AgendaOtimizacao {
   private ultimaRecarga = new Map<string, number>()
+  private ultimaOtimizacao = new Map<string, number>()
   private ultimaLimpeza: number
   private timer: Cancelar | null = null
   private readonly fila: FilaEscalonada
@@ -48,11 +51,13 @@ export class AgendaOtimizacao {
   /** Conta ligada ou recarregada agora: o relógio dela recomeça. */
   marcarRecarga(id: string): void {
     this.ultimaRecarga.set(id, this.relogio.agora())
+    this.ultimaOtimizacao.set(id, this.relogio.agora())
   }
 
   esquecer(id: string): void {
     this.ultimaRecarga.delete(id)
-    this.fila.remover((k) => k === id)
+    this.ultimaOtimizacao.delete(id)
+    this.fila.remover((k) => k === id || k === `otimizar:${id}`)
   }
 
   pendentes(): string[] {
@@ -73,6 +78,14 @@ export class AgendaOtimizacao {
         if (agora - ult >= lim) this.enfileirar(id)
       }
     }
+    if (cfg.otimizarACadaMin > 0) {
+      const lim = cfg.otimizarACadaMin * MIN
+      for (const id of this.acoes.ligadas()) {
+        const ult = this.ultimaOtimizacao.get(id)
+        if (ult === undefined) this.ultimaOtimizacao.set(id, agora)
+        else if (agora - ult >= lim) this.enfileirarOtimizar(id)
+      }
+    }
     if (cfg.limparCacheDias > 0 && agora - this.ultimaLimpeza >= cfg.limparCacheDias * DIA) {
       this.ultimaLimpeza = agora
       for (const id of this.acoes.ligadas()) this.acoes.limparCache(id)
@@ -91,6 +104,22 @@ export class AgendaOtimizacao {
         }
         this.ultimaRecarga.set(id, this.relogio.agora())
         this.acoes.recarregar(id, 'programada')
+      },
+    })
+  }
+
+  /** RN-058: otimização automática, também uma por vez e nunca a conta em uso. */
+  private enfileirarOtimizar(id: string): void {
+    this.fila.adicionar({
+      chave: `otimizar:${id}`,
+      executar: () => {
+        if (!this.acoes.ligadas().includes(id)) return
+        if (this.acoes.emUso(id)) {
+          this.enfileirarOtimizar(id)
+          return
+        }
+        this.ultimaOtimizacao.set(id, this.relogio.agora())
+        this.acoes.otimizar(id)
       },
     })
   }

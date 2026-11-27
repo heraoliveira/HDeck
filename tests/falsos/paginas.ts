@@ -58,6 +58,10 @@ export class PaginaFalsa implements PaginaConta {
   recarregar(semCache: boolean): void {
     this.recargas.push({ semCache })
   }
+  renovacoes = 0
+  renovarProcesso(): void {
+    this.renovacoes++
+  }
   fechar(): void {
     this.fechada = true
   }

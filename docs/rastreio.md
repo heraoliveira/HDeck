@@ -2,16 +2,17 @@
 
 > Gerado por `pnpm regras`. Não editar à mão.
 
-Regras ativas: 97 · com teste: 97
+Regras ativas: 101 · com teste: 101
 
 | RN | Regra | Testes |
 |---|---|---|
 | RN-001 | O HDeck não joga pelo usuário: não clica, não digita, não usa macro, não resolve captcha o… | tests/unidade/geral.test.ts |
-| RN-002 | O HDeck não usa proxy, VPN, nem disfarça o navegador; todas as contas saem pelo IP do usuá… | tests/unidade/geral.test.ts<br>tests/unidade/seguranca-politicas.test.ts |
+| RN-002 | O HDeck não usa proxy, VPN, nem disfarça o navegador; todas as contas saem pelo IP do usuá… | tests/unidade/geral.test.ts<br>tests/unidade/rodada2.test.ts<br>tests/unidade/seguranca-politicas.test.ts |
 | RN-003 | O HDeck não tem anúncios, telemetria, analytics nem conta online. (D)… | tests/seguranca/seguranca.spec.ts<br>tests/unidade/geral.test.ts |
 | RN-004 | O HDeck só se conecta a: sites dos jogos abertos, Twitch/Kick com live ligada, Discord/Tel… | tests/seguranca/seguranca.spec.ts<br>tests/unidade/shared.test.ts |
 | RN-005 | O HDeck não bloqueia nem altera anúncios ou conteúdo dos sites dos jogos e das lives. (P)… | tests/seguranca/seguranca.spec.ts |
 | RN-006 | Toda frase da interface é pt-BR simples e direta. (D)… | tests/unidade/shared.test.ts |
+| RN-007 | Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, t… | tests/componentes/interface.test.ts<br>tests/unidade/rodada2.test.ts |
 | RN-010 | Cada conta tem sessão isolada e persistente: cookies, armazenamento, cache e login não são… | tests/e2e/contas.spec.ts |
 | RN-011 | A sessão de uma conta sobrevive a fechar o app, reiniciar o PC e atualizar o HDeck. (D)… | tests/e2e/contas.spec.ts<br>tests/integracao/adaptadores-node.test.ts |
 | RN-012 | Uma conta pertence a exatamente um grupo e a um jogo (do catálogo ou criado pelo usuário).… | tests/unidade/contas.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
@@ -28,7 +29,9 @@ Regras ativas: 97 · com teste: 97
 | RN-033 | Ao abrir o app, restaura os grupos que estavam ligados (opções: todos, nenhum). (P)… | tests/unidade/fila-grupos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-034 | Antes de ligar contas, se o total de contas ligadas de um jogo passar do limite que o catá… | tests/unidade/fila-grupos.test.ts<br>tests/unidade/motor.test.ts |
 | RN-035 | Cada grupo lembra a sua visão e o seu modo de divisão. (P)… | tests/unidade/motor.test.ts |
-| RN-036 | Contas podem ser arrastadas entre grupos e reordenadas. (D)… | tests/unidade/contas.test.ts<br>tests/unidade/fila-grupos.test.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts |
+| RN-036 | Contas podem ser arrastadas entre grupos e reordenadas; a barra lateral mostra cada grupo … | tests/componentes/interface.test.ts<br>tests/unidade/contas.test.ts<br>tests/unidade/fila-grupos.test.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts |
+| RN-037 | Cada grupo tem um endereço padrão: a conta nova do grupo começa nele, e o usuário pode tro… | tests/componentes/interface.test.ts<br>tests/unidade/rodada2.test.ts |
+| RN-038 | Arrastar (ou mover) uma conta para outro grupo pede confirmação. (D, 2026-11-27)… | tests/componentes/interface.test.ts |
 | RN-040 | Visões: Grade, Principal + miniaturas, Foco (abas) e Painel. (R)… | tests/e2e/fumaca.spec.ts<br>tests/unidade/layout.test.ts |
 | RN-041 | Divisões: 1, 2 lado a lado, 2 empilhadas, 1+2, 1+3, 2×2, 3×2, 3×3, 4×4 e Personalizada. Ca… | tests/componentes/interface.test.ts<br>tests/e2e/contas.spec.ts<br>tests/unidade/layout.test.ts |
 | RN-042 | Espaços nunca se sobrepõem e sempre cabem na área disponível, em qualquer tamanho de janel… | tests/e2e/contas.spec.ts<br>tests/unidade/layout.test.ts |
@@ -42,6 +45,7 @@ Regras ativas: 97 · com teste: 97
 | RN-054 | Fotos não são capturadas para contas cujo espaço não está na tela. (P)… | tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
 | RN-055 | Com contas ligadas, o PC é impedido de dormir (ligado); a tela pode apagar. (P)… | tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-056 | Otimização programada (cada item desligado por padrão, global ou por grupo):… | tests/e2e/saude.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
+| RN-058 | **Otimizar** reabre a conta num processo novo (o login continua) e solta a memória que o j… | tests/componentes/interface.test.ts<br>tests/unidade/rodada2.test.ts<br>tests/unidade/shared.test.ts |
 | RN-057 | Recargas programadas são uma conta por vez, com 20 s entre elas, e nunca recarregam a cont… | tests/e2e/saude.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/fila-grupos.test.ts |
 | RN-060 | **Recarregar sozinho quando a conexão cair** (ligado): se a conexão principal do jogo cair… | tests/e2e/saude.spec.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/saude.test.ts<br>tests/unidade/shared.test.ts |
 | RN-061 | Recargas por queda seguem a espera 45 s → 2 min → 5 min → 15 min; após 4 falhas seguidas, … | tests/e2e/saude.spec.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/saude.test.ts |
@@ -89,7 +93,7 @@ Regras ativas: 97 · com teste: 97
 | RN-151 | Pop-ups de login (Google, Discord, Twitch, Kick, carteiras) abrem na sessão da conta e fec… | tests/e2e/recursos.spec.ts<br>tests/unidade/seguranca-politicas.test.ts |
 | RN-152 | Câmera, microfone, localização e acesso a dispositivos são sempre negados às páginas; noti… | tests/seguranca/seguranca.spec.ts<br>tests/unidade/seguranca-politicas.test.ts |
 | RN-153 | Páginas só navegam em `https:` (e `http:` em localhost). (P)… | tests/seguranca/seguranca.spec.ts<br>tests/unidade/seguranca-politicas.test.ts<br>tests/unidade/shared.test.ts |
-| RN-154 | Se o Google recusar o login no app, a conta mostra a orientação de usar outro método de lo… | tests/unidade/motor.test.ts<br>tests/unidade/seguranca-politicas.test.ts |
+| RN-154 | Login com Google funciona dentro do app: só nas páginas de login do Google o HDeck se apre… | tests/unidade/geral.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts<br>tests/unidade/seguranca-politicas.test.ts |
 | RN-160 | Exportar backup gera um arquivo com configurações, grupos, contas e textos vigiados; o cof… | tests/e2e/recursos.spec.ts<br>tests/integracao/adaptadores-node.test.ts |
 | RN-161 | "Incluir dados de login dos jogos" copia as sessões; o app avisa que quem tiver o arquivo … | tests/integracao/adaptadores-node.test.ts |
 | RN-162 | Importar backup numa instalação nova restaura tudo o que foi exportado. (P)… | tests/e2e/recursos.spec.ts<br>tests/integracao/adaptadores-node.test.ts |

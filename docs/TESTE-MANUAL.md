@@ -26,6 +26,8 @@ Execução de 2026-11-26 (assistente, no PC da dona, sem contas reais): os itens
 | 17 | Sem internet | Desligar o Wi-Fi 6 min: aviso "Sem internet"; ao voltar, só as contas que caíram recarregam | ⏳ dona |
 | 18 | Bandeja | Fechar no X → bandeja; menu: Mostrar, Modo econômico, Silenciar, Pausar avisos 1 h, Sair (confirma com contas ligadas) | ⏳ dona |
 | 19 | Iniciar com o Windows | Ligar a opção e "Abrir na bandeja"; reiniciar o PC: abre só na bandeja | ⏳ dona |
+| 20 | Memória com a conta logada | Uma conta do pokeidle logada por 2 h: anotar a RAM no Painel antes e depois de "Otimizar" | ⏳ dona |
+| 21 | Login com Google (correção) | "Entrar com Google" no jogo: a tela de "navegador não seguro" não aparece mais | ⏳ dona |
 
 ## Observações
 - A contagem real do tempo assistido (item 8) é o maior risco: se não contar com a página offscreen, trocar para o plano B do ADR 0004.

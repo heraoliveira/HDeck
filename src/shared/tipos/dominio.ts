@@ -66,6 +66,8 @@ export const layoutGrupoSchema = z.object({
   espacos: z.array(idSchema.nullable()).max(16).default([]),
   proporcao169: z.boolean().default(false),
   faixaMiniaturas: z.enum(['direita', 'embaixo']).default('direita'),
+  /** RN-037: endereço em que as contas novas do grupo começam. */
+  urlPadrao: z.string().max(2000).default(''),
   /** Política fora da tela por jogo dentro deste grupo (RN-051). */
   politicas: z.record(idSchema, politicaForaTelaSchema).default({}),
 })

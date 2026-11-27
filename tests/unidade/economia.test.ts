@@ -110,6 +110,7 @@ describe('otimização programada', () => {
     const feitas: [string, string, number][] = []
     const caches: string[] = []
     const memoria: string[] = []
+    const otimizadas: string[] = []
     const ligadas = ['a', 'b', 'c']
     const ag = new AgendaOtimizacao(r, () => config, {
       ligadas: () => ligadas,
@@ -117,8 +118,9 @@ describe('otimização programada', () => {
       recarregar: (id, motivo) => feitas.push([id, motivo, r.agora()]),
       limparCache: (id) => caches.push(id),
       avisarMemoria: (id) => memoria.push(id),
+      otimizar: (id) => otimizadas.push(id),
     })
-    return { r, ag, feitas, caches, memoria, emUso }
+    return { r, ag, feitas, caches, memoria, emUso, otimizadas }
   }
 
   it('RN-056 tudo desligado por padrão', () => {

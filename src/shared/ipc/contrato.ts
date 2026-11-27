@@ -93,6 +93,7 @@ export type EspacoTela = z.infer<typeof espacoSchema>
 export const acoesLote = [
   'recarregar',
   'recarregarSemCache',
+  'otimizar',
   'ligar',
   'desligar',
   'silenciar',
@@ -136,14 +137,13 @@ export const canais = {
   'grupos.politica': z
     .object({ grupoId: idSchema, jogoId: idSchema, politica: politicaForaTelaSchema })
     .strict(),
-  'grupos.menu': z.object({ id: idSchema, x: z.number().int(), y: z.number().int() }).strict(),
   'grupos.janela': comId,
 
   'contas.adicionar': z
     .object({
       grupoId: idSchema,
-      jogoId: idSchema,
-      url: z.url().max(2000),
+      jogoId: idSchema.optional(),
+      url: z.url().max(2000).optional(),
       nome: z.string().max(60).optional(),
       cor: corSchema.optional(),
       icone: z.string().max(8).optional(),
@@ -174,7 +174,7 @@ export const canais = {
   'contas.ativar': comId,
   'contas.duplicar': comId,
   'contas.soltar': comId,
-  'contas.menu': z.object({ id: idSchema, x: z.number().int(), y: z.number().int() }).strict(),
+  'contas.inicio': comId,
   'contas.lote': z
     .object({
       ids: z.array(idSchema).min(1).max(500),
@@ -187,6 +187,7 @@ export const canais = {
   'contas.espacos': z.object({ espacos: z.array(espacoSchema).max(200) }).strict(),
   'contas.sugerirJogo': z.object({ url: z.string().max(2000) }).strict(),
   'contas.devtools': comId,
+  'contas.limparDados': comId,
 
   'dialogo.estado': z.object({ aberto: z.boolean() }).strict(),
 

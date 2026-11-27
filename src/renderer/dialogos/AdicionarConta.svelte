@@ -7,137 +7,101 @@ import Modal from '../componentes/Modal.svelte'
 import { chamar } from '../estado/api.ts'
 import { loja, mensagem } from '../estado/loja.svelte.ts'
 
+/**
+ * Adicionar ou editar conta (RN-037): sem escolher jogo. A conta nova começa no endereço
+ * padrão do grupo; o usuário pode trocar. O jogo sai do endereço (RN-013).
+ */
 let {
   aoFechar,
   grupoId,
   editar,
 }: { aoFechar: () => void; grupoId?: string | undefined; editar?: Conta | undefined } = $props()
 const s = $derived(loja.snap!)
-// Valores iniciais do formulário (o diálogo não acompanha mudanças de fora).
 const ini = untrack(() => ({ editar, grupoId }))
+const grupoInicial =
+  ini.editar?.grupoId ?? ini.grupoId ?? loja.snap?.grupoAtualId ?? loja.snap?.grupos[0]?.id ?? ''
+const padraoDo = (id: string) => loja.snap?.grupos.find((g) => g.id === id)?.layout.urlPadrao ?? ''
 
-let url = $state(ini.editar?.url ?? '')
-let jogoId = $state(ini.editar?.jogoId ?? '')
+let grupo = $state(grupoInicial)
+let url = $state(ini.editar?.url ?? padraoDo(grupoInicial))
+let urlMexida = $state(Boolean(ini.editar))
 let nome = $state(ini.editar?.nome ?? '')
-let grupo = $state(ini.editar?.grupoId ?? ini.grupoId ?? loja.snap?.grupoAtualId ?? '')
 let cor = $state(ini.editar?.cor ?? CORES_CONTA[(loja.snap?.contas.length ?? 0) % CORES_CONTA.length])
-let icone = $state(ini.editar?.icone ?? '')
 let notas = $state(ini.editar?.notas ?? '')
 let som = $state(ini.editar?.som ?? true)
 let notificacoes = $state(ini.editar?.notificacoesDaPagina ?? false)
-let sugerido: string | null = $state(null)
-let novoJogo = $state(false)
 
-/** RN-013: o endereço sugere o jogo. */
-async function aoMudarUrl() {
-  if (!/^https?:\/\//.test(url)) return
-  sugerido = await chamar<'contas.sugerirJogo', string | null>('contas.sugerirJogo', { url })
-  if (sugerido && !editar) jogoId = sugerido
-  if (!sugerido && !jogoId) novoJogo = true
-}
-
-function escolherJogo(id: string) {
-  jogoId = id
-  const j = s.jogos.find((x) => x.id === id)
-  if (j && !url) url = j.urlInicial
+function trocarGrupo(id: string) {
+  grupo = id
+  if (!urlMexida) url = padraoDo(id)
 }
 
 async function salvar() {
-  let urlOk: URL
+  let u: URL
   try {
-    urlOk = new URL(url)
-    if (!/^https?:$/.test(urlOk.protocol)) throw new Error()
+    u = new URL(url.trim())
+    if (!/^https?:$/.test(u.protocol)) throw new Error()
   } catch {
     mensagem('erro', t('adicionar.urlInvalida'))
     return
   }
-  let jid = jogoId
-  if (novoJogo || !jid) {
-    // Cria o jogo do usuário a partir do domínio.
-    jid = `jogo-${urlOk.hostname.replace(/[^a-z0-9]/gi, '-')}`
-    if (!s.jogos.some((j) => j.id === jid))
-      await chamar('jogos.salvar', {
-        id: jid,
-        nome: urlOk.hostname.replace(/^www\./, ''),
-        dominios: [urlOk.hostname.replace(/^www\./, '')],
-        urlInicial: `${urlOk.origin}/`,
-        icone: '🎮',
-        farmaEscondido: true,
-        dadosContinuos: false,
-        semDadosMinPadrao: 0,
-        limiteContas: null,
-        bonusLive: false,
-        plataformasLive: [],
-        wsPrincipal: null,
-        seletoresLogin: null,
-        seletorPedeLogin: null,
-        canvas: false,
-        origem: 'usuario',
-      })
-  }
-  if (editar) {
+  if (ini.editar) {
     await chamar('contas.editar', {
-      id: editar.id,
-      nome: nome || editar.nome,
-      url,
-      jogoId: jid,
+      id: ini.editar.id,
+      nome: nome.trim() || ini.editar.nome,
+      url: u.toString(),
       cor,
-      ...(icone ? { icone } : {}),
       notas,
       som,
       notificacoesDaPagina: notificacoes,
     })
-    if (grupo !== editar.grupoId)
-      await chamar('contas.mover', { id: editar.id, grupoId: grupo, posicao: 1000 })
+    if (grupo !== ini.editar.grupoId)
+      await chamar('contas.mover', { id: ini.editar.id, grupoId: grupo, posicao: 1000 })
     aoFechar()
     return
   }
   const r = await chamar<'contas.adicionar', { ok: boolean }>('contas.adicionar', {
     grupoId: grupo,
-    jogoId: jid,
-    url,
+    url: u.toString(),
     cor,
     notas,
     som,
     notificacoesDaPagina: notificacoes,
-    ...(nome ? { nome } : {}),
-    ...(icone ? { icone } : {}),
+    ...(nome.trim() ? { nome: nome.trim() } : {}),
   })
   if (r.ok) aoFechar()
   else mensagem('erro', t('adicionar.urlInvalida'))
 }
 </script>
 
-<Modal titulo={editar ? t('conta.editar') : t('adicionar.titulo')} {aoFechar}>
+<Modal titulo={ini.editar ? t('conta.editar') : t('adicionar.titulo')} {aoFechar}>
   <form class="form" onsubmit={(e) => (e.preventDefault(), salvar())}>
     <label>
-      {t('adicionar.jogo')}
-      <select class="campo" value={novoJogo ? '__novo' : jogoId} onchange={(e) => (e.currentTarget.value === '__novo' ? (novoJogo = true) : ((novoJogo = false), escolherJogo(e.currentTarget.value)))}>
-        <option value="" disabled>—</option>
-        {#each s.jogos as j (j.id)}<option value={j.id}>{j.icone} {j.nome}</option>{/each}
-        <option value="__novo">{t('adicionar.novoJogo')}</option>
+      {t('adicionar.grupo')}
+      <select class="campo" value={grupo} onchange={(e) => trocarGrupo(e.currentTarget.value)}>
+        {#each s.grupos as g (g.id)}<option value={g.id}>{g.nome}</option>{/each}
       </select>
     </label>
     <label>
       {t('adicionar.url')}
-      <input class="campo" bind:value={url} onchange={aoMudarUrl} placeholder="https://" />
-      <span class="pequeno muted">{sugerido ? t('adicionar.sugerido', { jogo: s.jogos.find((j) => j.id === sugerido)?.nome ?? '' }) : t('adicionar.urlDica')}</span>
+      <input class="campo" bind:value={url} oninput={() => (urlMexida = true)} placeholder="https://" />
+      <span class="pequeno muted">{t('adicionar.enderecoDica')}</span>
     </label>
     <label>{t('adicionar.nome')}<input class="campo" bind:value={nome} maxlength="60" /></label>
     <label>
-      {t('adicionar.grupo')}
-      <select class="campo" bind:value={grupo}>{#each s.grupos as g (g.id)}<option value={g.id}>{g.nome}</option>{/each}</select>
+      {t('adicionar.cor')}
+      <span class="cores">
+        {#each CORES_CONTA as c (c)}
+          <button type="button" class="cor" class:ativo={cor === c} style:--c={c} aria-label={c} onclick={() => (cor = c)}></button>
+        {/each}
+      </span>
     </label>
-    <div class="linha">
-      <label class="cresce">{t('adicionar.cor')}<input class="campo" type="color" bind:value={cor} /></label>
-      <label class="cresce">{t('adicionar.icone')}<input class="campo" bind:value={icone} maxlength="4" placeholder="🎮" /></label>
-    </div>
     <label>{t('adicionar.notas')}<textarea class="campo" bind:value={notas} maxlength="2000"></textarea></label>
     <label class="linha"><input type="checkbox" bind:checked={som} />{t('adicionar.som')}</label>
     <label class="linha"><input type="checkbox" bind:checked={notificacoes} />{t('adicionar.notificacoes')}</label>
     <div class="linha fim">
       <button type="button" class="botao" onclick={aoFechar}>{t('comum.cancelar')}</button>
-      <button type="submit" class="botao primario">{editar ? t('comum.salvar') : t('comum.adicionar')}</button>
+      <button type="submit" class="botao primario">{ini.editar ? t('comum.salvar') : t('comum.adicionar')}</button>
     </div>
   </form>
 </Modal>
@@ -162,5 +126,21 @@ async function salvar() {
   .fim {
     justify-content: flex-end;
     margin-top: 6px;
+  }
+  .cores {
+    display: flex;
+    gap: 8px;
+  }
+  .cor {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    background: var(--c);
+    padding: 0;
+  }
+  .cor.ativo {
+    border-color: var(--texto);
+    box-shadow: 0 0 0 2px var(--dourado);
   }
 </style>

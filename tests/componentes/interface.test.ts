@@ -170,3 +170,60 @@ describe('contas e visões', () => {
     void a
   })
 })
+
+const PainelConta = (await import('../../src/renderer/dialogos/PainelConta.svelte')).default
+const PainelGrupo = (await import('../../src/renderer/dialogos/PainelGrupo.svelte')).default
+const BarraLateral = (await import('../../src/renderer/app/BarraLateral.svelte')).default
+
+describe('painéis no estilo do app', () => {
+  it('RN-007 RN-038 painel da conta: mover para outro grupo pede confirmação', async () => {
+    const m = preparar()
+    const c = m.novaConta({ nome: 'Minha conta' })
+    const b = m.motor.criarGrupo('Outro')
+    m.relogio.avancar(50)
+    loja.snap = m.motor.snapshot()
+    render(PainelConta, { id: c.id, x: 10, y: 10 })
+    expect(screen.getByRole('menu', { name: 'Minha conta' })).toBeTruthy()
+    const sel = screen.getByRole('combobox', { name: 'Mover para' }) as HTMLSelectElement
+    sel.value = b.id
+    await fireEvent.change(sel)
+    expect(loja.dialogos.at(-1)).toMatchObject({ qual: 'confirmar', titulo: 'Mover conta' })
+    expect(chamadas.some((x) => x.canal === 'contas.mover')).toBe(false)
+    ;(loja.dialogos.at(-1) as { aoConfirmar: () => void }).aoConfirmar()
+    expect(chamadas.at(-1)).toEqual({
+      canal: 'contas.mover',
+      dados: { id: c.id, grupoId: b.id, posicao: 1000 },
+    })
+  })
+
+  it('RN-007 RN-037 RN-058 painel do grupo: endereço das contas novas, otimizar e fora da tela', async () => {
+    const m = preparar()
+    m.novaConta()
+    m.relogio.avancar(50)
+    loja.snap = m.motor.snapshot()
+    render(PainelGrupo, { id: m.grupoId, x: 0, y: 0 })
+    await fireEvent.click(screen.getByText('Endereço das contas novas'))
+    const campo = screen.getByRole('textbox', { name: 'Endereço das contas novas' })
+    await fireEvent.input(campo, { target: { value: 'https://jogo.test/novo' } })
+    await fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+    expect(chamadas).toContainEqual({
+      canal: 'grupos.layout',
+      dados: { id: m.grupoId, layout: { urlPadrao: 'https://jogo.test/novo' } },
+    })
+    await fireEvent.click(screen.getAllByRole('radio', { name: 'Economizar' }).at(-1)!)
+    expect(chamadas.at(-1)).toMatchObject({ canal: 'grupos.politica', dados: { politica: 'economizar' } })
+  })
+
+  it('RN-036 a lateral mostra cada grupo com as contas dele embaixo', () => {
+    const m = preparar()
+    m.novaConta({ nome: 'Alfa' })
+    m.novaConta({ nome: 'Beta' })
+    m.relogio.avancar(50)
+    loja.snap = m.motor.snapshot()
+    render(BarraLateral)
+    const grupo = screen.getByRole('region', { name: loja.snap.grupos[0]!.nome })
+    expect(grupo.textContent).toContain('Alfa')
+    expect(grupo.textContent).toContain('Beta')
+    expect(grupo.textContent).toContain('Nova conta')
+  })
+})

@@ -21,6 +21,7 @@ export const OPCOES = {
   recarregarH: [0, 2, 4, 6, 12, 24] as const,
   memoriaMB: [0, 1024, 1536, 2048, 3072] as const,
   cacheDias: [0, 1, 7] as const,
+  otimizarMin: [0, 30, 60, 120, 240] as const,
   qualidade: ['160p', '360p', '480p', '720p', 'auto'] as const,
   livesPorConta: [0, 1, 2, 3, 5] as const,
   religarMin: [30, 60, 120, 240, 360] as const,
@@ -88,6 +89,7 @@ export const configSchema = z.object({
       recarregarACadaH: umDe(OPCOES.recarregarH, 0),
       limiteMemoriaMB: umDe(OPCOES.memoriaMB, 0),
       limparCacheDias: umDe(OPCOES.cacheDias, 0),
+      otimizarACadaMin: umDe(OPCOES.otimizarMin, 60),
     })
     .prefault({}),
   lives: z

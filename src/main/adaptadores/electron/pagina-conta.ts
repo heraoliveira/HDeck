@@ -195,6 +195,16 @@ class PaginaContaElectron implements PaginaConta {
     else wc.reload()
   }
 
+  /** RN-058: mesma página num processo novo. A memória que o jogo acumulou volta ao Windows. */
+  renovarProcesso(): void {
+    const wc = this.view.webContents
+    if (!wc || wc.isDestroyed()) return
+    this.derrubandoDeProposito = true
+    this.urlAoDerrubar = wc.getURL() || this.conta.url
+    if (wc.isCrashed()) void wc.loadURL(this.urlAoDerrubar).catch(() => {})
+    else wc.forcefullyCrashRenderer()
+  }
+
   fechar(): void {
     clearInterval(this.batimento)
     this.vigia.definir(false)

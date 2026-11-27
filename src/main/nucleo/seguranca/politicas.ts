@@ -93,3 +93,31 @@ export function userAgentLimpo(ua: string): string {
     .replace(/\s{2,}/g, ' ')
     .trim()
 }
+
+/**
+ * RN-154 (alterada a pedido da dona em 2026-11-27): o Google recusa login em navegador embutido
+ * olhando o user agent e as client hints. Só nas páginas de login do Google, o HDeck se apresenta
+ * como Firefox (sem client hints); no resto, nada muda (RN-002).
+ */
+export const UA_LOGIN_GOOGLE =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0'
+
+const HOSTS_LOGIN_GOOGLE = ['accounts.google.com', 'accounts.youtube.com', 'myaccount.google.com']
+
+export function ehLoginGoogle(url: string): boolean {
+  try {
+    const h = new URL(url).hostname.toLowerCase()
+    return HOSTS_LOGIN_GOOGLE.some((d) => dominioPertence(h, d))
+  } catch {
+    return false
+  }
+}
+
+/** Cabeçalhos da requisição para o login do Google: UA do Firefox e sem client hints. */
+export function cabecalhosLoginGoogle(cab: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(cab)) if (!/^sec-ch-ua/i.test(k)) out[k] = v
+  for (const k of Object.keys(out)) if (k.toLowerCase() === 'user-agent') delete out[k]
+  out['User-Agent'] = UA_LOGIN_GOOGLE
+  return out
+}

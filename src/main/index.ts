@@ -18,14 +18,12 @@ import {
   dialog,
   type Input,
   Menu,
-  type MenuItemConstructorOptions,
   nativeTheme,
   net,
   protocol,
   safeStorage,
   session,
   shell,
-  type WebContents,
 } from 'electron'
 import { Bandeja } from './adaptadores/electron/bandeja.ts'
 import { instalarEndurecimento } from './adaptadores/electron/endurecimento.ts'
@@ -76,7 +74,13 @@ mkdirSync(pastaDados, { recursive: true })
 app.commandLine.appendSwitch('disable-renderer-backgrounding')
 app.commandLine.appendSwitch('disable-background-timer-throttling')
 app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
-app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,IntensiveWakeUpThrottling')
+// Memória (ADR 0013): iframes de anúncio e de terceiros dividem o processo da página do jogo
+// (sem um processo por site), sem cache de páginas antigas e sem processo reserva.
+app.commandLine.appendSwitch('disable-site-isolation-trials')
+app.commandLine.appendSwitch(
+  'disable-features',
+  'CalculateNativeWinOcclusion,IntensiveWakeUpThrottling,IsolateOrigins,site-per-process,BackForwardCache,SpareRendererForSitePerProcess,MediaRouter,OptimizationHints,Translate,AutofillServerCommunication',
+)
 
 const arquivoConfig = new ConfigArquivo(join(pastaDados, 'config.json'))
 if (!arquivoConfig.ler().avancado.aceleracaoHardware) app.disableHardwareAcceleration() // vale ao reiniciar
@@ -410,133 +414,6 @@ async function iniciar(): Promise<void> {
     return true
   }
 
-  // ---------- Menus "⋯" nativos (Seção 4.3) ----------
-  const dialogoNaInterface = (qual: string, id: string) => emitir('comando', { cmd: 'dialogo', qual, id })
-  const confirmarExcessos = async (excessos: { jogoNome: string; limite: number; total: number }[]) => {
-    const e = excessos[0]!
-    const r = await perguntador.perguntar({
-      mensagem: t('limite.titulo'),
-      detalhe: t('limite.texto', { jogo: e.jogoNome, limite: e.limite, total: e.total }),
-      botoes: [t('limite.continuar'), t('comum.cancelar')],
-      janela: janelas.principal,
-    })
-    return r === 0
-  }
-  const ligarGrupoComConfirmacao = async (id: string, trocar: boolean) => {
-    let r = trocar ? m.trocarGrupo(id) : m.ligarGrupo(id, true)
-    if (!r.ok && (await confirmarExcessos(r.erro.excessos)))
-      r = trocar ? m.trocarGrupo(id, true) : m.ligarGrupo(id, true, true)
-    return r
-  }
-
-  const menuDaConta = (id: string): MenuItemConstructorOptions[] => {
-    const c = m.conta(id)
-    if (!c) return []
-    const ligada = m.idsLigadas().includes(id)
-    const s = m.snapshot()
-    const jogo = s.jogos.find((j) => j.id === c.jogoId)
-    const mostrarLives = s.config.lives.mostrarEmTodas || (jogo?.bonusLive ?? false)
-    const zoom = [0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5]
-    return [
-      { label: t('conta.recarregar'), enabled: ligada, click: () => m.recarregar(id, false) },
-      { label: t('conta.recarregarSemCache'), enabled: ligada, click: () => m.recarregar(id, true) },
-      ligada
-        ? { label: t('conta.desligar'), click: () => m.desligarConta(id) }
-        : { label: t('conta.ligar'), click: () => void m.lote([id], 'ligar') },
-      {
-        label: c.som ? t('conta.silenciar') : t('conta.ativarSom'),
-        click: () => m.editarConta(id, { som: !c.som }),
-      },
-      { type: 'separator' },
-      { label: t('conta.soltar'), enabled: ligada, click: () => m.soltar(id) },
-      ...(mostrarLives
-        ? [{ label: `${t('conta.lives')}…`, click: () => dialogoNaInterface('lives', id) }]
-        : []),
-      { label: `${t('cfg.cofre.t')}…`, click: () => dialogoNaInterface('cofre', id) },
-      { label: t('conta.preencherLogin'), enabled: ligada, click: () => void m.preencherLogin([id]) },
-      {
-        label: t('conta.foraDaTela'),
-        submenu: (['padrao_do_jogo', 'manter', 'economizar'] as const).map((p) => ({
-          label:
-            p === 'padrao_do_jogo'
-              ? t('conta.politicaPadrao')
-              : p === 'manter'
-                ? t('grupo.manterFarmando')
-                : t('grupo.economizar'),
-          type: 'radio' as const,
-          checked: c.politicaForaTela === p,
-          click: () => m.editarConta(id, { politicaForaTela: p }),
-        })),
-      },
-      {
-        label: t('conta.zoom'),
-        submenu: zoom.map((z) => ({
-          label: `${Math.round(z * 100)}%`,
-          type: 'radio' as const,
-          checked: Math.abs(c.zoom - z) < 0.01,
-          click: () => m.editarConta(id, { zoom: z }),
-        })),
-      },
-      {
-        label: t('conta.mover'),
-        submenu: s.grupos
-          .filter((g) => g.id !== c.grupoId)
-          .map((g) => ({ label: g.nome, click: () => m.moverConta(id, g.id, 9999) })),
-      },
-      { type: 'separator' },
-      { label: t('conta.duplicar'), click: () => m.duplicar(id) },
-      { label: t('conta.limparCache'), enabled: ligada, click: () => void m.limparCache(id) },
-      { label: t('conta.devtools'), enabled: ligada, click: () => m.abrirDevtools(id) },
-      { label: `${t('conta.editar')}…`, click: () => dialogoNaInterface('editarConta', id) },
-      { label: `${t('conta.apagar')}…`, click: () => dialogoNaInterface('apagarConta', id) },
-    ]
-  }
-
-  const menuDoGrupo = (id: string): MenuItemConstructorOptions[] => {
-    const s = m.snapshot()
-    const g = s.grupos.find((x) => x.id === id)
-    if (!g) return []
-    const jogos = [...new Set(s.contas.filter((c) => c.grupoId === id).map((c) => c.jogoId))]
-      .map((jid) => s.jogos.find((j) => j.id === jid))
-      .filter((j) => j !== undefined)
-    return [
-      g.ligado
-        ? { label: t('lateral.desligar'), click: () => m.ligarGrupo(id, false) }
-        : { label: t('lateral.ligar'), click: () => void ligarGrupoComConfirmacao(id, false) },
-      { label: t('grupo.trocar'), click: () => void ligarGrupoComConfirmacao(id, true) },
-      {
-        label: t('titulo.recarregarGrupo'),
-        enabled: g.ligado,
-        click: () =>
-          void m.lote(
-            s.contas.filter((c) => c.grupoId === id).map((c) => c.id),
-            'recarregar',
-          ),
-      },
-      { label: t('grupo.abrirJanela'), click: () => janelas.abrirGrupo(id, g.nome) },
-      {
-        label: t('grupo.foraDaTela'),
-        enabled: jogos.length > 0,
-        submenu: jogos.map((j) => ({
-          label: j.nome,
-          submenu: (['manter', 'economizar'] as const).map((p) => ({
-            label: p === 'manter' ? t('grupo.manterFarmando') : t('grupo.economizar'),
-            type: 'radio' as const,
-            checked: (g.layout.politicas[j.id] ?? 'manter') === p,
-            click: () => m.definirPolitica(id, j.id, p),
-          })),
-        })),
-      },
-      { type: 'separator' },
-      { label: `${t('grupo.renomear')}…`, click: () => dialogoNaInterface('editarGrupo', id) },
-      { label: `${t('grupo.apagar')}…`, click: () => dialogoNaInterface('apagarGrupo', id) },
-    ]
-  }
-  const abrirMenu = (itens: MenuItemConstructorOptions[], wc: WebContents, x: number, y: number) => {
-    const w = BrowserWindow.fromWebContents(wc)
-    if (w) Menu.buildFromTemplate(itens).popup({ window: w, x, y })
-  }
-
   // ---------- IPC ----------
   const validarWebhook = (url: string) =>
     url === '' ||
@@ -609,7 +486,6 @@ async function iniciar(): Promise<void> {
     'grupos.layout': (e) => m.definirLayout(e.id, e.visao, e.layout as Partial<Grupo['layout']> | undefined),
     'grupos.reordenar': (e) => m.reordenarGrupos(e.ids),
     'grupos.politica': (e) => m.definirPolitica(e.grupoId, e.jogoId, e.politica),
-    'grupos.menu': (e, ctx) => abrirMenu(menuDoGrupo(e.id), ctx.wc, e.x, e.y),
     'grupos.janela': (e) => {
       const g = m.listarGrupos().find((x) => x.id === e.id)
       if (g) janelas.abrirGrupo(g.id, g.nome)
@@ -627,7 +503,7 @@ async function iniciar(): Promise<void> {
     'contas.ativar': (e) => m.ativar(e.id),
     'contas.duplicar': (e) => m.duplicar(e.id),
     'contas.soltar': (e) => m.soltar(e.id),
-    'contas.menu': (e, ctx) => abrirMenu(menuDaConta(e.id), ctx.wc, e.x, e.y),
+    'contas.inicio': (e) => m.irParaInicio(e.id),
     'contas.lote': async (e) => {
       if (e.acao === 'fotos') {
         const fotos = await m.fotosDe(e.ids)
@@ -649,6 +525,7 @@ async function iniciar(): Promise<void> {
     'contas.espacos': (e, ctx) => m.definirEspacos(ctx.janela, e.espacos),
     'contas.sugerirJogo': (e) => sugerirJogo(e.url, m.listarJogos())?.id ?? null,
     'contas.devtools': (e) => m.abrirDevtools(e.id),
+    'contas.limparDados': (e) => m.limparDados(e.id),
     'dialogo.estado': (e) => m.definirDialogo(e.aberto),
     'jogos.salvar': (e) => m.salvarJogo({ ...e, origem: e.origem === 'catalogo' ? 'catalogo' : 'usuario' }),
     'jogos.apagar': (e) => m.apagarJogo(e.id),

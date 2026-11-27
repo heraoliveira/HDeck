@@ -75,6 +75,6 @@ describe('geral', () => {
       .map((a) => readFileSync(a, 'utf8'))
       .join('\n')
     expect(codigo).not.toMatch(/setProxy|proxy-server|--proxy/)
-    expect(codigo.match(/setUserAgent\(/g)?.length).toBe(1)
+    expect(codigo.match(/setUserAgent\(/g)?.length).toBe(3) // limpar o UA da sessão + login do Google (RN-154)
   })
 })

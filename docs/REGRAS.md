@@ -21,11 +21,12 @@
 ## 1. Princípios
 
 - **RN-001** O HDeck não joga pelo usuário: não clica, não digita, não usa macro, não resolve captcha ou verificação humana, não envia formulários. (D/R)
-- **RN-002** O HDeck não usa proxy, VPN, nem disfarça o navegador; todas as contas saem pelo IP do usuário. (R)
+- **RN-002** O HDeck não usa proxy, VPN, nem disfarça o navegador; todas as contas saem pelo IP do usuário. Única exceção: as páginas de login do Google (RN-154). (R; exceção D 2026-11-27)
 - **RN-003** O HDeck não tem anúncios, telemetria, analytics nem conta online. (D)
 - **RN-004** O HDeck só se conecta a: sites dos jogos abertos, Twitch/Kick com live ligada, Discord/Telegram se configurados, e o servidor de atualização. (P)
 - **RN-005** O HDeck não bloqueia nem altera anúncios ou conteúdo dos sites dos jogos e das lives. (P)
 - **RN-006** Toda frase da interface é pt-BR simples e direta. (D)
+- **RN-007** Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, tokens de `estilos/tokens.css`); nada de menu nativo do sistema dentro do app (a bandeja do Windows é a exceção). (D, 2026-11-27)
 
 ## 2. Contas
 
@@ -48,7 +49,9 @@
 - **RN-033** Ao abrir o app, restaura os grupos que estavam ligados (opções: todos, nenhum). (P)
 - **RN-034** Antes de ligar contas, se o total de contas ligadas de um jogo passar do limite que o catálogo declara para ele, o app avisa e pede confirmação; não impede. (R)
 - **RN-035** Cada grupo lembra a sua visão e o seu modo de divisão. (P)
-- **RN-036** Contas podem ser arrastadas entre grupos e reordenadas. (D)
+- **RN-036** Contas podem ser arrastadas entre grupos e reordenadas; a barra lateral mostra cada grupo expansível com as contas dele. Mudar a ordem dentro do grupo não pede confirmação. (D, alterada 2026-11-27)
+- **RN-037** Cada grupo tem um endereço padrão: a conta nova do grupo começa nele, e o usuário pode trocar. Adicionar conta não pede para escolher jogo; o jogo sai do endereço. (D, 2026-11-27)
+- **RN-038** Arrastar (ou mover) uma conta para outro grupo pede confirmação. (D, 2026-11-27)
 
 ## 4. Visões e divisão de tela
 
@@ -71,6 +74,7 @@
   - recarregar contas a cada 2, 4, 6, 12 ou 24 h;
   - recarregar a conta cuja memória passar de 1; 1,5; 2 ou 3 GB;
   - limpar o cache de arquivos das contas a cada 1 ou 7 dias (nunca cookies, armazenamento ou login). (D)
+- **RN-058** **Otimizar** reabre a conta num processo novo (o login continua) e solta a memória que o jogo acumulou. Manual (painel do grupo, da conta e ações em lote) e sozinho a cada 1 h (desligado; 30 min, 1, 2, 4 h), uma conta por vez e nunca a conta em uso. (D, 2026-11-27)
 - **RN-057** Recargas programadas são uma conta por vez, com 20 s entre elas, e nunca recarregam a conta ativa usada nos últimos 60 s (ela fica para o fim da fila). (P)
 
 ## 6. Saúde: quedas e recargas
@@ -142,7 +146,7 @@
 - **RN-151** Pop-ups de login (Google, Discord, Twitch, Kick, carteiras) abrem na sessão da conta e fecham ao terminar; outros pop-ups e abas novas pedem confirmação mostrando o endereço. (R)
 - **RN-152** Câmera, microfone, localização e acesso a dispositivos são sempre negados às páginas; notificações das páginas só se o usuário ligar na conta. (P)
 - **RN-153** Páginas só navegam em `https:` (e `http:` em localhost). (P)
-- **RN-154** Se o Google recusar o login no app, a conta mostra a orientação de usar outro método de login do jogo; o app não tenta contornar. (P)
+- **RN-154** Login com Google funciona dentro do app: só nas páginas de login do Google o HDeck se apresenta como Firefox (sem client hints), porque o Google bloqueia navegadores embutidos. Se mesmo assim o Google recusar, a conta mostra a orientação de usar outro método de login do jogo. (D, alterada 2026-11-27)
 
 ## 14. Backup e dados
 
@@ -179,5 +183,6 @@
 - [ ] MEDICOES.md atualizado se a mudança mexe em desempenho.
 
 ## Histórico
+- 2026-11-27 · v2 · pedidos da dona: RN-007, RN-037, RN-038, RN-058 novas; RN-002, RN-036 e RN-154 alteradas.
 
 - 2026-11-26 · v1 · criação a partir do prompt-mestre v2 (RN-001 a RN-181).

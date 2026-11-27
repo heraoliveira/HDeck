@@ -18,3 +18,13 @@
 - **Modo econômico sem ganho:** o jogo falso quase não desenha (canvas pequeno); o custo de desenhar é baixo e a foto a cada 1 s soma captura + JPEG. A view em foto fica invisível, mas a captura força a pintura. Próximo passo: medir com um jogo real pesado e, se o ganho seguir baixo, subir o padrão da foto para 2–5 s ou usar `beginFrameSubscription` (ADR 0003).
 - **RAM ociosa 380 MB:** é a soma de todos os processos do Electron (o processo de GPU sozinho passa de 100 MB). A meta de 150 MB parece irreal para Chromium 156; ficou registrada como revisável pela dona.
 - **CPU por conta 0,47%:** inclui o batimento de travamento (5 s) e o vigia; dá para espaçar o batimento para 10 s se preciso.
+
+## 2026-11-27 · uma conta num jogo real (ADR 0013)
+`node tools/bancada/memoria-real.ts https://pokeidle.io/ 60` (sem login):
+
+| | Total | Página do jogo | CPU total |
+|---|---|---|---|
+| Antes | 652 MB | 183 MB | 7,8% |
+| Depois (processos compartilhados + sem BFCache) | 648 MB | 179 MB | 2,0% |
+
+Os ~470 MB fixos (principal, GPU, rede, interface) são divididos por todas as contas. Com login, o jogo cresce com o tempo; "Otimizar sozinho a cada 1 h" reabre a conta num processo novo e devolve essa memória. A medição com a conta logada fica para a dona (TESTE-MANUAL, item 20).

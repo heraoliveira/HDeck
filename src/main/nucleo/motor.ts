@@ -1,5 +1,5 @@
 import { alterarCaminho, type Config, configPadrao } from '@shared/config/esquema.ts'
-import { PADROES } from '@shared/dados/padroes-config.ts'
+import { CORES_CONTA, PADROES } from '@shared/dados/padroes-config.ts'
 import { t } from '@shared/i18n/index.ts'
 import type {
   AcaoLote,
@@ -36,6 +36,7 @@ import {
   duplicarConta,
   moverConta,
   type NovaConta,
+  sugerirJogo,
   urlDeRecarga,
 } from './contas/contas.ts'
 import {
@@ -188,6 +189,7 @@ export class Motor {
         r.agora() - (this.rt.get(id)?.ultimoUso ?? 0) < PADROES.ativaProtegidaSeg * 1000,
       recarregar: (id, motivo) => this.recarregar(id, false, motivo),
       limparCache: (id) => void this.limparCache(id),
+      otimizar: (id) => this.otimizar(id),
       avisarMemoria: (id, lim) =>
         this.avisar(
           'memoria',
@@ -452,7 +454,7 @@ export class Motor {
     const g: Grupo = {
       id: this.d.gerarId(),
       nome: nome.slice(0, 60),
-      cor: cor ?? '#7c6cf0',
+      cor: cor ?? CORES_CONTA[0],
       ordem: this.grupos.length,
       ligado: false,
       visao: 'grade',
@@ -583,19 +585,35 @@ export class Motor {
 
   // ======================= contas =======================
 
-  adicionarConta(dados: NovaConta): Resultado<Conta, string> {
-    const r = criarConta(dados, {
-      id: this.d.gerarId(),
-      agora: this.d.relogio.agora(),
-      grupos: this.grupos,
-      jogos: this.jogos,
-      contas: this.contas,
-    })
+  /**
+   * RN-037: a conta nova começa no endereço padrão do grupo (o usuário pode trocar);
+   * o jogo sai do endereço (RN-013) e, se não houver no catálogo, é criado pelo domínio.
+   */
+  adicionarConta(
+    dados: Omit<NovaConta, 'jogoId' | 'url'> & { jogoId?: string | undefined; url?: string | undefined },
+  ): Resultado<Conta, string> {
+    const g = this.grupos.find((x) => x.id === dados.grupoId)
+    if (!g) return falha('grupo')
+    const url = (dados.url ?? '').trim() || g.layout.urlPadrao
+    if (!url) return falha('url')
+    const jogoId = dados.jogoId ?? this.jogoParaUrl(url)
+    if (!jogoId) return falha('url')
+    if (!g.layout.urlPadrao) this.salvarGrupo({ ...g, layout: { ...g.layout, urlPadrao: url } })
+    const r = criarConta(
+      { ...dados, url, jogoId },
+      {
+        id: this.d.gerarId(),
+        agora: this.d.relogio.agora(),
+        grupos: this.grupos,
+        jogos: this.jogos,
+        contas: this.contas,
+      },
+    )
     if (!r.ok) return r
     this.contas.push(r.valor)
     this.d.armazem.salvarConta(r.valor)
-    const g = this.grupos.find((x) => x.id === r.valor.grupoId)
-    if (g?.ligado) this.enfileirarLigar(r.valor.id)
+    const doGrupo = this.grupos.find((x) => x.id === r.valor.grupoId)
+    if (doGrupo?.ligado) this.enfileirarLigar(r.valor.id)
     this.emitirEstado()
     return r
   }
@@ -845,6 +863,80 @@ export class Motor {
     if (alvo) this.rt.get(alvo)?.pagina.telaCheia()
   }
 
+  /** Jogo do endereço: do catálogo pelo domínio, ou um jogo do usuário criado agora. */
+  jogoParaUrl(url: string): string | null {
+    let u: URL
+    try {
+      u = new URL(url)
+    } catch {
+      return null
+    }
+    if (!/^https?:$/.test(u.protocol)) return null
+    const achado = sugerirJogo(url, this.jogos)
+    if (achado) return achado.id
+    const host = u.hostname.replace(/^www\./, '')
+    const id = `jogo-${host.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`.slice(0, 64)
+    if (!this.jogos.some((j) => j.id === id))
+      this.salvarJogo({
+        id,
+        nome: host.slice(0, 80),
+        dominios: [host],
+        urlInicial: `${u.origin}/`,
+        icone: '🎮',
+        farmaEscondido: true,
+        dadosContinuos: false,
+        semDadosMinPadrao: 0,
+        limiteContas: null,
+        bonusLive: false,
+        plataformasLive: [],
+        wsPrincipal: null,
+        seletoresLogin: null,
+        seletorPedeLogin: null,
+        canvas: false,
+        origem: 'usuario',
+      })
+    return id
+  }
+
+  /** "Início": volta a conta ao endereço cadastrado. */
+  irParaInicio(id: string): boolean {
+    const rt = this.rt.get(id)
+    const c = this.conta(id)
+    if (!rt || !c) return false
+    rt.pagina.carregar(c.url)
+    return true
+  }
+
+  /** RN-058: reabre a página num processo novo, sem perder o login. */
+  otimizar(id: string): boolean {
+    const rt = this.rt.get(id)
+    if (!rt || !podeRecarregar(rt.estado)) return false
+    rt.saude.recarregouPorFora()
+    this.d.armazem.registrarEvento({
+      contaId: id,
+      tipo: 'recarga',
+      motivo: 'otimizar',
+      em: this.d.relogio.agora(),
+    })
+    this.evento(id, { tipo: 'recarregar' })
+    this.detector.esquecer(id)
+    rt.pagina.renovarProcesso()
+    this.otimizacao.marcarRecarga(id)
+    this.emitirEstado()
+    return true
+  }
+
+  /** Limpar dados (deslogar): apaga a sessão da conta e o login salvo, e abre de novo no endereço dela. */
+  async limparDados(id: string): Promise<boolean> {
+    const c = this.conta(id)
+    if (!c) return false
+    this.d.cofre.apagar(id)
+    await this.d.paginas.apagarSessao(id)
+    this.rt.get(id)?.pagina.carregar(c.url)
+    this.emitirEstado()
+    return true
+  }
+
   async limparCache(id: string): Promise<void> {
     const rt = this.rt.get(id)
     if (!rt) return
@@ -1068,6 +1160,9 @@ export class Motor {
       case 'livesDesligar':
         for (const l of this.lives.filter((x) => validos.includes(x.contaId)))
           this.ligarLive(l.id, acao === 'livesLigar')
+        break
+      case 'otimizar':
+        escalonar((id) => this.otimizar(id))
         break
       case 'limparCache':
         for (const id of validos) await this.limparCache(id)
