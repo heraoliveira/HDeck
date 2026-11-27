@@ -23,7 +23,7 @@ jobs:
       - run: pnpm regras
       - run: pnpm cobertura
       - run: pnpm build
-      - run: pnpm exec playwright test --config tests/playwright.config.ts --project seguranca --project e2e
+      - run: pnpm exec playwright test --config tests/playwright.config.ts --project seguranca --project e2e --reporter=github,list
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
