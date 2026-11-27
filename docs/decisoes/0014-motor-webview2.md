@@ -29,3 +29,11 @@ O Cloudflare Turnstile recusava as contas do HDeck ("Falha na verificação"), e
 - Dois Chromiums (o do Electron para a interface e o do Edge para as contas). Medição com uma conta no pokeidle: ~730 MB de memória privada no total e ~4% de CPU (12 núcleos) com a conta ao vivo na tela. Ver `docs/MEDICOES.md`.
 - Instalador maior (~160 MB) por causa do .NET autocontido.
 - O Playwright não enxerga as páginas das contas: os testes usam o modo de teste do motor (`avaliarPagina`, `estado`, `popups`).
+
+## Ajustes depois dos testes da dona (2026-11-27)
+- **Tela preta e mouse sem efeito:** a janela do Electron tem uma filha do compositor ("Intermediate D3D Window") por cima de tudo. O motor sobe as janelas das contas para o topo ao posicionar e confere a cada 1 s.
+- **Recargas sozinhas:** "Otimizar sozinho" passou a vir desligado (a config v2 → v3 desliga o 1 h que vinha por padrão); o modo de memória baixa do WebView2 para páginas ocultas saiu (ele pode congelar a página, que então parece travada e recarrega); o batimento só acusa travamento depois de 3 perguntas seguidas sem resposta (~25 s). Toda recarga vai para o log com o motivo.
+- **Link atual (RN-018):** o último link do jogo de cada conta fica no SQLite (`ultima_url`) e vale para reabrir, religar, recarregar e otimizar.
+- **Google (RN-154):** Firefox por cima do motor Chromium não engana o Google. Nas páginas de login dele, a conta se apresenta como o Edge comum da mesma versão (client hints sem a marca "WebView2") e o objeto `chrome.webview` é retirado só nessas páginas.
+- **RAM e CPU (RN-045):** `app.getAppMetrics()` não enxerga os processos do WebView2 (as contas apareciam com 0 MB). O motor mede tudo a cada 2 s, como o Gerenciador de Tarefas (conjunto de trabalho privado; CPU em % do PC), e soma os processos de cada conta (página e iframes).
+- **Abertura:** se o Windows não abrir a chave do cofre, o app abre com o cofre fechado (antes a falha parava a abertura e o HDeck ficava rodando sem janela). Qualquer outra falha ao abrir mostra uma mensagem e fecha.

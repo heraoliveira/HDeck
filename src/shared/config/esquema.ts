@@ -52,7 +52,7 @@ const tiposAvisoConfig = z
 const hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
 
 export const configSchema = z.object({
-  versao: z.literal(2).default(2),
+  versao: z.literal(3).default(3),
   geral: z
     .object({
       iniciarComWindows: z.boolean().default(false),
@@ -89,7 +89,8 @@ export const configSchema = z.object({
       recarregarACadaH: umDe(OPCOES.recarregarH, 0),
       limiteMemoriaMB: umDe(OPCOES.memoriaMB, 0),
       limparCacheDias: umDe(OPCOES.cacheDias, 0),
-      otimizarACadaMin: umDe(OPCOES.otimizarMin, 60),
+      // RN-058: a página só recarrega sozinha se a dona ligar (padrão desligado).
+      otimizarACadaMin: umDe(OPCOES.otimizarMin, 0),
     })
     .prefault({}),
   lives: z
@@ -165,13 +166,20 @@ export function migrarConfig(bruto: unknown): Config {
     obj.economia = eco
     obj.versao = 2
   }
+  if (obj.versao === 2) {
+    // v2 ligava "Otimizar sozinho a cada 1 h" por padrão; a dona pediu que só recarregue se ela configurar.
+    const ot = (obj.otimizacao ?? {}) as Record<string, unknown>
+    if (ot.otimizarACadaMin === 60) ot.otimizarACadaMin = 0
+    obj.otimizacao = ot
+    obj.versao = 3
+  }
   const r = configSchema.safeParse(obj)
   if (r.success) return r.data
   // Campo inválido: descarta só as seções com problema.
-  const limpo: Record<string, unknown> = { versao: 2 }
+  const limpo: Record<string, unknown> = { versao: 3 }
   for (const [chave, valor] of Object.entries(obj)) {
     if (chave === 'versao') continue
-    const parcial = configSchema.safeParse({ versao: 2, [chave]: valor })
+    const parcial = configSchema.safeParse({ versao: 3, [chave]: valor })
     if (parcial.success) limpo[chave] = valor
   }
   return configSchema.parse(limpo)

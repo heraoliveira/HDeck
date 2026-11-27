@@ -88,6 +88,7 @@ sealed class Pagina
         Posicionar();
         AplicarVisibilidade();
         await InstalarScriptUso(w);
+        await w.AddScriptToExecuteOnDocumentCreatedAsync(LoginGoogle.ScriptEsconder);
         // A rede é observada desde antes da primeira navegação: assim o vigia conhece toda conexão
         // que a página abrir (ligar depois deixaria de fora as que já existiam). Os avisos só saem com o vigia ligado.
         await LigarRede(w);
@@ -316,8 +317,12 @@ sealed class Pagina
 
     private void Posicionar()
     {
-        if (ctl != null) ctl.Bounds = ret;
+        if (ctl == null) return;
+        ctl.Bounds = ret;
+        Win32.TrazerContasParaFrente(pai);
     }
+
+    public IntPtr Pai => pai;
 
     /// <summary>Onde a página está agora (em pontos da interface), para o diagnóstico e os testes.</summary>
     public JsonObject Estado()
@@ -346,8 +351,6 @@ sealed class Pagina
         if (ctl == null) return;
         var visivel = viva || !Estrangular;
         if (ctl.IsVisible != visivel) ctl.IsVisible = visivel;
-        var alvo = visivel ? CoreWebView2MemoryUsageTargetLevel.Normal : CoreWebView2MemoryUsageTargetLevel.Low;
-        if (ctl.CoreWebView2.MemoryUsageTargetLevel != alvo) ctl.CoreWebView2.MemoryUsageTargetLevel = alvo;
     }
 
     public void AplicarMudo()
@@ -544,6 +547,9 @@ sealed class Pagina
     }
 
     public int? Pid() => pidRender;
+
+    /// <summary>Id do quadro principal (para achar os processos desta página).</summary>
+    public uint FrameId => ctl?.CoreWebView2.FrameId ?? 0;
 
     public async Task LimparCache()
     {

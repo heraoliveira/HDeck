@@ -110,7 +110,12 @@ protocol.registerSchemesAsPrivileged([
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
-  void iniciar()
+  iniciar().catch((e: unknown) => {
+    // Uma falha ao abrir não pode deixar o HDeck rodando escondido, sem janela: avisa e fecha.
+    console.error(e)
+    dialog.showErrorBox('HDeck', `O HDeck não conseguiu abrir.\n\n${String((e as Error)?.message ?? e)}`)
+    app.exit(1)
+  })
 }
 
 /** Relógio real. No modo de teste, HDECK_TESTE_ACELERAR=N faz o tempo do núcleo andar N vezes mais rápido. */
@@ -179,7 +184,8 @@ async function iniciar(): Promise<void> {
     desproteger: (d: Uint8Array) => Buffer.from(safeStorage.decryptString(Buffer.from(d)), 'base64'),
   }
   const cofre = new Cofre(armazem, protecao)
-  cofre.iniciar()
+  if (cofre.iniciar() === 'sem_chave')
+    log.aviso('o Windows não abriu a chave do cofre: os logins salvos ficam fechados nesta sessão')
 
   let motor: Motor | null = null
   let saindo = false
@@ -557,6 +563,7 @@ async function iniciar(): Promise<void> {
     'contas.duplicar': (e) => m.duplicar(e.id),
     'contas.soltar': (e) => m.soltar(e.id),
     'contas.inicio': (e) => m.irParaInicio(e.id),
+    'contas.detalhe': (e) => m.detalheConta(e.id),
     'contas.lote': async (e) => {
       if (e.acao === 'fotos') {
         const fotos = await m.fotosDe(e.ids)
@@ -790,6 +797,19 @@ async function iniciar(): Promise<void> {
     void perguntador.informar(t('dialogo.motorFaltando'))
   }
   fabrica.definirAtalhos([...mapa.keys()])
+  // RAM e CPU (Painel, barra de título e grupos): o motor mede tudo a cada 2 s, como o Gerenciador de Tarefas.
+  let medindo = false
+  setInterval(() => {
+    if (medindo || saindo) return
+    medindo = true
+    void fabrica
+      .medir(app.getAppMetrics().map((x) => x.pid))
+      .then((ms) => sistema.definirMedicao(ms))
+      .catch(() => sistema.definirMedicao(null))
+      .finally(() => {
+        medindo = false
+      })
+  }, 2000)
   m.iniciar({ reaberto })
   if (app.isPackaged && !modoTeste) setTimeout(() => void atualizador.procurar(), 30_000)
 

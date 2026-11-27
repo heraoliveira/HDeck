@@ -242,3 +242,39 @@ test('RN-007 RN-038 RN-058 painel da conta: todos os botões funcionam', async (
     await a.fechar()
   }
 })
+
+test('RN-008 painel direito: mostra a conta selecionada, recolhe e expande, e os botões funcionam', async () => {
+  const a = await abrirApp()
+  try {
+    await garantirJogoFalso(a)
+    const [c1] = await criarContas(a, 2)
+    await esperarEstado(a, c1!, ['ativa', 'economica', 'escondida'])
+    await motor(a)('ativar', c1)
+    const j = a.janela
+    const painel = j.getByRole('complementary', { name: 'Configurações da conta' })
+    await expect(painel).toBeVisible()
+    await expect(painel.locator('.nome')).toHaveText('Conta 1')
+    // RAM e CPU da conta aparecem (medidas pelo motor).
+    await expect(painel.locator('.medida b').first()).toHaveText(/\d+ MB/, { timeout: 15_000 })
+    await j.screenshot({ path: 'test-results/painel-direito.png' })
+    // Som: liga e desliga o som da conta.
+    const somAntes = (await snap(a)).contas.find((c: H) => c.id === c1).som
+    await painel.getByRole('button', { name: 'Som' }).click()
+    await expect.poll(async () => (await snap(a)).contas.find((c: H) => c.id === c1).som).toBe(!somAntes)
+    // Otimizar entra no histórico desta conta.
+    await painel.locator('.cartao-otimizar').click()
+    await expect.poll(() => eventos(a, c1!)).toContain('recarga:otimizar')
+    await expect(painel.locator('.historico')).toContainText('otimizada', { timeout: 20_000 })
+    // Recolher deixa só a faixa; a conta ganha o espaço; expandir volta.
+    const antes = await j.locator(`[data-conta="${c1}"] .corpo`).boundingBox()
+    await painel.getByRole('button', { name: 'Recolher o painel da conta' }).click()
+    await expect(painel.locator('.rolagem')).toHaveCount(0)
+    await expect
+      .poll(async () => (await j.locator(`[data-conta="${c1}"] .corpo`).boundingBox())?.width ?? 0)
+      .toBeGreaterThan((antes?.width ?? 0) + 100)
+    await painel.getByRole('button', { name: 'Abrir o painel da conta' }).click()
+    await expect(painel.locator('.rolagem')).toBeVisible()
+  } finally {
+    await a.fechar()
+  }
+})

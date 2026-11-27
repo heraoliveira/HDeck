@@ -1,7 +1,12 @@
 <script lang="ts">
 /** Gráfico de linhas simples em SVG (Painel: RAM e CPU; Ping). */
 type Serie = { nome: string; cor: string; pontos: { x: number; y: number | null }[]; unidade: string }
-let { series, altura = 120, rotulo }: { series: Serie[]; altura?: number; rotulo: string } = $props()
+let {
+  series,
+  altura = 120,
+  rotulo,
+  legenda = true,
+}: { series: Serie[]; altura?: number; rotulo: string; legenda?: boolean } = $props()
 const L = 600
 const todos = $derived(series.flatMap((s) => s.pontos))
 const xMin = $derived(Math.min(...todos.map((p) => p.x)))
@@ -29,19 +34,19 @@ const maximo = (s: Serie) => Math.round(Math.max(0, ...s.pontos.map((p) => p.y ?
 
 <figure class="grafico" aria-label={rotulo}>
   {#if todos.length < 2}
-    <div class="vazio muted pequeno">—</div>
+    <div class="vazio muted pequeno" style:height="{altura}px">—</div>
   {:else}
-    <svg viewBox="0 0 {L} {altura}" preserveAspectRatio="none" role="img" aria-label={rotulo}>
+    <svg viewBox="0 0 {L} {altura}" preserveAspectRatio="none" role="img" aria-label={rotulo} style:height="{altura}px">
       {#each series as s (s.nome)}
         <path d={caminho(s)} fill="none" stroke={s.cor} stroke-width="1.6" vector-effect="non-scaling-stroke" />
       {/each}
     </svg>
   {/if}
-  <figcaption class="pequeno">
+  {#if legenda}<figcaption class="pequeno">
     {#each series as s (s.nome)}
       <span><i style:background={s.cor}></i>{s.nome} · máx {maximo(s)} {s.unidade}</span>
     {/each}
-  </figcaption>
+  </figcaption>{/if}
 </figure>
 
 <style>

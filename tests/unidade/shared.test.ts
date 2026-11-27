@@ -39,7 +39,7 @@ describe('configuração', () => {
       recarregarACadaH: 0,
       limiteMemoriaMB: 0,
       limparCacheDias: 0,
-      otimizarACadaMin: 60,
+      otimizarACadaMin: 0,
     }) // RN-058
     expect(c.som.modo).toBe('todas')
   })
@@ -92,11 +92,20 @@ describe('configuração', () => {
 
   it('RN-174 migra da versão 1 e descarta só as seções inválidas', () => {
     const m = migrarConfig({ versao: 1, economia: { fotoMs: 5000 }, queda: { esperaQuedaSeg: 'lixo' } })
-    expect(m.versao).toBe(2)
+    expect(m.versao).toBe(3)
     expect(m.economia.fotoACadaSeg).toBe(5)
     expect(m.queda.esperaQuedaSeg).toBe(45)
     expect(migrarConfig(null)).toEqual(configPadrao())
-    expect(migrarConfig({ versao: 1 }).versao).toBe(2)
+    expect(migrarConfig({ versao: 1 }).versao).toBe(3)
+  })
+
+  it('RN-058 v2 → v3: o Otimizar sozinho que vinha ligado por padrão passa a desligado; escolha diferente fica', () => {
+    expect(
+      migrarConfig({ versao: 2, otimizacao: { otimizarACadaMin: 60 } }).otimizacao.otimizarACadaMin,
+    ).toBe(0)
+    expect(
+      migrarConfig({ versao: 2, otimizacao: { otimizarACadaMin: 120 } }).otimizacao.otimizarACadaMin,
+    ).toBe(120)
   })
 })
 

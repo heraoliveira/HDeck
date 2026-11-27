@@ -65,12 +65,13 @@ describe('armazém SQLite', () => {
     const arq = join(pasta(), 'hdeck.db')
     const a = new ArmazemSqlite(arq)
     expect(a.modoJournal()).toBe('wal')
-    expect(a.versao()).toBe(1)
+    expect(a.versao()).toBe(2)
     a.salvarJogo(jogoFalso)
     a.salvarGrupo(grupo)
     a.salvarConta(conta)
     a.salvarLive({ id: 'l1', contaId: 'c1', plataforma: 'twitch', canal: 'x', ligada: true, ordem: 0 })
     a.salvarTexto({ id: 't1', texto: 'captcha', escopo: 'todas', alvoId: null, ativo: true })
+    a.salvarUltimaUrl('c1', 'https://jogo.exemplo/mapa/3')
     a.fechar()
     const b = new ArmazemSqlite(arq)
     expect(b.listarJogos()).toEqual([jogoFalso])
@@ -78,6 +79,8 @@ describe('armazém SQLite', () => {
     expect(b.listarContas()).toEqual([conta])
     expect(b.listarLives()).toHaveLength(1)
     expect(b.listarTextos()).toHaveLength(1)
+    // RN-018: o link em que a conta estava sobrevive a reabrir; apagar a conta apaga o link.
+    expect(b.ultimaUrl('c1')).toBe('https://jogo.exemplo/mapa/3')
     b.migrarPara(0)
     expect(b.versao()).toBe(0)
     b.migrarPara(1)
@@ -184,6 +187,30 @@ describe('cofre', () => {
     expect(outro.dados('c1')).toBeNull()
     c.apagar('c1')
     expect(c.dados('c1')).toBeNull()
+  })
+
+  it('RN-140 o Windows não abre a chave: o app abre com o cofre fechado e nada é apagado', () => {
+    const a = new ArmazemSqlite(':memory:')
+    const c = new Cofre(a, protecao, custoBaixo)
+    c.iniciar()
+    c.salvar('c1', 'u', 's')
+    const quebrada = new Cofre(
+      a,
+      {
+        ...protecao,
+        desproteger: () => {
+          throw new Error('Error while decrypting the ciphertext')
+        },
+      },
+      custoBaixo,
+    )
+    expect(quebrada.iniciar()).toBe('sem_chave')
+    expect(quebrada.aberto()).toBe(false)
+    expect(quebrada.contasComLogin()).toEqual(['c1'])
+    // Quando o Windows voltar a abrir a chave, os logins continuam lá.
+    const depois = new Cofre(a, protecao, custoBaixo)
+    expect(depois.iniciar()).toBe('ok')
+    expect(depois.dados('c1')?.senha).toBe('s')
   })
 
   it('RN-141 senha mestra: pede ao abrir, senha errada falha, trancar fecha', () => {

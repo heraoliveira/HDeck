@@ -38,7 +38,8 @@ nsis:
   perMachine: false
   allowElevation: false
   createStartMenuShortcut: true
-  createDesktopShortcut: false
+  # Atalho na área de trabalho e no menu Iniciar (pedido da dona); "always" recria em toda atualização.
+  createDesktopShortcut: always
   shortcutName: HDeck
   deleteAppDataOnUninstall: false
   include: build/installer.nsh

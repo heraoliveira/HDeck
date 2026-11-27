@@ -74,6 +74,13 @@ export type PainelDados = {
   eventos: EventoConta[]
 }
 
+/** Painel direito (configurações da conta selecionada): consumo da última hora e histórico. */
+export type DetalheConta = {
+  serieHora: { em: number; ramMb: number; cpuPct: number }[]
+  historico: EventoConta[]
+  proximaOtimizacao: number | null
+}
+
 export const espacoSchema = z.object({
   contaId: idSchema,
   /** null = espaço fora da área visível (rolagem, aba escondida). */
@@ -175,6 +182,7 @@ export const canais = {
   'contas.duplicar': comId,
   'contas.soltar': comId,
   'contas.inicio': comId,
+  'contas.detalhe': comId,
   'contas.lote': z
     .object({
       ids: z.array(idSchema).min(1).max(500),

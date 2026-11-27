@@ -6,7 +6,7 @@ Cada conta tem login, cookies e cache próprios; as contas continuam rodando com
 ## Instalar
 
 1. Baixe `HDeck-Setup-<versão>.exe` em [Releases](https://github.com/heraoliveira/HDeck/releases) (ou gere com `pnpm dist`, abaixo).
-2. Abra o instalador. Ele instala só para o seu usuário (sem pedir administrador) em `%LOCALAPPDATA%\Programs\HDeck` e cria o atalho no menu Iniciar.
+2. Abra o instalador. Ele instala só para o seu usuário (sem pedir administrador) em `%LOCALAPPDATA%\Programs\HDeck` e cria os atalhos no menu Iniciar e na área de trabalho.
 3. **Aviso do SmartScreen:** o instalador ainda não tem assinatura de código, então o Windows pode mostrar "O Windows protegeu o computador". Clique em **Mais informações → Executar assim mesmo**. As atualizações automáticas conferem o hash publicado no GitHub.
 
 Para desinstalar: Configurações do Windows → Aplicativos → HDeck. O desinstalador pergunta se apaga também os seus dados.

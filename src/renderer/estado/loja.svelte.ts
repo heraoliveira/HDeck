@@ -39,6 +39,14 @@ export const loja = $state({
   selecao: [] as string[],
   focoContaId: null as string | null,
   lateralRecolhida: false,
+  /** Painel direito (configurações da conta selecionada) recolhido; lembrado entre aberturas. */
+  direitaRecolhida: (() => {
+    try {
+      return globalThis.localStorage?.getItem('hdeck.direitaRecolhida') === '1'
+    } catch {
+      return false
+    }
+  })(),
   atualizacao: null as null | { tipo: string; pct?: number; versao?: string },
   senhaVisivel: {} as Record<string, string>,
 })

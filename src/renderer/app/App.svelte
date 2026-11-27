@@ -22,6 +22,7 @@ import VisaoPainel from '../visoes/painel/VisaoPainel.svelte'
 import VisaoPrincipal from '../visoes/principal/VisaoPrincipal.svelte'
 import BarraLateral from './BarraLateral.svelte'
 import BarraTitulo from './BarraTitulo.svelte'
+import PainelDireito from './PainelDireito.svelte'
 
 let painel = $state(false)
 let pronto = $state(false)
@@ -70,6 +71,7 @@ $effect(() => {
     grupo?.layout,
     painel,
     loja.lateralRecolhida,
+    loja.direitaRecolhida,
     loja.dialogos.length,
     loja.snap?.contas.length,
   ]
@@ -108,6 +110,7 @@ const visao = $derived(painel ? 'painel' : (grupo?.visao ?? 'grade'))
         {/if}
       {/if}
     </main>
+    {#if pronto && grupo && !semContas && visao !== 'painel'}<PainelDireito />{/if}
   </div>
 
   <!-- Cada diálogo vive num bloco com chave própria: fechar não deixa os filhos lerem um diálogo que já saiu. -->

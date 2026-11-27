@@ -55,6 +55,11 @@ export const MIGRACOES: Migracao[] = [
       DROP TABLE cofre_meta; DROP TABLE cofre; DROP TABLE lives; DROP TABLE contas; DROP TABLE grupos; DROP TABLE jogos;
     `,
   },
+  {
+    // RN-018: o link em que a conta estava (o endereço cadastrado só vale para a primeira vez).
+    sobe: `CREATE TABLE ultima_url (conta_id TEXT PRIMARY KEY, url TEXT NOT NULL, em INTEGER NOT NULL);`,
+    desce: `DROP TABLE ultima_url;`,
+  },
 ]
 
 const n = (b: boolean) => (b ? 1 : 0)
@@ -189,6 +194,23 @@ export class ArmazemSqlite implements Armazem {
       .filter((r) => r.success)
       .map((r) => r.data)
   }
+  ultimaUrl(contaId: string): string | null {
+    const r = this.db.prepare('SELECT url FROM ultima_url WHERE conta_id = ?').get(contaId) as
+      | { url: string }
+      | undefined
+    return r?.url ?? null
+  }
+
+  salvarUltimaUrl(contaId: string, url: string | null): void {
+    if (url === null) this.db.prepare('DELETE FROM ultima_url WHERE conta_id = ?').run(contaId)
+    else
+      this.db
+        .prepare(
+          'INSERT INTO ultima_url (conta_id, url, em) VALUES (?, ?, ?) ON CONFLICT(conta_id) DO UPDATE SET url = excluded.url, em = excluded.em',
+        )
+        .run(contaId, url, Date.now())
+  }
+
   salvarConta(c: Conta): void {
     this.db
       .prepare(
@@ -221,6 +243,7 @@ export class ArmazemSqlite implements Armazem {
       this.db.prepare('DELETE FROM contas WHERE id = ?').run(id)
       this.db.prepare('DELETE FROM lives WHERE conta_id = ?').run(id)
       this.db.prepare('DELETE FROM cofre WHERE conta_id = ?').run(id)
+      this.db.prepare('DELETE FROM ultima_url WHERE conta_id = ?').run(id)
     })
   }
 

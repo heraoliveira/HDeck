@@ -24,8 +24,9 @@ export const PADROES = {
   /** RN-062: janela para eleger a conexão principal. */
   janelaWsPrincipalSeg: 60,
   /** Painel (Seção 7.1) */
-  metricasPainelSeg: 5,
-  metricasFundoSeg: 60,
+  metricasPainelSeg: 2,
+  // A medição em si é feita pelo motor a cada 2 s; aqui só se lê a última (barra de título e grupos).
+  metricasFundoSeg: 5,
   fotoPainelSeg: 10,
   /** RN-112: avisos iguais dentro desta janela viram um só. */
   janelaAgrupamentoSeg: 10,

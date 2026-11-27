@@ -12,6 +12,7 @@ import type {
   Exibicao,
   FabricaPaginas,
   Log,
+  Metrica,
   PaginaConta,
   Seletores,
 } from '../../nucleo/portas.ts'
@@ -52,6 +53,9 @@ class PaginaWebView2 implements PaginaConta {
   private url: string
   private pidAtual: number | null = null
   private semResposta = false
+  private semRespostaSeguidas = 0
+  private conferindo = false
+  private morta = false
   private carregando = true
   private fechada = false
   private exibicao: Exibicao = { modo: 'fora' }
@@ -96,6 +100,8 @@ class PaginaWebView2 implements PaginaConta {
     switch (e.ev) {
       case 'comecou':
         this.semResposta = false
+        this.morta = false
+        this.semRespostaSeguidas = 0
         this.carregando = true
         ev.comecouCarregar()
         break
@@ -129,8 +135,8 @@ class PaginaWebView2 implements PaginaConta {
         break
       case 'morreu':
         this.pidAtual = null
-        // Processo morto não é página travada: o batimento espera a próxima carga.
-        this.carregando = true
+        // Processo morto não é página travada: o batimento espera a próxima navegação.
+        this.morta = true
         ev.processoMorreu(String(e.motivo ?? 'crashed'))
         break
       case 'pid':
@@ -159,16 +165,22 @@ class PaginaWebView2 implements PaginaConta {
    * (no mundo isolado) a cada 5 s se ela ainda responde.
    */
   private async conferirResposta(): Promise<void> {
-    if (this.fechada || this.carregando) return
+    if (this.fechada || this.carregando || this.morta || this.conferindo) return
+    this.conferindo = true
     const r = await comTempo(
-      this.d.motor.pedir('avaliar', { conta: this.conta.id, codigo: '1' }, 6000).then(
+      this.d.motor.pedir('avaliar', { conta: this.conta.id, codigo: '1' }, 9000).then(
         () => true,
         () => true,
       ),
-      5000,
-    )
+      8000,
+    ).finally(() => {
+      this.conferindo = false
+    })
     const respondeu = r === true
-    if (!respondeu && !this.semResposta) {
+    // Uma resposta lenta não é travamento (o jogo pode estar ocupado ou a máquina carregada): só depois de
+    // 3 perguntas seguidas sem resposta (~25 s) a página conta como travada.
+    this.semRespostaSeguidas = respondeu ? 0 : this.semRespostaSeguidas + 1
+    if (this.semRespostaSeguidas >= 3 && !this.semResposta) {
       this.semResposta = true
       this.ev.travou()
     } else if (respondeu && this.semResposta) {
@@ -280,6 +292,10 @@ class PaginaWebView2 implements PaginaConta {
 
   pid(): number | null {
     return this.pidAtual
+  }
+
+  conhecerPid(pid: number): void {
+    this.pidAtual ??= pid
   }
 
   async procurarTextos(textos: string[]): Promise<string[]> {
@@ -405,6 +421,21 @@ export class FabricaPaginasWebView2 implements FabricaPaginas {
 
   async apagarSessao(contaId: string): Promise<void> {
     await this.d.motor.pedir('apagarSessao', { conta: contaId }, 30_000)
+  }
+
+  /**
+   * Mede RAM e CPU de todos os processos (os do Electron, o motor e os do WebView2). Os processos de uma
+   * conta (página e iframes) saem com o pid da página, para o núcleo somar tudo na conta certa.
+   */
+  async medir(pidsElectron: number[]): Promise<Metrica[]> {
+    type P = { pid: number; ramMb: number; cpuPct: number; conta?: string; principal?: boolean }
+    const r = await this.d.motor.pedir<{ processos: P[] }>('metricas', { pids: pidsElectron }, 8000)
+    // O processo da página principal de cada conta (o motor também avisa pelo evento "pid").
+    for (const p of r.processos) if (p.conta && p.principal) this.paginas.get(p.conta)?.conhecerPid(p.pid)
+    return r.processos.map((p) => {
+      const dona = p.conta ? this.paginas.get(p.conta)?.pid() : null
+      return { pid: dona ?? p.pid, ramMb: p.ramMb, cpuPct: p.cpuPct }
+    })
   }
 
   /** Pop-ups das contas abertos agora (diagnóstico e testes). */

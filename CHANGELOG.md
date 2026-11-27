@@ -2,6 +2,13 @@
 
 ## Próxima versão
 
+- A conta fica no link em que estava ao recarregar, otimizar, religar ou reabrir o app.
+- Nada recarrega sozinho sem você ligar ("Otimizar sozinho" agora vem desligado).
+- Painel da conta à direita, que recolhe e expande: ações, lives, consumo da última hora, Otimizar e histórico.
+- RAM e CPU de cada conta medidas como no Gerenciador de Tarefas, a cada 2 s.
+- Login com Google: no Google a conta se apresenta como o Edge comum.
+- O instalador cria atalho na área de trabalho e no menu Iniciar.
+- Correção: a conta aparecia preta e não recebia o mouse; o HDeck ficava aberto sem janela se o Windows não abrisse a chave do cofre.
 - **As contas agora rodam no Edge (WebView2)**, num motor próprio do HDeck: a verificação "sou humano" do Cloudflare passa. A interface continua a mesma. Cada conta precisa entrar de novo uma vez (as sessões antigas eram do motor anterior e são apagadas).
 - Downloads seguidos na mesma conta voltam a pedir confirmação um por um.
 
