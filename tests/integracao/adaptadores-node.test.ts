@@ -304,9 +304,9 @@ describe('backup', () => {
     const origem = new ArmazemSqlite(':memory:')
     origem.salvarConta(conta)
     const sessoes = pasta()
-    mkdirSync(join(sessoes, 'conta-c1', 'Local Storage'), { recursive: true })
-    writeFileSync(join(sessoes, 'conta-c1', 'Cookies'), 'biscoito')
-    writeFileSync(join(sessoes, 'conta-c1', 'Local Storage', 'x.log'), 'ls')
+    mkdirSync(join(sessoes, 'WV2Profile_conta-c1', 'Local Storage'), { recursive: true })
+    writeFileSync(join(sessoes, 'WV2Profile_conta-c1', 'Cookies'), 'biscoito')
+    writeFileSync(join(sessoes, 'WV2Profile_conta-c1', 'Local Storage', 'x.log'), 'ls')
     const cofre = new Cofre(origem, protecao, custoBaixo)
     cofre.iniciar()
     const cfg = new ConfigArquivo(join(pasta(), 'c.json'))
@@ -323,7 +323,7 @@ describe('backup', () => {
       pastaSessoes: destino,
     })
     expect(r).toMatchObject({ sessoes: 2 })
-    expect(readFileSync(join(destino, 'conta-c1', 'Cookies'), 'utf8')).toBe('biscoito')
+    expect(readFileSync(join(destino, 'WV2Profile_conta-c1', 'Cookies'), 'utf8')).toBe('biscoito')
   })
 
   it('RN-160 zip: ida e volta, CRC conferido e caminhos perigosos recusados', () => {

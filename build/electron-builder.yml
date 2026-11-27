@@ -10,6 +10,14 @@ files:
   - package.json
   - "!**/*.map"
 asar: true
+# O motor das páginas (ADR 0014) vai fora do asar: é um executável .NET com o WebView2.
+extraResources:
+  - from: motor-paginas/publicado
+    to: motor
+    filter:
+      - "**/*"
+      - "!**/*.pdb"
+      - "!**/*.xml"
 electronFuses:
   runAsNode: false
   enableCookieEncryption: true

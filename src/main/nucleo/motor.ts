@@ -614,6 +614,8 @@ export class Motor {
     this.d.armazem.salvarConta(r.valor)
     const doGrupo = this.grupos.find((x) => x.id === r.valor.grupoId)
     if (doGrupo?.ligado) this.enfileirarLigar(r.valor.id)
+    // A conta que a pessoa acabou de criar é a que ela quer ver: já entra como a ativa (ao vivo).
+    if (doGrupo?.id === (this.grupoAtualId ?? doGrupo?.id)) this.ativaId = r.valor.id
     this.emitirEstado()
     return r
   }
@@ -778,7 +780,7 @@ export class Motor {
     pagina.vigiar(this.precisaVigia(id))
     pagina.carregar(c.url)
     this.otimizacao.marcarRecarga(id)
-    this.aplicarExibicao(id)
+    this.reaplicarExibicao()
     this.aplicarSom()
     this.sincronizarLives()
     this.verificarPertoDoLimite(jogo)
@@ -1001,7 +1003,32 @@ export class Motor {
   }
 
   private reaplicarExibicao(): void {
+    this.garantirAtiva()
     for (const id of this.rt.keys()) this.aplicarExibicao(id)
+  }
+
+  /**
+   * RN-043: se nenhuma conta visível é a ativa (conta nova, troca de grupo), a primeira conta
+   * na tela passa a ser a ativa e já abre ao vivo, no tamanho do espaço, sem precisar de clique.
+   */
+  private garantirAtiva(): void {
+    const naTela = (id: string) => {
+      const e = this.rt.get(id)?.espaco
+      return !!e?.retangulo && e.tipo === 'conta' && !this.rt.get(id)?.solta
+    }
+    if (this.ativaId && naTela(this.ativaId)) return
+    // A ativa ainda está abrindo (ou a interface ainda não mediu o espaço dela): espera.
+    const a = this.ativaId
+    if (a && (this.filaLigar.pendentes().includes(a) || (this.rt.has(a) && !this.rt.get(a)!.espaco))) return
+    for (const [janela, lista] of this.espacosPorJanela) {
+      if (janela !== 'principal') continue
+      const primeira = lista.find((e) => e.tipo === 'conta' && e.retangulo && this.rt.has(e.contaId))
+      if (primeira) {
+        this.ativaId = primeira.contaId
+        this.aplicarSom()
+        return
+      }
+    }
   }
 
   private modoDe(id: string): ModoExibicao {

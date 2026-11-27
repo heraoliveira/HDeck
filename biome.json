@@ -12,7 +12,12 @@
       "!docs/rastreio.md",
       "!tests/fixtures/**/*.html",
       "!**/*.md",
-      "!tools/bancada/resultados"
+      "!tools/bancada/resultados",
+      "!motor-paginas/bin",
+      "!motor-paginas/obj",
+      "!motor-paginas/publicado",
+      "!tools/prova-webview2/bin",
+      "!tools/prova-webview2/obj"
     ]
   },
   "formatter": {

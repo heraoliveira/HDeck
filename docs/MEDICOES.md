@@ -28,3 +28,14 @@
 | Depois (processos compartilhados + sem BFCache) | 648 MB | 179 MB | 2,0% |
 
 Os ~470 MB fixos (principal, GPU, rede, interface) são divididos por todas as contas. Com login, o jogo cresce com o tempo; "Otimizar sozinho a cada 1 h" reabre a conta num processo novo e devolve essa memória. A medição com a conta logada fica para a dona (TESTE-MANUAL, item 20).
+
+## 2026-11-27 · contas no WebView2 (ADR 0014)
+Uma conta ao vivo na tela em https://ultimatepokeidle.com (sem login), medido com o "conjunto de trabalho privado" do Windows (o mesmo número do Gerenciador de Tarefas), somando Electron, motor e WebView2:
+
+| | Memória privada | CPU (12 núcleos) |
+|---|---|---|
+| HDeck com o motor WebView2 | ~730 MB | ~4% |
+
+Processos: interface Electron ~215 MB, motor .NET ~20 MB, navegador WebView2 ~45 MB, GPU do WebView2 ~300 MB (memória de vídeo contada como privada), rede e armazenamento ~25 MB, página do jogo ~170–230 MB. Desligar o isolamento por site juntou os renderers num só, mas não diminuiu o total; ele ficou ligado.
+
+Provas (`pnpm provas`, 20 s por cenário): timers 99,9% minimizada, 99,9% na bandeja e 100% coberta, para a conta ao vivo e para a conta fora da tela; foto fora da tela atualizando (9 ticks em 2 s); vigia de rede com 20 msg/s: CPU 5,2% sem e 4,7% com (sem diferença mensurável).

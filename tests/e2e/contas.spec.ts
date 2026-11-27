@@ -98,11 +98,11 @@ test('RN-052 RN-053 RN-044 modo econômico: foto continua farmando, clique põe 
     // Abrir as Configurações troca as views por fotos; fechar devolve.
     await a.janela.getByRole('button', { name: 'Configurações' }).click()
     await esperarEstado(a, c2!, ['economica'])
-    const visivel = await a.app.evaluate(
-      (_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).getVisible(),
+    const naTela = await a.app.evaluate(
+      async (_e, id) => (await (globalThis as H).hdeckTeste.fabrica.pagina(id).nativo()).naTela,
       c2!,
     )
-    expect(visivel).toBe(false)
+    expect(naTela).toBe(false)
     await a.janela.keyboard.press('Escape')
     await esperarEstado(a, c2!, ['ativa'])
   } finally {
@@ -115,11 +115,12 @@ test('RN-031 RN-032 trocar para o grupo B desliga o A e abre o B aos poucos', as
   try {
     await garantirJogoFalso(a)
     const ids = await criarContas(a, 2)
+    for (const id of ids) await esperarEstado(a, id, ['ativa', 'economica', 'escondida'])
     const pidsA = await a.app.evaluate(
-      (_e, ids) =>
-        ids.map((id: string) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.getOSProcessId()),
+      (_e, ids) => ids.map((id: string) => (globalThis as H).hdeckTeste.fabrica.pagina(id).pid()),
       ids,
     )
+    expect(pidsA.every((p: number | null) => typeof p === 'number')).toBe(true)
     const { b, contasB } = await a.app.evaluate((_e, url) => {
       const m = (globalThis as H).hdeckTeste.motor
       const b = m.criarGrupo('B')
@@ -135,11 +136,15 @@ test('RN-031 RN-032 trocar para o grupo B desliga o A e abre o B aos poucos', as
       .toBeLessThanOrEqual(2)
     for (const id of ids) await esperarEstado(a, id, ['desligada'])
     // Processos do grupo A fechados.
-    const vivos = await a.app.evaluate(({ app }, pids) => {
-      const atuais = new Set(app.getAppMetrics().map((m) => m.pid))
-      return pids.filter((p: number) => atuais.has(p))
-    }, pidsA)
-    expect(vivos).toEqual([])
+    const vivo = (pid: number) => {
+      try {
+        process.kill(pid, 0)
+        return true
+      } catch {
+        return false
+      }
+    }
+    await expect.poll(() => pidsA.filter(vivo)).toEqual([])
     await esperarEstado(a, contasB[0]!, ['ativa', 'economica', 'escondida', 'carregando'])
     await esperarEstado(a, contasB[1]!, ['ativa', 'economica', 'escondida'])
     expect(Date.now() - t0).toBeGreaterThanOrEqual(2500) // uma a cada 3 s
@@ -163,11 +168,11 @@ test('RN-041 RN-042 divisões 2×2, 1+3 e personalizada posicionam as views; red
           .poll(async () => {
             const caixa = await a.janela.locator(`[data-conta="${id}"] .corpo`).boundingBox()
             const v = await a.app.evaluate(
-              (_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).getBounds(),
+              (_e, id) => (globalThis as H).hdeckTeste.fabrica.pagina(id).nativo(),
               id,
             )
             return caixa
-              ? Math.abs(caixa.x - v.x) + Math.abs(caixa.y - v.y) + Math.abs(caixa.width - v.width)
+              ? Math.abs(caixa.x - v.x) + Math.abs(caixa.y - v.y) + Math.abs(caixa.width - v.largura)
               : 999
           })
           .toBeLessThanOrEqual(4)
@@ -213,9 +218,10 @@ test('RN-019 conta solta em janela própria e de volta sem recarregar', async ()
       .toBe(true)
     await expect
       .poll(() =>
-        a.app.evaluate((_e, id) => {
+        a.app.evaluate(async (_e, id) => {
           const t = (globalThis as H).hdeckTeste
-          return t.janelas.soltas.get(id).contentView.children.includes(t.fabrica.view(id))
+          const hwnd = t.janelas.soltas.get(id).getNativeWindowHandle().readBigUInt64LE(0).toString()
+          return (await t.fabrica.pagina(id).nativo()).janela === hwnd
         }, c!),
       )
       .toBe(true)

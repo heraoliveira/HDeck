@@ -216,7 +216,9 @@ describe('motor: exibição e economia', () => {
     ])
     expect(m.paginas.de(b!.id).exibicao.modo).toBe('viva')
     m.motor.alternarEconomia()
-    expect(m.paginas.de(b!.id).exibicao.modo).toBe('foto')
+    // RN-043: a última conta criada é a ativa e continua ao vivo; a outra vira foto.
+    expect(m.paginas.de(b!.id).exibicao.modo).toBe('viva')
+    expect(m.paginas.de(a!.id).exibicao.modo).toBe('foto')
   })
 
   it('RN-053 clicar numa foto põe ao vivo; volta a ser foto depois de X s sem mexer', () => {

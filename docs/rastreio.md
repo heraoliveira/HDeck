@@ -12,7 +12,7 @@ Regras ativas: 101 · com teste: 101
 | RN-004 | O HDeck só se conecta a: sites dos jogos abertos, Twitch/Kick com live ligada, Discord/Tel… | tests/seguranca/seguranca.spec.ts<br>tests/unidade/shared.test.ts |
 | RN-005 | O HDeck não bloqueia nem altera anúncios ou conteúdo dos sites dos jogos e das lives. (P)… | tests/seguranca/seguranca.spec.ts |
 | RN-006 | Toda frase da interface é pt-BR simples e direta. (D)… | tests/unidade/shared.test.ts |
-| RN-007 | Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, t… | tests/componentes/interface.test.ts<br>tests/unidade/rodada2.test.ts |
+| RN-007 | Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, t… | tests/componentes/interface.test.ts<br>tests/e2e/paineis.spec.ts<br>tests/unidade/rodada2.test.ts |
 | RN-010 | Cada conta tem sessão isolada e persistente: cookies, armazenamento, cache e login não são… | tests/e2e/contas.spec.ts |
 | RN-011 | A sessão de uma conta sobrevive a fechar o app, reiniciar o PC e atualizar o HDeck. (D)… | tests/e2e/contas.spec.ts<br>tests/integracao/adaptadores-node.test.ts |
 | RN-012 | Uma conta pertence a exatamente um grupo e a um jogo (do catálogo ou criado pelo usuário).… | tests/unidade/contas.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
@@ -30,22 +30,22 @@ Regras ativas: 101 · com teste: 101
 | RN-034 | Antes de ligar contas, se o total de contas ligadas de um jogo passar do limite que o catá… | tests/unidade/fila-grupos.test.ts<br>tests/unidade/motor.test.ts |
 | RN-035 | Cada grupo lembra a sua visão e o seu modo de divisão. (P)… | tests/unidade/motor.test.ts |
 | RN-036 | Contas podem ser arrastadas entre grupos e reordenadas; a barra lateral mostra cada grupo … | tests/componentes/interface.test.ts<br>tests/unidade/contas.test.ts<br>tests/unidade/fila-grupos.test.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts |
-| RN-037 | Cada grupo tem um endereço padrão: a conta nova do grupo começa nele, e o usuário pode tro… | tests/componentes/interface.test.ts<br>tests/unidade/rodada2.test.ts |
-| RN-038 | Arrastar (ou mover) uma conta para outro grupo pede confirmação. (D, 2026-11-27)… | tests/componentes/interface.test.ts |
+| RN-037 | Cada grupo tem um endereço padrão: a conta nova do grupo começa nele, e o usuário pode tro… | tests/componentes/interface.test.ts<br>tests/e2e/paineis.spec.ts<br>tests/unidade/rodada2.test.ts |
+| RN-038 | Arrastar (ou mover) uma conta para outro grupo pede confirmação. (D, 2026-11-27)… | tests/componentes/interface.test.ts<br>tests/e2e/paineis.spec.ts |
 | RN-040 | Visões: Grade, Principal + miniaturas, Foco (abas) e Painel. (R)… | tests/e2e/fumaca.spec.ts<br>tests/unidade/layout.test.ts |
 | RN-041 | Divisões: 1, 2 lado a lado, 2 empilhadas, 1+2, 1+3, 2×2, 3×2, 3×3, 4×4 e Personalizada. Ca… | tests/componentes/interface.test.ts<br>tests/e2e/contas.spec.ts<br>tests/unidade/layout.test.ts |
 | RN-042 | Espaços nunca se sobrepõem e sempre cabem na área disponível, em qualquer tamanho de janel… | tests/e2e/contas.spec.ts<br>tests/unidade/layout.test.ts |
-| RN-043 | A conta ativa tem a borda destacada. Clicar numa conta a torna ativa. (R)… | tests/componentes/interface.test.ts<br>tests/unidade/motor.test.ts |
+| RN-043 | A conta ativa tem a borda destacada. Clicar numa conta a torna ativa. (R)… | tests/componentes/interface.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts |
 | RN-044 | Ao abrir um diálogo por cima das contas, elas aparecem como foto e continuam rodando; ao f… | tests/e2e/contas.spec.ts<br>tests/unidade/motor.test.ts |
 | RN-045 | Painel: estado, tempo online, quedas do dia, recargas, último dado recebido, RAM, CPU e li… | tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/ping-painel-cofre.test.ts |
-| RN-050 | Conta com política "Manter farmando" roda a 100% (timers, animações e rede) com a janela m… | tests/e2e/contas.spec.ts<br>tests/provas/provas.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
+| RN-050 | Conta com política "Manter farmando" roda a 100% (timers, animações e rede) com a janela m… | tests/e2e/contas.spec.ts<br>tests/provas/webview2.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
 | RN-051 | A política fora da tela é por jogo, no menu "⋯" do grupo: "Manter farmando" (padrão) ou "E… | tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
-| RN-052 | Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece com… | tests/e2e/contas.spec.ts<br>tests/provas/provas.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
+| RN-052 | Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece com… | tests/e2e/contas.spec.ts<br>tests/provas/webview2.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-053 | Clicar numa conta em foto a põe ao vivo e a torna ativa. Opcional: voltar a ser foto após … | tests/componentes/interface.test.ts<br>tests/e2e/contas.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-054 | Fotos não são capturadas para contas cujo espaço não está na tela. (P)… | tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
 | RN-055 | Com contas ligadas, o PC é impedido de dormir (ligado); a tela pode apagar. (P)… | tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-056 | Otimização programada (cada item desligado por padrão, global ou por grupo):… | tests/e2e/saude.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
-| RN-058 | **Otimizar** reabre a conta num processo novo (o login continua) e solta a memória que o j… | tests/componentes/interface.test.ts<br>tests/unidade/rodada2.test.ts<br>tests/unidade/shared.test.ts |
+| RN-058 | **Otimizar** reabre a conta num processo novo (o login continua) e solta a memória que o j… | tests/componentes/interface.test.ts<br>tests/e2e/paineis.spec.ts<br>tests/unidade/rodada2.test.ts<br>tests/unidade/shared.test.ts |
 | RN-057 | Recargas programadas são uma conta por vez, com 20 s entre elas, e nunca recarregam a cont… | tests/e2e/saude.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/fila-grupos.test.ts |
 | RN-060 | **Recarregar sozinho quando a conexão cair** (ligado): se a conexão principal do jogo cair… | tests/e2e/saude.spec.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/saude.test.ts<br>tests/unidade/shared.test.ts |
 | RN-061 | Recargas por queda seguem a espera 45 s → 2 min → 5 min → 15 min; após 4 falhas seguidas, … | tests/e2e/saude.spec.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/saude.test.ts |

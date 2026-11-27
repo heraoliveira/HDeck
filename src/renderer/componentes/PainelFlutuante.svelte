@@ -33,6 +33,8 @@ function tecla(e: KeyboardEvent) {
 }
 </script>
 
+<svelte:window onkeydown={tecla} />
+
 <div
   class="fundo"
   role="presentation"
@@ -50,7 +52,7 @@ function tecla(e: KeyboardEvent) {
     bind:this={caixa}
     style:left="{pos.left}px"
     style:top="{pos.top}px"
-    onkeydown={tecla}
+
   >
     {@render children()}
   </div>

@@ -261,6 +261,7 @@
   "dialogo.sair": "Sair",
   "dialogo.download": "Baixar \"{nome}\" ({tamanho}) de {origem}?",
   "dialogo.downloadBloqueado": "Bloqueado: \"{nome}\" é um programa ou instalador.",
+  "dialogo.motorFaltando": "As contas não puderam abrir: o motor das páginas (WebView2) não iniciou. Reinstale o HDeck ou instale o Microsoft Edge WebView2 Runtime.",
   "dialogo.popup": "A página quer abrir uma janela nova:",
   "dialogo.popupAbrir": "Abrir",
   "dialogo.popupNavegador": "Abrir no navegador",

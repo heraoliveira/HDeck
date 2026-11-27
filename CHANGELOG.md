@@ -1,5 +1,10 @@
 # Novidades
 
+## Próxima versão
+
+- **As contas agora rodam no Edge (WebView2)**, num motor próprio do HDeck: a verificação "sou humano" do Cloudflare passa. A interface continua a mesma. Cada conta precisa entrar de novo uma vez (as sessões antigas eram do motor anterior e são apagadas).
+- Downloads seguidos na mesma conta voltam a pedir confirmação um por um.
+
 ## 2026.11.26
 
 Primeira versão.

@@ -14,7 +14,8 @@
   },
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "pnpm motor && electron-vite build",
+    "motor": "dotnet publish motor-paginas/MotorPaginas.csproj -c Release -o motor-paginas/publicado --nologo -v q",
     "dist": "pnpm build && electron-builder --config build/electron-builder.yml --win",
     "test": "vitest run --project unidade --project integracao --project componentes",
     "cobertura": "vitest run --project unidade --project integracao --project componentes --coverage",

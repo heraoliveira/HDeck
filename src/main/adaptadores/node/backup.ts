@@ -35,7 +35,7 @@ const cofreSchema = z.object({ sal: z.string(), dados: z.string() })
 export type OpcoesExportar = {
   incluirCofre: boolean
   senhaBackup?: string | undefined
-  /** Pasta `Partitions` do Chromium; com ela, as sessões entram no backup (RN-161). */
+  /** Pasta dos perfis do WebView2 (EBWebView); com ela, as sessões entram no backup (RN-161). */
   pastaSessoes?: string | undefined
 }
 
@@ -88,10 +88,13 @@ export function exportarBackup(
   }
   if (op.pastaSessoes) {
     for (const c of a.listarContas()) {
-      const pasta = join(op.pastaSessoes, `conta-${c.id}`)
+      const pasta = join(op.pastaSessoes, `WV2Profile_conta-${c.id}`)
       for (const arq of arquivosDe(pasta)) {
         try {
-          entradas.push({ nome: `sessoes/conta-${c.id}/${relative(pasta, arq)}`, dados: readFileSync(arq) })
+          entradas.push({
+            nome: `sessoes/WV2Profile_conta-${c.id}/${relative(pasta, arq)}`,
+            dados: readFileSync(arq),
+          })
         } catch {
           // arquivo travado pelo Chromium: pulado (as contas ficam desligadas durante a cópia)
         }

@@ -96,10 +96,10 @@ test('RN-065 RN-066 página travada recarrega; processo morto recarrega com o mo
     await expect
       .poll(() => naConta<number>(a, c!, 'window.__contagem?.intervalo ?? 0'), { timeout: 30_000 })
       .toBeGreaterThan(2)
-    await a.app.evaluate(
-      (_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.forcefullyCrashRenderer(),
-      c!,
-    )
+    // Derruba o processo da página (o motor WebView2 avisa que ele saiu).
+    const pid = await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.pagina(id).pid(), c!)
+    expect(typeof pid).toBe('number')
+    process.kill(pid as number)
     await expect.poll(() => eventos(a, c!), { timeout: 40_000 }).toContain('recarga:fechou')
     expect((await eventos(a, c!)).some((e) => e.startsWith('fechou:'))).toBe(true)
   } finally {
