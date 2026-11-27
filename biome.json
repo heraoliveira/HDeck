@@ -10,7 +10,9 @@
       "!**/test-results",
       "!estrutura",
       "!docs/rastreio.md",
-      "!tests/fixtures/**/*.html"
+      "!tests/fixtures/**/*.html",
+      "!**/*.md",
+      "!tools/bancada/resultados"
     ]
   },
   "formatter": {
@@ -70,7 +72,7 @@
       }
     },
     {
-      "includes": ["tests/provas/**", "tests/e2e/**", "tests/seguranca/**"],
+      "includes": ["tests/provas/**", "tests/e2e/**", "tests/seguranca/**", "tools/bancada/**"],
       "linter": {
         "rules": {
           "suspicious": {

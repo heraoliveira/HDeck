@@ -6,7 +6,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { join } from 'node:path'
-import { _electron as electron, type ElectronApplication } from '@playwright/test'
+import { type ElectronApplication, _electron as electron } from '@playwright/test'
 import { iniciarServidorFalso } from '../../tests/fixtures/servidor.ts'
 
 const MIN = Number(process.env.BANCADA_MIN ?? 15)
@@ -18,7 +18,12 @@ const servidor = await iniciarServidorFalso()
 const pasta = mkdtempSync(join(os.tmpdir(), 'hdeck-bancada-'))
 const resultado: Record<string, unknown> = {
   data: new Date().toISOString(),
-  maquina: { cpu: os.cpus()[0]?.model, nucleos: os.cpus().length, ramGb: Math.round(os.totalmem() / 1024 ** 3), so: `${os.type()} ${os.release()}` },
+  maquina: {
+    cpu: os.cpus()[0]?.model,
+    nucleos: os.cpus().length,
+    ramGb: Math.round(os.totalmem() / 1024 ** 3),
+    so: `${os.type()} ${os.release()}`,
+  },
 }
 
 const t0 = Date.now()
@@ -29,7 +34,10 @@ const app: ElectronApplication = await electron.launch({
 const janela = await app.firstWindow()
 await janela.getByText('Bem-vinda ao HDeck').waitFor({ timeout: 20_000 })
 resultado.aberturaMs = Date.now() - t0
-resultado.versao = await app.evaluate(({ app }) => ({ app: app.getVersion(), electron: process.versions.electron }))
+resultado.versao = await app.evaluate(({ app }) => ({
+  app: app.getVersion(),
+  electron: process.versions.electron,
+}))
 
 /** Soma RAM (MB) e CPU (%) de todos os processos, medindo a CPU numa janela de `seg`. */
 async function medir(seg: number) {
@@ -53,7 +61,12 @@ async function medir(seg: number) {
         cpuContas += m.cpu.percentCPUUsage
       }
     }
-    return { ramMb: Math.round(ram), cpuPct: Math.round(cpu * 10) / 10, ramContasMb: Math.round(ramContas), cpuContasPct: Math.round(cpuContas * 10) / 10 }
+    return {
+      ramMb: Math.round(ram),
+      cpuPct: Math.round(cpu * 10) / 10,
+      ramContasMb: Math.round(ramContas),
+      cpuContasPct: Math.round(cpuContas * 10) / 10,
+    }
   })
 }
 
@@ -65,14 +78,28 @@ resultado.ociosa = await medir(20)
 await app.evaluate((_e, url) => {
   const m = (globalThis as H).hdeckTeste.motor
   m.salvarJogo({
-    id: 'falso', nome: 'Jogo Falso', dominios: ['localhost'], urlInicial: `${url}/jogo`, icone: '🎲',
-    farmaEscondido: false, dadosContinuos: false, semDadosMinPadrao: 0, limiteContas: null, bonusLive: false,
-    plataformasLive: [], wsPrincipal: null, seletoresLogin: null, seletorPedeLogin: null, canvas: false, origem: 'usuario',
+    id: 'falso',
+    nome: 'Jogo Falso',
+    dominios: ['localhost'],
+    urlInicial: `${url}/jogo`,
+    icone: '🎲',
+    farmaEscondido: false,
+    dadosContinuos: false,
+    semDadosMinPadrao: 0,
+    limiteContas: null,
+    bonusLive: false,
+    plataformasLive: [],
+    wsPrincipal: null,
+    seletoresLogin: null,
+    seletorPedeLogin: null,
+    canvas: false,
+    origem: 'usuario',
   })
   m.alterarConfig('geral.abrirAosPoucosSeg', 0)
   const g = m.listarGrupos()[0].id
   m.definirLayout(g, 'grade', { divisao: '3x3' })
-  for (let i = 0; i < 9; i++) m.adicionarConta({ grupoId: g, jogoId: 'falso', url: `${url}/jogo`, nome: `C${i + 1}` })
+  for (let i = 0; i < 9; i++)
+    m.adicionarConta({ grupoId: g, jogoId: 'falso', url: `${url}/jogo`, nome: `C${i + 1}` })
   m.ligarGrupo(g, true, true)
 }, servidor.url)
 await espera(15_000)
@@ -85,23 +112,36 @@ const aoVivo = await medir(30)
 await app.evaluate(() => (globalThis as H).hdeckTeste.motor.alterarConfig('economia.modoEconomico', true))
 await espera(5000)
 const economico = await medir(30)
-resultado.grade9 = { aoVivo, economico, razaoCpu: Math.round((economico.cpuPct / Math.max(0.1, aoVivo.cpuPct)) * 100) / 100 }
+resultado.grade9 = {
+  aoVivo,
+  economico,
+  razaoCpu: Math.round((economico.cpuPct / Math.max(0.1, aoVivo.cpuPct)) * 100) / 100,
+}
 
 // 3. Custo extra por conta: o que o HDeck gasta (main + interface + GPU) por conta ligada.
 const com9 = economico
 const extra = {
-  ramPorContaMb: Math.round(((com9.ramMb - com9.ramContasMb - (resultado.ociosa as { ramMb: number }).ramMb) / 9) * 10) / 10,
-  cpuPorContaPct: Math.round(((com9.cpuPct - com9.cpuContasPct - (resultado.ociosa as { cpuPct: number }).cpuPct) / 9) * 100) / 100,
+  ramPorContaMb:
+    Math.round(((com9.ramMb - com9.ramContasMb - (resultado.ociosa as { ramMb: number }).ramMb) / 9) * 10) /
+    10,
+  cpuPorContaPct:
+    Math.round(
+      ((com9.cpuPct - com9.cpuContasPct - (resultado.ociosa as { cpuPct: number }).cpuPct) / 9) * 100,
+    ) / 100,
 }
 resultado.custoExtra = extra
 
 // 4. 30 contas, 9 visíveis em econômico: quadros da interface ao rolar a barra lateral.
-await app.evaluate((_e, { url, n }) => {
-  const m = (globalThis as H).hdeckTeste.motor
-  const g = m.listarGrupos()[0].id
-  for (let i = 9; i < n; i++) m.adicionarConta({ grupoId: g, jogoId: 'falso', url: `${url}/jogo`, nome: `C${i + 1}` })
-  for (let i = 0; i < 20; i++) m.criarGrupo(`Grupo ${i + 2}`)
-}, { url: servidor.url, n: CONTAS })
+await app.evaluate(
+  (_e, { url, n }) => {
+    const m = (globalThis as H).hdeckTeste.motor
+    const g = m.listarGrupos()[0].id
+    for (let i = 9; i < n; i++)
+      m.adicionarConta({ grupoId: g, jogoId: 'falso', url: `${url}/jogo`, nome: `C${i + 1}` })
+    for (let i = 0; i < 20; i++) m.criarGrupo(`Grupo ${i + 2}`)
+  },
+  { url: servidor.url, n: CONTAS },
+)
 await espera(20_000)
 resultado.contas30 = await medir(20)
 resultado.fpsLateral = await janela.evaluate(async () => {
@@ -124,7 +164,14 @@ resultado.fpsLateral = await janela.evaluate(async () => {
 
 // 5. Contas escondidas por MIN minutos (minimizada, bandeja e coberta, um terço cada).
 const id = await app.evaluate(() => (globalThis as H).hdeckTeste.motor.idsLigadas()[0])
-const ticks = () => app.evaluate(async (_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.executeJavaScript('window.__contagem.intervalo'), id)
+const ticks = () =>
+  app.evaluate(
+    async (_e, id) =>
+      (globalThis as H).hdeckTeste.fabrica
+        .view(id)
+        .webContents.executeJavaScript('window.__contagem.intervalo'),
+    id,
+  )
 const antes = await ticks()
 const tIni = Date.now()
 const terco = (MIN * 60_000) / 3
@@ -144,7 +191,10 @@ await app.evaluate(({ BrowserWindow }) => {
 await espera(terco)
 await app.evaluate(() => (globalThis as H).capa.close())
 const depois = await ticks()
-resultado.escondida = { minutos: MIN, pct: Math.round(((depois - antes) / (((Date.now() - tIni) / 1000) * 4)) * 1000) / 10 }
+resultado.escondida = {
+  minutos: MIN,
+  pct: Math.round(((depois - antes) / (((Date.now() - tIni) / 1000) * 4)) * 1000) / 10,
+}
 
 await app.evaluate(({ app }) => app.exit(0)).catch(() => {})
 await app.close().catch(() => {})

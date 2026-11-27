@@ -213,7 +213,10 @@ test('RN-172 o executável empacotado abre a interface com o app de dentro do as
     }
     await expect.poll(log, { timeout: 30_000 }).toContain('interface carregada')
     // RunAsNode desligado: o executável não vira um Node com ELECTRON_RUN_AS_NODE.
-    const r = spawnSync(exe, ['-e', 'console.log(1+1)'], { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, timeout: 5000 })
+    const r = spawnSync(exe, ['-e', 'console.log(1+1)'], {
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      timeout: 5000,
+    })
     expect(String(r.stdout ?? '').trim()).not.toBe('2')
   } finally {
     p.kill()
