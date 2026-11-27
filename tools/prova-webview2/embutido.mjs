@@ -96,6 +96,15 @@ async function principal() {
   await medir('timersNormal')
   // foto da janela inteira (a conta embutida tem de aparecer no lugar certo)
   writeFileSync(join(saida, 'hwnd.txt'), hwnd)
+  if (process.env.PROVA_FOTO) {
+    // Põe a janela na frente por 3 s para uma foto da tela (confere que a conta aparece por cima).
+    w.setAlwaysOnTop(true)
+    w.focus()
+    await espera(1000)
+    writeFileSync(join(saida, 'frente.txt'), String(w.getBounds().x) + ',' + String(w.getBounds().y))
+    await espera(3000)
+    w.setAlwaysOnTop(false)
+  }
   await espera(500)
   w.minimize()
   await medir('timersMinimizada')

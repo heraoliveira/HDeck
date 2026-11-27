@@ -25,7 +25,18 @@ sealed class Motor
     /// <summary>Modo de teste do HDeck (libera ler a página no mundo dela).</summary>
     public bool Teste { get; private set; }
 
-    public Motor(Saida saida) => this.saida = saida;
+    private readonly System.Windows.Forms.Timer ordem = new() { Interval = 1000 };
+
+    public Motor(Saida saida)
+    {
+        this.saida = saida;
+        // O Electron pode recriar as filhas dele (redimensionar, tela cheia): a cada 1 s as contas voltam para cima.
+        ordem.Tick += (_, _) =>
+        {
+            foreach (var pai in paginas.Values.Select(p => p.Pai).Distinct()) Win32.TrazerContasParaFrente(pai);
+        };
+        ordem.Start();
+    }
 
     public CoreWebView2Environment Env => env ?? throw new InvalidOperationException("motor não iniciado");
 
@@ -278,6 +289,53 @@ static class Win32
 
     [DllImport("user32.dll")]
     public static extern bool IsWindow(IntPtr hwnd);
+
+    private delegate bool Visitar(IntPtr h, IntPtr l);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumChildWindows(IntPtr pai, Visitar f, IntPtr l);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetParent(IntPtr h);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetWindow(IntPtr h, uint cmd);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr h, IntPtr depois, int x, int y, int cx, int cy, uint flags);
+
+    private const uint SwpNoSize = 0x1, SwpNoMove = 0x2, SwpNoActivate = 0x10, SwpNoOwnerZOrder = 0x200;
+    private const uint GwChild = 5, GwHwndNext = 2;
+
+    /// <summary>
+    /// A janela do Electron tem filhas próprias (a "Intermediate D3D Window" do compositor) que ficam por
+    /// cima de tudo e cobrem a conta: a tela fica preta e o mouse não chega ao jogo. As filhas deste
+    /// processo (as contas) sobem para o topo da ordem; devolve true se precisou mexer.
+    /// </summary>
+    public static bool TrazerContasParaFrente(IntPtr pai)
+    {
+        if (pai == IntPtr.Zero || !IsWindow(pai)) return false;
+        var meu = (uint)Environment.ProcessId;
+        var nossas = new List<IntPtr>();
+        EnumChildWindows(pai, (h, _) =>
+        {
+            if (GetParent(h) == pai && GetWindowThreadProcessId(h, out var pid) != 0 && pid == meu) nossas.Add(h);
+            return true;
+        }, IntPtr.Zero);
+        if (nossas.Count == 0) return false;
+        // Já está certo se as primeiras filhas (topo da ordem) são todas nossas.
+        var topo = GetWindow(pai, GwChild);
+        var certo = true;
+        for (var i = 0; i < nossas.Count && topo != IntPtr.Zero; i++, topo = GetWindow(topo, GwHwndNext))
+            if (!nossas.Contains(topo)) { certo = false; break; }
+        if (certo) return false;
+        foreach (var h in nossas)
+            SetWindowPos(h, IntPtr.Zero, 0, 0, 0, 0, SwpNoMove | SwpNoSize | SwpNoActivate | SwpNoOwnerZOrder);
+        return true;
+    }
 
     public static double Escala(IntPtr hwnd)
     {

@@ -316,8 +316,12 @@ sealed class Pagina
 
     private void Posicionar()
     {
-        if (ctl != null) ctl.Bounds = ret;
+        if (ctl == null) return;
+        ctl.Bounds = ret;
+        Win32.TrazerContasParaFrente(pai);
     }
+
+    public IntPtr Pai => pai;
 
     /// <summary>Onde a página está agora (em pontos da interface), para o diagnóstico e os testes.</summary>
     public JsonObject Estado()
