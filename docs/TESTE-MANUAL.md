@@ -28,6 +28,8 @@ Execução de 2026-11-26 (assistente, no PC da dona, sem contas reais): os itens
 | 19 | Iniciar com o Windows | Ligar a opção e "Abrir na bandeja"; reiniciar o PC: abre só na bandeja | ⏳ dona |
 | 20 | Memória com a conta logada | Uma conta do pokeidle logada por 2 h: anotar a RAM no Painel antes e depois de "Otimizar" | ⏳ dona |
 | 21 | Login com Google (correção) | "Entrar com Google" no jogo: a tela de "navegador não seguro" não aparece mais | ⏳ dona |
+| 22 | Cloudflare "sou humano" (motor WebView2) | Abrir o pokeidle numa conta e fazer o login: a verificação do Cloudflare passa. Cada conta precisa entrar de novo uma vez depois desta versão | ⏳ dona |
+| 23 | Conta solta e grupo em janela própria (WebView2) | Soltar uma conta, mover a janela, fechar: a conta volta para a principal sem recarregar. Listas suspensas do jogo abrem no lugar certo depois de mover a janela | ⏳ dona |
 
 ## Observações
 - A contagem real do tempo assistido (item 8) é o maior risco: se não contar com a página offscreen, trocar para o plano B do ADR 0004.

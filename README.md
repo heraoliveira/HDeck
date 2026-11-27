@@ -46,7 +46,7 @@ Os atalhos valem também com o foco dentro de uma conta.
 `%APPDATA%\HDeck\`:
 - `config.json` — configurações (com cópia `config.json.bak`)
 - `hdeck.db` — grupos, contas, avisos, histórico e cofre (cifrado)
-- `Partitions\conta-<id>\` — cookies e logins de cada conta (do Chromium)
+- `WebView2\EBWebView\WV2Profile_conta-<id>\` — cookies e logins de cada conta (perfil do Edge WebView2)
 - `logs\` — registros, sem senhas nem endereços com parâmetros
 
 ### Backup
@@ -55,7 +55,7 @@ Configurações → Conta e versão → Backup. Gera um arquivo `.hdeck` com gru
 
 ## Desenvolver
 
-Requisitos: Windows 10/11, Node.js 24 e pnpm 12 (`corepack enable`).
+Requisitos: Windows 10/11, Node.js 24, pnpm 12 (`corepack enable`) e o SDK do .NET 10 (o motor das páginas, `motor-paginas/`, é compilado em `pnpm build`). As contas rodam no Edge WebView2 (ADR 0014), que já vem no Windows 11.
 
 ```powershell
 pnpm install
@@ -68,6 +68,7 @@ pnpm dev
 | Comando | Faz |
 |---|---|
 | `pnpm dev` | Abre o app em modo de desenvolvimento |
+| `pnpm motor` | Compila o motor das páginas (.NET + WebView2) em `motor-paginas/publicado` |
 | `pnpm test` | Unidade, propriedades, integração e componentes |
 | `pnpm cobertura` | O mesmo com cobertura (mínimo 90% no núcleo e no shared) |
 | `pnpm e2e` | Fluxos E2E com o jogo falso e a live falsa (abre janelas) |

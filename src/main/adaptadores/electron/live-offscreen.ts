@@ -5,7 +5,10 @@ import { dominioDe, dominioPertence } from '@shared/util/texto.ts'
 import { BrowserWindow } from 'electron'
 import { z } from 'zod'
 import type { EstadoLidoLive, EventosLive, FabricaLives, Log, PaginaLive } from '../../nucleo/portas.ts'
-import { particaoDa } from './pagina-conta.ts'
+
+/** Sessão das lives de uma conta (no Electron; as contas em si moram no WebView2, ADR 0014). */
+const particaoDa = (contaId: string) => `persist:live-${contaId}`
+
 import { MUNDO_ISOLADO, scriptEstadoLive, scriptQualidade } from './scripts-pagina.ts'
 
 const estadoSchema = z.object({

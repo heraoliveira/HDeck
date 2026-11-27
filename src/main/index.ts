@@ -22,20 +22,18 @@ import {
   net,
   protocol,
   safeStorage,
-  session,
   shell,
 } from 'electron'
 import { Bandeja } from './adaptadores/electron/bandeja.ts'
 import { instalarEndurecimento } from './adaptadores/electron/endurecimento.ts'
 import { GerenciadorJanelas } from './adaptadores/electron/janelas.ts'
 import { FabricaLivesElectron } from './adaptadores/electron/live-offscreen.ts'
-import { FabricaPaginasElectron, particaoDa } from './adaptadores/electron/pagina-conta.ts'
 import {
   type Perguntador,
   PerguntadorDeTeste,
   PerguntadorNativo,
 } from './adaptadores/electron/perguntador.ts'
-import { MUNDO_ISOLADO, scriptEnsinar } from './adaptadores/electron/scripts-pagina.ts'
+import { scriptEnsinar } from './adaptadores/electron/scripts-pagina.ts'
 import {
   CanaisLocaisElectron,
   ouvirEnergia,
@@ -49,6 +47,8 @@ import { ConfigArquivo } from './adaptadores/node/config-arquivo.ts'
 import { ClienteHttpFetch } from './adaptadores/node/http.ts'
 import { criarLog } from './adaptadores/node/log.ts'
 import { Atualizador } from './adaptadores/updater.ts'
+import { ClienteMotor } from './adaptadores/webview2/cliente-motor.ts'
+import { apagarParticoesAntigas, FabricaPaginasWebView2 } from './adaptadores/webview2/pagina-webview2.ts'
 import { type Manipuladores, registrarIpc } from './ipc/roteador.ts'
 import { sugerirJogo } from './nucleo/contas/contas.ts'
 import {
@@ -68,6 +68,23 @@ app.setName('HDeck')
 app.setAppUserModelId('br.hera.hdeck')
 const pastaDados = app.getPath('userData')
 mkdirSync(pastaDados, { recursive: true })
+
+/** Onde está o motor das páginas (ADR 0014): junto do app instalado, ou o publicado na pasta do projeto. */
+function caminhoDoMotor(): string {
+  if (process.env.HDECK_MOTOR) return process.env.HDECK_MOTOR
+  return app.isPackaged
+    ? join(process.resourcesPath, 'motor', 'hdeck-motor.exe')
+    : join(import.meta.dirname, '..', '..', 'motor-paginas', 'publicado', 'hdeck-motor.exe')
+}
+
+// Mesmas flags de antes, agora no navegador das contas: sem estrangular timers de página escondida
+// ou coberta (ADR 0002) e sem os processos e serviços que só gastam memória (ADR 0013).
+const ARGUMENTOS_WEBVIEW2 = [
+  '--disable-background-timer-throttling',
+  '--disable-renderer-backgrounding',
+  '--disable-backgrounding-occluded-windows',
+  '--disable-features=CalculateNativeWinOcclusion,IntensiveWakeUpThrottling,BackForwardCache,SpareRendererForSitePerProcess,MediaRouter,OptimizationHints,Translate,AutofillServerCommunication,msSmartScreenProtection,msEdgeShoppingUI',
+].join(' ')
 
 // ---------- Flags do Chromium (Seção 5.2, ADR 0002) ----------
 // Sem isto, páginas escondidas são estranguladas: timers a 1/s e depois 1/min, e janelas cobertas param.
@@ -181,8 +198,8 @@ async function iniciar(): Promise<void> {
       motor?.definirEspacos(`solta:${contaId}`, [
         { contaId, retangulo: { x: 0, y: 0, largura, altura }, tipo: 'conta' },
       ]),
+    antesDeFechar: (janelaId) => fabrica.liberarJanela(janelaId),
     aoFecharSolta: (contaId) => {
-      fabrica.voltarParaPrincipal(contaId)
       motor?.definirEspacos(`solta:${contaId}`, [])
       motor?.devolvida(contaId)
     },
@@ -202,10 +219,8 @@ async function iniciar(): Promise<void> {
 
   instalarEndurecimento({
     ehInterface: (wc) => janelas.idDaInterface(wc) !== null,
-    notificacoesDaSessao: (s) =>
-      motor
-        ?.listarContas()
-        .some((c) => c.notificacoesDaPagina && session.fromPartition(particaoDa(c.id)) === s) ?? false,
+    // As contas não usam mais sessões do Electron (ADR 0014): aqui só ficam a interface e as lives.
+    notificacoesDaSessao: () => false,
     modoTeste,
     perguntador,
     log,
@@ -213,13 +228,47 @@ async function iniciar(): Promise<void> {
       emitir('mensagem', { tipo: 'aviso', texto: t('dialogo.downloadBloqueado', { nome }) }),
   })
 
-  const fabrica = new FabricaPaginasElectron({
+  // ---------- Motor das páginas (ADR 0014): as contas rodam em WebView2 (Edge), num processo .NET ----------
+  const cliente: ClienteMotor = new ClienteMotor({
+    exe: caminhoDoMotor(),
+    pasta: join(pastaDados, 'WebView2'),
+    argumentos: ARGUMENTOS_WEBVIEW2,
+    teste: modoTeste,
     log,
+    aoPerguntar: (e) => fabrica.decidir(e),
+    aoCair: () => {
+      // As páginas morreram com o motor: o núcleo registra a queda e o motor reabre com todas.
+      if (saindo) return
+      fabrica.motorCaiu()
+      setTimeout(
+        () =>
+          void cliente
+            .iniciar()
+            .then(() => {
+              fabrica.definirAtalhos([...mapa.keys()])
+              fabrica.remontarTodas()
+            })
+            .catch((e: unknown) => log.erro('o motor das páginas não reabriu', { erro: String(e) })),
+        1000,
+      )
+    },
+  })
+  const fabrica: FabricaPaginasWebView2 = new FabricaPaginasWebView2({
+    log,
+    motor: cliente,
     janela: (id) => janelas.obter(id),
     principal: () => janelas.principal,
-    aoTeclar: (_contaId, input) => tratarTecla(input),
-    pastaDados,
+    notificacoes: (id) => motor?.conta(id)?.notificacoesDaPagina ?? false,
+    perguntador,
+    modoTeste,
+    aoBloquearDownload: (nome) =>
+      emitir('mensagem', { tipo: 'aviso', texto: t('dialogo.downloadBloqueado', { nome }) }),
+    aoTecla: (texto) => {
+      const cmd = mapa.get(texto)
+      if (cmd) executarComando(cmd)
+    },
   })
+  apagarParticoesAntigas(pastaDados, log)
   const sistema = new SistemaElectron()
   const http = new ClienteHttpFetch((url, init) => net.fetch(url, init))
   const locais = new CanaisLocaisElectron({
@@ -295,7 +344,10 @@ async function iniciar(): Promise<void> {
   const aoMudarEstado = (s: ReturnType<Motor['snapshot']>) => {
     const c = s.config
     if (c !== configAnterior) {
-      if (c.geral.atalhos !== configAnterior.geral.atalhos) mapa = mapaDeAtalhos(c.geral.atalhos)
+      if (c.geral.atalhos !== configAnterior.geral.atalhos) {
+        mapa = mapaDeAtalhos(c.geral.atalhos)
+        fabrica.definirAtalhos([...mapa.keys()])
+      }
       if (c.geral.tema !== configAnterior.geral.tema)
         nativeTheme.themeSource =
           c.geral.tema === 'sistema' ? 'system' : c.geral.tema === 'claro' ? 'light' : 'dark'
@@ -336,14 +388,15 @@ async function iniciar(): Promise<void> {
       if (r !== 0) return
     }
     saindo = true
-    await fabrica.gravarSessoes()
     m.encerrar()
+    await cliente.encerrar()
     bandeja.destruir()
     armazem.fechar()
     app.quit()
   }
   app.on('before-quit', () => {
     saindo = true
+    janelas.encerrando = true
   })
   app.on('window-all-closed', () => {
     // Fica na bandeja.
@@ -626,12 +679,13 @@ async function iniciar(): Promise<void> {
     'cofre.apagar': (e) => cofre.apagar(e.contaId),
     'cofre.preencher': (e) => m.preencherLogin(e.ids),
     'cofre.ensinar': async (e) => {
-      const view = fabrica.view(e.contaId)
-      if (!view) return { ok: false }
+      const pagina = fabrica.pagina(e.contaId)
+      if (!pagina) return { ok: false }
       m.ativar(e.contaId)
-      const r = (await view.webContents
-        .executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [{ code: scriptEnsinar() }])
-        .catch(() => null)) as { usuario: string; senha: string } | null
+      const r = (await pagina.rodarIsolado(scriptEnsinar(), 125_000).catch(() => null)) as {
+        usuario: string
+        senha: string
+      } | null
       if (!r || typeof r.usuario !== 'string' || typeof r.senha !== 'string') return { ok: false }
       const seletores = { usuario: r.usuario.slice(0, 200), senha: r.senha.slice(0, 200) }
       const d = cofre.dados(e.contaId)
@@ -652,7 +706,7 @@ async function iniciar(): Promise<void> {
             {
               incluirCofre: e.incluirCofre,
               senhaBackup: e.senhaBackup,
-              pastaSessoes: e.incluirSessoes ? join(pastaDados, 'Partitions') : undefined,
+              pastaSessoes: e.incluirSessoes ? join(pastaDados, 'WebView2', 'EBWebView') : undefined,
             },
           )
         const r = e.incluirSessoes ? await desligarTudoDurante(gerar) : gerar() // RN-161
@@ -667,7 +721,12 @@ async function iniciar(): Promise<void> {
         const r = await desligarTudoDurante(() =>
           importarBackup(
             readFileSync(arq),
-            { armazem, config: arquivoConfig, cofre, pastaSessoes: join(pastaDados, 'Partitions') },
+            {
+              armazem,
+              config: arquivoConfig,
+              cofre,
+              pastaSessoes: join(pastaDados, 'WebView2', 'EBWebView'),
+            },
             e.senhaBackup,
           ),
         )
@@ -722,8 +781,15 @@ async function iniciar(): Promise<void> {
     if (!saindo) setTimeout(() => !principal.isDestroyed() && principal.webContents.reload(), 500)
   })
   bandeja.criar()
-  setInterval(() => void fabrica.gravarSessoes(), 60_000)
   ouvirEnergia(() => m.aoAcordar())
+  principal.on('move', () => fabrica.janelaMoveu())
+  try {
+    await cliente.iniciar()
+  } catch (e) {
+    log.erro('o motor das páginas não abriu', { erro: String(e) })
+    void perguntador.informar(t('dialogo.motorFaltando'))
+  }
+  fabrica.definirAtalhos([...mapa.keys()])
   m.iniciar({ reaberto })
   if (app.isPackaged && !modoTeste) setTimeout(() => void atualizador.procurar(), 30_000)
 
@@ -741,8 +807,8 @@ async function iniciar(): Promise<void> {
         proximoArquivo: undefined,
         async encerrar() {
           saindo = true
-          await fabrica.gravarSessoes()
           m.encerrar()
+          await cliente.encerrar()
         },
       },
     })
@@ -761,23 +827,16 @@ async function iniciar(): Promise<void> {
     if (r.ok && process.env.HDECK_TESTE_DIAG_ATIVA) setTimeout(() => m.ativar(r.valor.id), 500)
     setTimeout(
       async () => {
-        const wc = r.ok ? fabrica.view(r.valor.id)?.webContents : undefined
-        if (wc) {
-          const img = await wc.capturePage()
-          writeFileSync(`${saida}.png`, img.toPNG())
-          const sinais = await wc
-            .executeJavaScript(
+        const pg = r.ok ? fabrica.pagina(r.valor.id) : undefined
+        if (pg) {
+          const img = await pg.capturar(0, 0)
+          if (img) writeFileSync(`${saida}.png`, img)
+          const sinais = await pg
+            .lerPagina(
               'JSON.stringify({ ua: navigator.userAgent, webdriver: navigator.webdriver, brands: navigator.userAgentData?.brands, plugins: navigator.plugins.length, langs: navigator.languages })',
             )
             .catch((e: unknown) => String(e))
-          writeFileSync(
-            `${saida}.json`,
-            JSON.stringify(
-              { url: wc.getURL(), sinais, frames: wc.mainFrame.framesInSubtree.map((f) => f.url) },
-              null,
-              2,
-            ),
-          )
+          writeFileSync(`${saida}.json`, JSON.stringify({ url: pg.urlAtual(), sinais }, null, 2))
         }
         app.exit(0)
       },

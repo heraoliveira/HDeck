@@ -38,9 +38,9 @@ Regras ativas: 101 · com teste: 101
 | RN-043 | A conta ativa tem a borda destacada. Clicar numa conta a torna ativa. (R)… | tests/componentes/interface.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts |
 | RN-044 | Ao abrir um diálogo por cima das contas, elas aparecem como foto e continuam rodando; ao f… | tests/e2e/contas.spec.ts<br>tests/unidade/motor.test.ts |
 | RN-045 | Painel: estado, tempo online, quedas do dia, recargas, último dado recebido, RAM, CPU e li… | tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/ping-painel-cofre.test.ts |
-| RN-050 | Conta com política "Manter farmando" roda a 100% (timers, animações e rede) com a janela m… | tests/e2e/contas.spec.ts<br>tests/provas/provas.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
+| RN-050 | Conta com política "Manter farmando" roda a 100% (timers, animações e rede) com a janela m… | tests/e2e/contas.spec.ts<br>tests/provas/webview2.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
 | RN-051 | A política fora da tela é por jogo, no menu "⋯" do grupo: "Manter farmando" (padrão) ou "E… | tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
-| RN-052 | Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece com… | tests/e2e/contas.spec.ts<br>tests/provas/provas.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
+| RN-052 | Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece com… | tests/e2e/contas.spec.ts<br>tests/provas/webview2.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-053 | Clicar numa conta em foto a põe ao vivo e a torna ativa. Opcional: voltar a ser foto após … | tests/componentes/interface.test.ts<br>tests/e2e/contas.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-054 | Fotos não são capturadas para contas cujo espaço não está na tela. (P)… | tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
 | RN-055 | Com contas ligadas, o PC é impedido de dormir (ligado); a tela pode apagar. (P)… | tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |

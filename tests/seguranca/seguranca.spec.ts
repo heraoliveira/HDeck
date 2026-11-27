@@ -10,7 +10,7 @@ import { abrirApp, criarContas, garantirJogoFalso, naConta } from '../e2e/ajuda.
 
 type H = any
 
-test('toda página tem sandbox e isolamento, sem nodeIntegration nem preload (exceto a interface); webview negado', async () => {
+test('toda página do Electron tem sandbox e isolamento, sem nodeIntegration nem preload (exceto a interface); contas WebView2 sem ponte nenhuma', async () => {
   const a = await abrirApp()
   try {
     await garantirJogoFalso(a)
@@ -41,7 +41,8 @@ test('toda página tem sandbox e isolamento, sem nodeIntegration nem preload (ex
         }),
       )
     })
-    expect(paginas.length).toBeGreaterThanOrEqual(3)
+    // Interface e live no Electron; a conta e o pop-up dela moram no motor WebView2 (ADR 0014).
+    expect(paginas.length).toBeGreaterThanOrEqual(2)
     for (const p of paginas) {
       if (p.url.startsWith('devtools://')) continue
       expect(p.sandbox, p.url).toBe(true)
@@ -52,6 +53,17 @@ test('toda página tem sandbox e isolamento, sem nodeIntegration nem preload (ex
       expect(p.travaWebview, p.url).toBe(true)
       expect(p.travaNavegacao, p.url).toBe(true)
     }
+    // Na conta (WebView2): nada do HDeck nem do Node chega à página; nem objetos do hospedeiro.
+    const conta = await naConta<Record<string, string>>(
+      a,
+      c!,
+      `(async () => {
+        let host = 'nenhum'
+        try { if (window.chrome?.webview?.hostObjects) { await Promise.race([window.chrome.webview.hostObjects.hdeck, new Promise((_, n) => setTimeout(n, 1000))]); host = 'tem' } } catch {}
+        return { hdeck: typeof window.hdeck, require: typeof window.require, process: typeof window.process, host }
+      })()`,
+    )
+    expect(conta).toEqual({ hdeck: 'undefined', require: 'undefined', process: 'undefined', host: 'nenhum' })
   } finally {
     await a.fechar()
   }
@@ -88,12 +100,7 @@ test('RN-153 navegação para file:, javascript: e esquemas externos bloqueada',
     for (const destino of ['file:///C:/Windows/win.ini', 'steam://run/1', 'http://example.com/']) {
       await naConta(a, c!, `location.href = ${JSON.stringify(destino)}`)
       await new Promise((r) => setTimeout(r, 800))
-      expect(
-        await a.app.evaluate(
-          (_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.getURL(),
-          c!,
-        ),
-      ).toContain('/jogo')
+      expect(await naConta<string>(a, c!, 'location.href')).toContain('/jogo')
     }
   } finally {
     await a.fechar()

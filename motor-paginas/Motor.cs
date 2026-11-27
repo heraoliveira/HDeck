@@ -1,0 +1,287 @@
+using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
+using Microsoft.Web.WebView2.Core;
+
+namespace HDeck.Motor;
+
+/// <summary>
+/// Recebe os pedidos do HDeck e os despacha às páginas. Um único ambiente WebView2 (um processo
+/// do navegador, GPU e rede compartilhados); cada conta tem o próprio perfil (cookies, armazenamento
+/// e cache separados), que é o equivalente à partição de antes.
+/// </summary>
+sealed class Motor
+{
+    private readonly Saida saida;
+    private readonly Dictionary<string, Pagina> paginas = new();
+    private readonly Dictionary<long, TaskCompletionSource<JsonNode?>> perguntas = new();
+    private long proximaPergunta;
+    private CoreWebView2Environment? env;
+    private Form? oculta;
+    private bool encerrando;
+
+    /// <summary>Atalhos do HDeck (RN-176): teclas que não chegam ao jogo.</summary>
+    public HashSet<string> Atalhos { get; } = new();
+
+    /// <summary>Modo de teste do HDeck (libera ler a página no mundo dela).</summary>
+    public bool Teste { get; private set; }
+
+    public Motor(Saida saida) => this.saida = saida;
+
+    public CoreWebView2Environment Env => env ?? throw new InvalidOperationException("motor não iniciado");
+
+    public void Evento(string ev, string conta, JsonObject? dados = null)
+    {
+        var o = dados ?? new JsonObject();
+        o["ev"] = ev;
+        o["conta"] = conta;
+        saida.Enviar(o);
+    }
+
+    public void Log(string nivel, string msg) => saida.Log(nivel, msg);
+
+    /// <summary>Pergunta ao HDeck (pop-up, download) e espera a resposta.</summary>
+    public Task<JsonNode?> Perguntar(string tipo, string conta, JsonObject dados)
+    {
+        var id = ++proximaPergunta;
+        var tcs = new TaskCompletionSource<JsonNode?>();
+        perguntas[id] = tcs;
+        dados["ev"] = "pergunta";
+        dados["tipo"] = tipo;
+        dados["conta"] = conta;
+        dados["pergunta"] = id;
+        saida.Enviar(dados);
+        return tcs.Task;
+    }
+
+    /// <summary>Janela escondida, dona dos controladores usados só para apagar perfis.</summary>
+    public IntPtr JanelaOculta
+    {
+        get
+        {
+            if (oculta == null)
+            {
+                oculta = new Form { ShowInTaskbar = false, Opacity = 0, FormBorderStyle = FormBorderStyle.None };
+                _ = oculta.Handle;
+            }
+            return oculta.Handle;
+        }
+    }
+
+    public async void Receber(string linha)
+    {
+        JsonObject? m = null;
+        try
+        {
+            m = JsonNode.Parse(linha)!.AsObject();
+            if (m["resposta"] is JsonNode resp)
+            {
+                var id = resp.GetValue<long>();
+                if (perguntas.Remove(id, out var tcs)) tcs.TrySetResult(m["r"]?.DeepClone());
+                return;
+            }
+            var r = await Executar(m["cmd"]!.GetValue<string>(), m);
+            if (m["id"] != null) saida.Enviar(new JsonObject { ["id"] = m["id"]!.DeepClone(), ["ok"] = true, ["r"] = r });
+        }
+        catch (Exception e)
+        {
+            if (m?["id"] != null)
+                saida.Enviar(new JsonObject { ["id"] = m["id"]!.DeepClone(), ["ok"] = false, ["erro"] = e.Message });
+            else
+                saida.Log("aviso", $"pedido falhou: {e.Message}");
+        }
+    }
+
+    private Pagina P(JsonObject m)
+    {
+        var id = m["conta"]!.GetValue<string>();
+        return paginas.TryGetValue(id, out var p) ? p : throw new InvalidOperationException($"conta {id} não existe no motor");
+    }
+
+    private static string S(JsonObject m, string k, string padrao = "") => m[k]?.GetValue<string>() ?? padrao;
+    private static bool B(JsonObject m, string k, bool padrao = false) => m[k]?.GetValue<bool>() ?? padrao;
+    private static double D(JsonObject m, string k, double padrao = 0) => m[k]?.GetValue<double>() ?? padrao;
+
+    public static IntPtr Hwnd(string s) => (IntPtr)long.Parse(s);
+
+    private async Task<JsonNode?> Executar(string cmd, JsonObject m)
+    {
+        switch (cmd)
+        {
+            case "iniciar":
+            {
+                var op = new CoreWebView2EnvironmentOptions(S(m, "argumentos"))
+                {
+                    AreBrowserExtensionsEnabled = false,
+                    IsCustomCrashReportingEnabled = true,
+                    EnableTrackingPrevention = true,
+                };
+                Teste = B(m, "teste");
+                env = await CoreWebView2Environment.CreateAsync(null, S(m, "pasta"), op);
+                env.BrowserProcessExited += (_, e) =>
+                {
+                    if (encerrando) return;
+                    saida.Enviar(new JsonObject { ["ev"] = "navegadorSaiu", ["motivo"] = e.BrowserProcessExitKind.ToString() });
+                };
+                return new JsonObject { ["versao"] = env.BrowserVersionString };
+            }
+            case "criar":
+            {
+                var id = S(m, "conta");
+                if (paginas.ContainsKey(id)) throw new InvalidOperationException("conta já existe");
+                var p = new Pagina(this, id, Hwnd(S(m, "janela")))
+                {
+                    Mudo = B(m, "mudo"),
+                    Zoom = D(m, "zoom", 1),
+                    Notificacoes = B(m, "notificacoes"),
+                };
+                paginas[id] = p;
+                try
+                {
+                    p.Pronta = p.Montar();
+                    await p.Pronta;
+                }
+                catch
+                {
+                    paginas.Remove(id);
+                    throw;
+                }
+                p.Carregar(S(m, "url"));
+                return null;
+            }
+            case "atalhos":
+                Atalhos.Clear();
+                foreach (var a in m["lista"]!.AsArray()) Atalhos.Add(a!.GetValue<string>());
+                return null;
+            case "apagarSessao":
+                await ApagarPerfil(S(m, "conta"));
+                return null;
+            case "sair":
+                await Encerrar();
+                return null;
+            case "popups": return JanelaPopup.Abertas;
+            case "processos":
+            {
+                var lista = new JsonArray();
+                foreach (var info in Env.GetProcessInfos())
+                    lista.Add(new JsonObject { ["pid"] = info.ProcessId, ["tipo"] = info.Kind.ToString() });
+                return lista;
+            }
+        }
+
+        var pg = P(m);
+        // Os pedidos de uma página esperam ela ficar pronta (criar e renovar são assíncronos).
+        try
+        {
+            await pg.Pronta;
+        }
+        catch
+        {
+            // a montagem falhou; o pedido abaixo vai acusar
+        }
+        switch (cmd)
+        {
+            case "carregar": pg.Carregar(S(m, "url")); return null;
+            case "recarregar": await pg.Recarregar(B(m, "semCache")); return null;
+            case "renovar": await pg.Renovar(); return null;
+            case "fechar":
+                paginas.Remove(pg.Id);
+                pg.Fechar();
+                return null;
+            case "exibir":
+                pg.Exibir(S(m, "modo"), m["janela"] is JsonNode j ? Hwnd(j.GetValue<string>()) : IntPtr.Zero,
+                    D(m, "x"), D(m, "y"), D(m, "largura"), D(m, "altura"));
+                return null;
+            case "mudo": pg.Mudo = B(m, "valor"); pg.AplicarMudo(); return null;
+            case "zoom": pg.Zoom = D(m, "valor", 1); pg.AplicarZoom(); return null;
+            case "estrangular": pg.Estrangular = B(m, "valor"); pg.AplicarVisibilidade(); return null;
+            case "notificacoes": pg.Notificacoes = B(m, "valor"); return null;
+            case "vigiar": await pg.Vigiar(B(m, "valor")); return null;
+            case "capturar":
+            {
+                var b = await pg.Capturar((int)D(m, "largura"), (int)D(m, "altura"), (int)D(m, "qualidade", 80));
+                return b == null ? null : Convert.ToBase64String(b);
+            }
+            case "avaliar": return await pg.Avaliar(S(m, "codigo"));
+            case "avaliarPagina":
+                // Só no modo de teste: lê contadores do jogo falso no mundo da página.
+                if (!Teste) throw new InvalidOperationException("só no modo de teste");
+                return await pg.AvaliarNaPagina(S(m, "codigo"));
+            case "pid": return pg.Pid() is int pid ? pid : null;
+            case "url": return pg.UrlAtual();
+            case "limparCache": await pg.LimparCache(); return null;
+            case "devtools": pg.AbrirDevtools(); return null;
+            case "moveu": pg.PaiMoveu(); return null;
+            case "estado": return pg.Estado();
+        }
+        throw new InvalidOperationException($"pedido desconhecido: {cmd}");
+    }
+
+    /// <summary>RN-015: apaga cookies, armazenamento e cache do perfil da conta, e o próprio perfil.</summary>
+    private async Task ApagarPerfil(string conta)
+    {
+        if (paginas.Remove(conta, out var aberta)) aberta.Fechar();
+        var op = Env.CreateCoreWebView2ControllerOptions();
+        op.ProfileName = Pagina.PerfilDa(conta);
+        var c = await Env.CreateCoreWebView2ControllerAsync(JanelaOculta, op);
+        var perfil = c.CoreWebView2.Profile;
+        await perfil.ClearBrowsingDataAsync();
+        c.Close();
+        perfil.Delete();
+    }
+
+    private bool encerrado;
+
+    public async Task Encerrar()
+    {
+        if (encerrado) return;
+        encerrado = true;
+        encerrando = true;
+        foreach (var t in perguntas.Values) t.TrySetResult(null);
+        var navegador = env != null ? (int?)TryPid() : null;
+        foreach (var p in paginas.Values) p.Fechar();
+        paginas.Clear();
+        // Fechar a última página encerra o navegador, que grava cookies e armazenamento no disco (RN-011).
+        if (navegador is int pid)
+        {
+            try
+            {
+                using var proc = System.Diagnostics.Process.GetProcessById(pid);
+                await Task.Run(() => proc.WaitForExit(8000));
+            }
+            catch
+            {
+                // já saiu
+            }
+        }
+        Application.ExitThread();
+    }
+
+    private int? TryPid()
+    {
+        try
+        {
+            foreach (var i in Env.GetProcessInfos())
+                if (i.Kind == CoreWebView2ProcessKind.Browser) return i.ProcessId;
+        }
+        catch
+        {
+            // sem processos
+        }
+        return null;
+    }
+}
+
+static class Win32
+{
+    [DllImport("user32.dll")]
+    public static extern uint GetDpiForWindow(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    public static extern bool IsWindow(IntPtr hwnd);
+
+    public static double Escala(IntPtr hwnd)
+    {
+        var dpi = hwnd != IntPtr.Zero ? GetDpiForWindow(hwnd) : 0;
+        return dpi > 0 ? dpi / 96.0 : 1.0;
+    }
+}

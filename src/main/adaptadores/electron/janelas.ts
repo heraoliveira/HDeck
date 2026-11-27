@@ -24,6 +24,8 @@ export type OpcoesJanelas = {
   aoMedirSolta: (contaId: string, largura: number, altura: number) => void
   /** A janela solta vai fechar: devolver a view antes (sem recarregar). */
   aoFecharSolta: (contaId: string) => void
+  /** Antes de a janela sumir, as contas penduradas nela voltam para a principal (ADR 0014). */
+  antesDeFechar: (janelaId: string) => Promise<void>
   aoFecharPrincipal: (e: { preventDefault: () => void }) => void
   aoFecharJanelaGrupo: (grupoId: string) => void
   iniciarEscondida: boolean
@@ -46,6 +48,8 @@ const prefsInterface = (preload: string) => ({
  */
 export class GerenciadorJanelas {
   principal: BrowserWindow | null = null
+  /** O app está saindo: as janelas fecham sem esperar as contas (o motor já fechou). */
+  encerrando = false
   readonly soltas = new Map<string, BrowserWindow>()
   readonly grupos = new Map<string, BrowserWindow>()
   private posicoes: Posicoes = {}
@@ -112,7 +116,8 @@ export class GerenciadorJanelas {
     }
     w.on('resize', medir)
     w.once('ready-to-show', medir)
-    w.on('close', () => {
+    this.segurarAoFechar(w, chave)
+    w.on('closed', () => {
       this.o.aoFecharSolta(contaId)
       this.soltas.delete(contaId)
     })
@@ -145,6 +150,7 @@ export class GerenciadorJanelas {
       backgroundColor: '#08111f',
       webPreferences: prefsInterface(this.o.preload),
     })
+    this.segurarAoFechar(w, chave)
     this.lembrar(w, chave)
     w.on('closed', () => {
       this.grupos.delete(grupoId)
@@ -155,6 +161,22 @@ export class GerenciadorJanelas {
     )
     this.grupos.set(grupoId, w)
     return w
+  }
+
+  /**
+   * Uma conta WebView2 é filha nativa da janela: se a janela some antes, a conta some junto.
+   * O fechamento espera as contas voltarem para a principal (no máximo 3 s).
+   */
+  private segurarAoFechar(w: BrowserWindow, chave: string): void {
+    let liberada = false
+    w.on('close', (e) => {
+      if (liberada || this.encerrando) return
+      e.preventDefault()
+      liberada = true
+      void Promise.race([this.o.antesDeFechar(chave), new Promise((r) => setTimeout(r, 3000))]).finally(
+        () => !w.isDestroyed() && w.close(),
+      )
+    })
   }
 
   /** Id da janela no núcleo. */

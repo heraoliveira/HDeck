@@ -151,9 +151,7 @@ test('RN-007 RN-038 RN-058 painel da conta: todos os botões funcionam', async (
     p = await abrirPainelConta(j, 0, 3)
     await p.getByRole('button', { name: 'Início', exact: true }).click()
     await expect
-      .poll(() =>
-        a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.getURL(), c1!),
-      )
+      .poll(() => a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.pagina(id).urlAtual(), c1!))
       .toContain('/jogo')
 
     p = await abrirPainelConta(j, 0, 4)
@@ -222,15 +220,11 @@ test('RN-007 RN-038 RN-058 painel da conta: todos os botões funcionam', async (
     await expect
       .poll(() =>
         a.app.evaluate(
-          (_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.isDevToolsOpened(),
+          async (_e, id) => (await (globalThis as H).hdeckTeste.fabrica.pagina(id).nativo()).devtools,
           c1!,
         ),
       )
       .toBe(true)
-    await a.app.evaluate(
-      (_e, id) => (globalThis as H).hdeckTeste.fabrica.view(id).webContents.closeDevTools(),
-      c1!,
-    )
 
     p = await abrirPainelConta(j, 0, 13)
     await p.getByRole('button', { name: /Limpar dados/ }).click()

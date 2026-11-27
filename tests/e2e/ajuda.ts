@@ -129,7 +129,7 @@ export async function esperarEstado(a: App, id: string, estados: string[], timeo
     .toMatch(new RegExp(`^(${estados.join('|')})$`))
 }
 
-/** Executa código na página de uma conta (no mundo da página, só para ler contadores do jogo falso). */
+/** Executa código na página de uma conta (no mundo da página, pelo motor WebView2 no modo de teste). */
 export async function naConta<T>(a: App, id: string, codigo: string): Promise<T> {
   return a.app
     .evaluate(
@@ -138,15 +138,13 @@ export async function naConta<T>(a: App, id: string, codigo: string): Promise<T>
           globalThis as unknown as {
             hdeckTeste: {
               fabrica: {
-                view(
-                  id: string,
-                ): { webContents: { executeJavaScript(c: string): Promise<unknown> } } | undefined
+                pagina(id: string): { lerPagina(c: string): Promise<unknown> } | undefined
               }
             }
           }
         ).hdeckTeste
         try {
-          return await h.fabrica.view(id)?.webContents.executeJavaScript(codigo)
+          return await h.fabrica.pagina(id)?.lerPagina(codigo)
         } catch {
           return undefined
         }

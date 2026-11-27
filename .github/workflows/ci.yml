@@ -17,6 +17,10 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      # Motor das páginas (ADR 0014): .NET 10 + WebView2 (o runner windows-latest já tem o runtime do Edge WebView2).
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
@@ -40,6 +44,10 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      # Motor das páginas (ADR 0014): .NET 10 + WebView2 (o runner windows-latest já tem o runtime do Edge WebView2).
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
       - run: pnpm install --frozen-lockfile
       - run: pnpm dist
       - uses: actions/upload-artifact@v4

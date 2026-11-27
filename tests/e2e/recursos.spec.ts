@@ -29,16 +29,11 @@ test('RN-150 RN-151 .exe bloqueado; pop-up de login na mesma sessão fecha sozin
       )
       .toContain('a.txt')
     // Pop-up de OAuth falso: abre na sessão da conta (o cookie fica na conta) e fecha sozinho.
-    const janelasAntes = await a.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)
+    const popups = () => a.app.evaluate(() => (globalThis as H).hdeckTeste.fabrica.popups())
+    const janelasAntes = await popups()
     await naConta(a, c!, "window.open('/oauth/login', 'oauth', 'width=400,height=400')")
-    await expect
-      .poll(() => a.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length))
-      .toBe(janelasAntes + 1)
-    await expect
-      .poll(() => a.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), {
-        timeout: 10_000,
-      })
-      .toBe(janelasAntes)
+    await expect.poll(popups).toBe(janelasAntes + 1)
+    await expect.poll(popups, { timeout: 10_000 }).toBe(janelasAntes)
     expect(await naConta<string>(a, c!, 'document.cookie')).toContain('oauth=1')
     // Pop-up comum: pede confirmação mostrando o endereço (o teste responde "cancelar").
     await naConta(a, c!, "window.open('/comum')")
