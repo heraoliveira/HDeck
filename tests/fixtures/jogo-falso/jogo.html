@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Jogo falso</title>
+<style>
+  body { font: 14px system-ui, sans-serif; background: #203040; color: #eee; margin: 0; padding: 12px; }
+  .n { font-size: 22px; font-weight: 600; }
+  canvas { background: #102030; display: block; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>Jogo falso</h1>
+<p>Jogador: <b id="usuario">{{USUARIO}}</b></p>
+<p>Intervalo: <span class="n" id="c-int">0</span> · Quadros: <span class="n" id="c-raf">0</span> · Mensagens: <span class="n" id="c-ws">0</span></p>
+<p id="visibilidade"></p>
+<p id="texto"></p>
+<canvas id="tela" width="320" height="80"></canvas>
+<form id="form-login" action="/login" method="post">
+  <input id="usuario-campo" name="usuario" autocomplete="off">
+  <input id="senha-campo" name="senha" type="password">
+  <button id="entrar" type="submit">Entrar</button>
+</form>
+<a id="baixar-exe" href="/download.exe">baixar</a>
+<script>
+  const c = { intervalo: 0, raf: 0, ws: 0, inicio: performance.now(), visivelSempre: true, inputs: 0, submits: 0 }
+  window.__contagem = c
+  const el = (id) => document.getElementById(id)
+  setInterval(() => {
+    c.intervalo++
+    if (document.visibilityState !== 'visible') c.visivelSempre = false
+    if (c.intervalo % 4 === 0) {
+      el('c-int').textContent = c.intervalo
+      el('c-raf').textContent = c.raf
+      el('c-ws').textContent = c.ws
+      el('visibilidade').textContent = document.visibilityState
+    }
+  }, 250)
+  const ctx = el('tela').getContext('2d')
+  function quadro() {
+    c.raf++
+    ctx.fillStyle = `hsl(${c.raf % 360} 60% 50%)`
+    ctx.fillRect((c.raf * 3) % 320, 0, 4, 80)
+    requestAnimationFrame(quadro)
+  }
+  requestAnimationFrame(quadro)
+  const params = new URLSearchParams(location.search)
+  function conectar() {
+    const ws = new WebSocket(`ws://${location.host}/ws`)
+    ws.onmessage = (e) => {
+      c.ws++
+      const m = JSON.parse(e.data)
+      if (typeof m.texto === 'string') el('texto').textContent = m.texto
+      if (typeof m.travar === 'number') { const fim = Date.now() + m.travar; while (Date.now() < fim) {} }
+      if (m.fechar) window.close()
+    }
+    ws.onclose = () => { if (params.has('reconectar')) setTimeout(conectar, 500) }
+  }
+  conectar()
+  new WebSocket(`ws://${location.host}/ws-chat`).onmessage = () => {}
+  el('usuario-campo').addEventListener('input', () => c.inputs++)
+  el('form-login').addEventListener('submit', () => { c.submits++ })
+</script>
+</body>
+</html>

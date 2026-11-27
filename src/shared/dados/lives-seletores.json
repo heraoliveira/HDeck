@@ -1,0 +1,35 @@
+{
+  "versao": 1,
+  "twitch": {
+    "urlCanal": "https://www.twitch.tv/{canal}",
+    "dominios": ["twitch.tv", "www.twitch.tv", "m.twitch.tv"],
+    "video": "video",
+    "aoVivo": ".live-indicator-container, [data-a-target='animated-channel-viewers-count'], .tw-channel-status-text-indicator",
+    "offline": "[data-a-target='player-overlay-offline'], .offline-recommendations-video-player, .channel-status-info--offline",
+    "pedeLogin": "[data-a-target='login-button']",
+    "qualidade": {
+      "tipo": "localStorage",
+      "chave": "video-quality",
+      "valores": {
+        "160p": "{\"default\":\"160p30\"}",
+        "360p": "{\"default\":\"360p30\"}",
+        "480p": "{\"default\":\"480p30\"}",
+        "720p": "{\"default\":\"720p30\"}",
+        "auto": "{\"default\":\"auto\"}"
+      }
+    }
+  },
+  "kick": {
+    "urlCanal": "https://kick.com/{canal}",
+    "dominios": ["kick.com", "www.kick.com"],
+    "video": "video",
+    "aoVivo": "[data-testid='live-indicator'], .live-badge",
+    "offline": "[data-testid='offline-banner'], .offline-banner",
+    "pedeLogin": "[data-testid='login'], button[data-test='login']",
+    "qualidade": {
+      "tipo": "localStorage",
+      "chave": "stream_quality",
+      "valores": { "160p": "160", "360p": "360", "480p": "480", "720p": "720", "auto": "auto" }
+    }
+  }
+}
