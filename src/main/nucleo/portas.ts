@@ -123,6 +123,9 @@ export interface Armazem {
   listarContas(): Conta[]
   salvarConta(c: Conta): void
   apagarConta(id: string): void
+  /** RN-018: o link em que a conta estava (null = nunca abriu; usa o endereço cadastrado). */
+  ultimaUrl(contaId: string): string | null
+  salvarUltimaUrl(contaId: string, url: string | null): void
   listarLives(): Live[]
   salvarLive(l: Live): void
   apagarLive(id: string): void

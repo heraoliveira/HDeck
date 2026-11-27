@@ -27,9 +27,13 @@ Execução de 2026-11-26 (assistente, no PC da dona, sem contas reais): os itens
 | 18 | Bandeja | Fechar no X → bandeja; menu: Mostrar, Modo econômico, Silenciar, Pausar avisos 1 h, Sair (confirma com contas ligadas) | ⏳ dona |
 | 19 | Iniciar com o Windows | Ligar a opção e "Abrir na bandeja"; reiniciar o PC: abre só na bandeja | ⏳ dona |
 | 20 | Memória com a conta logada | Uma conta do pokeidle logada por 2 h: anotar a RAM no Painel antes e depois de "Otimizar" | ⏳ dona |
-| 21 | Login com Google (correção) | "Entrar com Google" no jogo: a tela de "navegador não seguro" não aparece mais | ⏳ dona |
+| 21 | Login com Google (correção) | "Entrar com Google" no jogo: a tela de "navegador não seguro" não aparece mais (no motor WebView2 a conta se apresenta como o Edge comum na página do Google) | ⏳ dona |
 | 22 | Cloudflare "sou humano" (motor WebView2) | Abrir o pokeidle numa conta e fazer o login: a verificação do Cloudflare passa. Cada conta precisa entrar de novo uma vez depois desta versão | ⏳ dona |
 | 23 | Conta solta e grupo em janela própria (WebView2) | Soltar uma conta, mover a janela, fechar: a conta volta para a principal sem recarregar. Listas suspensas do jogo abrem no lugar certo depois de mover a janela | ⏳ dona |
+| 24 | Fica no link atual (RN-018) | Ir para outra tela do jogo, desligar e ligar a conta, fechar e abrir o HDeck, "Otimizar": a conta volta na mesma tela, não no endereço inicial | ⏳ dona |
+| 25 | Sem recarga sozinha (RN-058) | Deixar a conta jogando 2 h com outra tela por cima: nada recarrega (o histórico do painel direito mostra qualquer recarga com o motivo) | ⏳ dona |
+| 26 | RAM e CPU (RN-045) | Comparar o painel direito e a barra de título com o Gerenciador de Tarefas: números próximos, atualizando a cada 2 s | ⏳ dona |
+| 27 | Atalhos do instalador | Instalar: aparece o HDeck na área de trabalho e no menu Iniciar | ⏳ dona |
 
 ## Observações
 - A contagem real do tempo assistido (item 8) é o maior risco: se não contar com a página offscreen, trocar para o plano B do ADR 0004.

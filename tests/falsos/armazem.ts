@@ -37,6 +37,10 @@ export class ArmazemMemoria implements Armazem {
   listarContas = () => [...this.contas.values()]
   salvarConta = (c: Conta) => void this.contas.set(c.id, c)
   apagarConta = (id: string) => void this.contas.delete(id)
+  readonly urls = new Map<string, string>()
+  ultimaUrl = (id: string) => this.urls.get(id) ?? null
+  salvarUltimaUrl = (id: string, url: string | null) =>
+    void (url === null ? this.urls.delete(id) : this.urls.set(id, url))
   listarLives = () => [...this.lives.values()]
   salvarLive = (l: Live) => void this.lives.set(l.id, l)
   apagarLive = (id: string) => void this.lives.delete(id)

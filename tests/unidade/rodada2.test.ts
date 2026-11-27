@@ -78,9 +78,10 @@ describe('pedidos de 2026-11-27', () => {
     expect(await m.motor.limparDados('x')).toBe(false)
   })
 
-  it('RN-058 otimiza sozinho a cada 1 h, uma por vez, nunca a conta em uso', () => {
+  it('RN-058 ligado pela dona (1 h), otimiza sozinho uma por vez, nunca a conta em uso', () => {
     const r = new RelogioFalso()
     const cfg = configPadrao()
+    cfg.otimizacao.otimizarACadaMin = 60 // desligado por padrão: aqui a dona ligou
     const feitas: string[] = []
     const emUso = new Set(['a'])
     const ag = new AgendaOtimizacao(r, () => cfg, {
@@ -144,5 +145,51 @@ describe('conta nova pronta', () => {
       { contaId: d.id, retangulo: { x: 400, y: 0, largura: 400, altura: 600 }, tipo: 'conta' },
     ])
     expect(m.paginas.de(d.id).exibicao.modo).toBe('viva')
+  })
+})
+
+describe('pedidos de 2026-11-27 (rodada 5)', () => {
+  it('RN-018 a conta volta no link em que estava; o endereço cadastrado só vale na primeira vez', () => {
+    const m = montarMotor()
+    const c = m.novaConta({ url: 'https://jogo.test/jogar' })
+    m.motor.ligarGrupo(m.grupoId, true, true)
+    m.relogio.avancar(5000)
+    const p1 = m.paginas.de(c.id)
+    expect(p1.carregamentos).toEqual(['https://jogo.test/jogar'])
+    // O jogo navegou para outra tela: o link é guardado.
+    p1.url = 'https://jogo.test/mapa/7'
+    p1.ev.navegou('https://jogo.test/mapa/7')
+    // Login de terceiros (outro domínio) não substitui o link do jogo.
+    p1.ev.navegou('https://accounts.google.com/signin')
+    expect(m.armazem.ultimaUrl(c.id)).toBe('https://jogo.test/mapa/7')
+    // Desligar e ligar de novo (ou reabrir o app): abre no link guardado.
+    m.motor.desligarConta(c.id)
+    m.motor.ligarGrupo(m.grupoId, false)
+    m.motor.ligarGrupo(m.grupoId, true, true)
+    m.relogio.avancar(5000)
+    expect(m.paginas.de(c.id).carregamentos).toEqual(['https://jogo.test/mapa/7'])
+    // Recarregar fica no link atual.
+    const p2 = m.paginas.de(c.id)
+    m.motor.recarregar(c.id, false)
+    expect(p2.carregamentos.at(-1)).toBe('https://jogo.test/mapa/7')
+    // Mudar o endereço da conta esquece o link antigo.
+    m.motor.editarConta(c.id, { url: 'https://jogo.test/novo' })
+    expect(m.armazem.ultimaUrl(c.id)).toBeNull()
+  })
+
+  it('RN-058 sem a dona ligar, nada recarrega sozinho por otimização', () => {
+    const r = new RelogioFalso()
+    const feitas: string[] = []
+    const ag = new AgendaOtimizacao(r, () => configPadrao(), {
+      ligadas: () => ['a', 'b'],
+      emUso: () => false,
+      recarregar: (id) => feitas.push(`recarga:${id}`),
+      limparCache: () => {},
+      avisarMemoria: () => {},
+      otimizar: (id) => feitas.push(`otimizar:${id}`),
+    })
+    ag.iniciar()
+    r.avancar(24 * 3_600_000)
+    expect(feitas).toEqual([])
   })
 })

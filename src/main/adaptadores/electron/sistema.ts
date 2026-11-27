@@ -1,3 +1,4 @@
+import { cpus } from 'node:os'
 import type { Aviso } from '@shared/tipos/dominio.ts'
 import {
   app,
@@ -27,12 +28,24 @@ export class SistemaElectron implements Sistema {
     return this.bloqueio !== null && powerSaveBlocker.isStarted(this.bloqueio)
   }
 
+  private medicao: Metrica[] | null = null
+
+  /**
+   * Última medição do motor das páginas (Electron + motor + WebView2, como no Gerenciador de Tarefas).
+   * Sem ela (motor ainda abrindo), usa as métricas do Electron, com a CPU em % do computador inteiro.
+   */
   metricas(): Metrica[] {
+    if (this.medicao) return this.medicao
+    const nucleos = Math.max(1, cpus().length)
     return app.getAppMetrics().map((m) => ({
       pid: m.pid,
       ramMb: Math.round((m.memory.workingSetSize / 1024) * 10) / 10,
-      cpuPct: Math.round(m.cpu.percentCPUUsage * 10) / 10,
+      cpuPct: Math.round((m.cpu.percentCPUUsage / nucleos) * 10) / 10,
     }))
+  }
+
+  definirMedicao(m: Metrica[] | null): void {
+    this.medicao = m
   }
 }
 

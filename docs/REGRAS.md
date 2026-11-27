@@ -27,6 +27,7 @@
 - **RN-005** O HDeck não bloqueia nem altera anúncios ou conteúdo dos sites dos jogos e das lives. (P)
 - **RN-006** Toda frase da interface é pt-BR simples e direta. (D)
 - **RN-007** Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, tokens de `estilos/tokens.css`); nada de menu nativo do sistema dentro do app (a bandeja do Windows é a exceção). (D, 2026-11-27)
+- **RN-008** À direita fica o painel da conta selecionada, que recolhe e expande como o dos grupos: estado, Início, Recarregar, Som, Destacar, lives, consumo de RAM e CPU da última hora, Otimizar (com o horário do automático) e o histórico da conta; Foco, Desligar e Mais no rodapé. (D, 2026-11-27)
 
 ## 2. Contas
 
@@ -38,7 +39,7 @@
 - **RN-015** Apagar uma conta pede confirmação; "apagar também os dados de login" apaga a sessão dela do disco. Sem essa opção, só a conta some da lista e a sessão é apagada também (não existe sessão órfã). (P)
 - **RN-016** "Duplicar configuração" cria conta nova com o mesmo jogo e ajustes e **sessão nova e vazia**. (P)
 - **RN-017** Uma conta está sempre em um destes estados: desligada, carregando, ativa, econômica, escondida, caída, recarregando, travada, com aviso, erro. O estado aparece no cartão da conta. (P)
-- **RN-018** Recarregar mantém a URL atual se ela for do domínio do jogo; senão volta à URL cadastrada. (P)
+- **RN-018** A conta fica no link em que está: recarregar, otimizar, reabrir o app ou religar a conta voltam ao último link do jogo (o endereço cadastrado só vale na primeira vez, no "Início" e depois de limpar os dados). Um link de outro domínio (login de terceiros) não conta. (P; alterada D 2026-11-27)
 - **RN-019** Conta solta em janela própria continua a mesma página, sem recarregar; fechar a janela devolve a conta ao grupo. A janela lembra monitor, posição e tamanho. (R)
 
 ## 3. Grupos
@@ -60,7 +61,7 @@
 - **RN-042** Espaços nunca se sobrepõem e sempre cabem na área disponível, em qualquer tamanho de janela. (P)
 - **RN-043** A conta ativa tem a borda destacada. Clicar numa conta a torna ativa. (R)
 - **RN-044** Ao abrir um diálogo por cima das contas, elas aparecem como foto e continuam rodando; ao fechar, voltam ao vivo. (P)
-- **RN-045** Painel: estado, tempo online, quedas do dia, recargas, último dado recebido, RAM, CPU e lives de cada conta, de todos os grupos; histórico de 30 dias. (R)
+- **RN-045** Painel: estado, tempo online, quedas do dia, recargas, último dado recebido, RAM, CPU e lives de cada conta, de todos os grupos; histórico de 30 dias. RAM e CPU são medidas como no Gerenciador de Tarefas (memória privada; CPU em % do PC inteiro), somando os processos da conta, e atualizam a cada 2 s. (R; alterada D 2026-11-27)
 
 ## 5. Rodar escondido e economia
 
@@ -74,7 +75,7 @@
   - recarregar contas a cada 2, 4, 6, 12 ou 24 h;
   - recarregar a conta cuja memória passar de 1; 1,5; 2 ou 3 GB;
   - limpar o cache de arquivos das contas a cada 1 ou 7 dias (nunca cookies, armazenamento ou login). (D)
-- **RN-058** **Otimizar** reabre a conta num processo novo (o login continua) e solta a memória que o jogo acumulou. Manual (painel do grupo, da conta e ações em lote) e sozinho a cada 1 h (desligado; 30 min, 1, 2, 4 h), uma conta por vez e nunca a conta em uso. (D, 2026-11-27)
+- **RN-058** **Otimizar** reabre a conta num processo novo (o login continua) e solta a memória que o jogo acumulou. Manual (painel do grupo, da conta e ações em lote) e sozinho só se a dona ligar (desligado por padrão; 30 min, 1, 2, 4 h), uma conta por vez e nunca a conta em uso. (D, 2026-11-27)
 - **RN-057** Recargas programadas são uma conta por vez, com 20 s entre elas, e nunca recarregam a conta ativa usada nos últimos 60 s (ela fica para o fim da fila). (P)
 
 ## 6. Saúde: quedas e recargas
@@ -146,7 +147,7 @@
 - **RN-151** Pop-ups de login (Google, Discord, Twitch, Kick, carteiras) abrem na sessão da conta e fecham ao terminar; outros pop-ups e abas novas pedem confirmação mostrando o endereço. (R)
 - **RN-152** Câmera, microfone, localização e acesso a dispositivos são sempre negados às páginas; notificações das páginas só se o usuário ligar na conta. (P)
 - **RN-153** Páginas só navegam em `https:` (e `http:` em localhost). (P)
-- **RN-154** Login com Google funciona dentro do app: só nas páginas de login do Google o HDeck se apresenta como Firefox (sem client hints), porque o Google bloqueia navegadores embutidos. Se mesmo assim o Google recusar, a conta mostra a orientação de usar outro método de login do jogo. (D, alterada 2026-11-27)
+- **RN-154** Login com Google funciona dentro do app: só nas páginas de login do Google a conta se apresenta como o Microsoft Edge comum da mesma versão (sem a marca "WebView2" nas client hints e sem o objeto `chrome.webview`); nas lives, que rodam no Electron, ela se apresenta como Firefox sem client hints, porque o Google bloqueia navegadores embutidos. Se mesmo assim o Google recusar, a conta mostra a orientação de usar outro método de login do jogo. (D, alterada 2026-11-27)
 
 ## 14. Backup e dados
 
@@ -183,6 +184,7 @@
 - [ ] MEDICOES.md atualizado se a mudança mexe em desempenho.
 
 ## Histórico
+- 2026-11-27 · v3 · pedidos da dona: RN-008 nova (painel direito); RN-018 (fica no link atual), RN-058 (nada recarrega sozinho sem ela ligar) e RN-154 (Google vê o Edge comum) alteradas; RN-045 (RAM e CPU como no Gerenciador de Tarefas) alterada.
 - 2026-11-27 · v2 · pedidos da dona: RN-007, RN-037, RN-038, RN-058 novas; RN-002, RN-036 e RN-154 alteradas.
 
 - 2026-11-26 · v1 · criação a partir do prompt-mestre v2 (RN-001 a RN-181).

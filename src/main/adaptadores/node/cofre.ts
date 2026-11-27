@@ -48,16 +48,24 @@ export class Cofre implements CofreLogins {
   ) {}
 
   /** Cria a chave de dados na primeira vez; sem senha mestra, já fica aberto. */
-  iniciar(): void {
+  iniciar(): 'ok' | 'sem_chave' {
     if (!this.armazem.lerMeta('chave')) {
       const k = novaChave()
       this.armazem.gravarMeta('chave', this.sistema.proteger(k))
       this.armazem.gravarMeta('modo', Buffer.from('os'))
       this.chave = k
-      return
+      return 'ok'
     }
-    if (!this.senhaMestraLigada())
+    if (this.senhaMestraLigada()) return 'ok'
+    try {
       this.chave = Buffer.from(this.sistema.desproteger(this.armazem.lerMeta('chave')!))
+      return 'ok'
+    } catch {
+      // O Windows não abriu a chave (perfil ou proteção do sistema mudou). O app abre assim mesmo, com o
+      // cofre fechado nesta sessão; nada é apagado (pode ter sido uma falha passageira).
+      this.chave = null
+      return 'sem_chave'
+    }
   }
 
   senhaMestraLigada(): boolean {

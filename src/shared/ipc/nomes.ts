@@ -24,6 +24,7 @@ export const NOMES_CANAIS = [
   'contas.duplicar',
   'contas.soltar',
   'contas.inicio',
+  'contas.detalhe',
   'contas.lote',
   'contas.espacos',
   'contas.sugerirJogo',

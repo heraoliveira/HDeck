@@ -25,6 +25,7 @@ sealed class Motor
     /// <summary>Modo de teste do HDeck (libera ler a página no mundo dela).</summary>
     public bool Teste { get; private set; }
 
+    private readonly Metricas metricas = new();
     private readonly System.Windows.Forms.Timer ordem = new() { Interval = 1000 };
 
     public Motor(Saida saida)
@@ -170,6 +171,8 @@ sealed class Motor
                 await Encerrar();
                 return null;
             case "popups": return JanelaPopup.Abertas;
+            case "metricas":
+                return await metricas.Coletar(env, paginas.Values, m["pids"]?.AsArray().Select(x => x!.GetValue<int>()) ?? []);
             case "processos":
             {
                 var lista = new JsonArray();

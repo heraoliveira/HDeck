@@ -2,7 +2,7 @@
 
 > Gerado por `pnpm regras`. Não editar à mão.
 
-Regras ativas: 101 · com teste: 101
+Regras ativas: 102 · com teste: 102
 
 | RN | Regra | Testes |
 |---|---|---|
@@ -13,6 +13,7 @@ Regras ativas: 101 · com teste: 101
 | RN-005 | O HDeck não bloqueia nem altera anúncios ou conteúdo dos sites dos jogos e das lives. (P)… | tests/seguranca/seguranca.spec.ts |
 | RN-006 | Toda frase da interface é pt-BR simples e direta. (D)… | tests/unidade/shared.test.ts |
 | RN-007 | Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, t… | tests/componentes/interface.test.ts<br>tests/e2e/paineis.spec.ts<br>tests/unidade/rodada2.test.ts |
+| RN-008 | À direita fica o painel da conta selecionada, que recolhe e expande como o dos grupos: est… | tests/e2e/paineis.spec.ts |
 | RN-010 | Cada conta tem sessão isolada e persistente: cookies, armazenamento, cache e login não são… | tests/e2e/contas.spec.ts |
 | RN-011 | A sessão de uma conta sobrevive a fechar o app, reiniciar o PC e atualizar o HDeck. (D)… | tests/e2e/contas.spec.ts<br>tests/integracao/adaptadores-node.test.ts |
 | RN-012 | Uma conta pertence a exatamente um grupo e a um jogo (do catálogo ou criado pelo usuário).… | tests/unidade/contas.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
@@ -21,7 +22,7 @@ Regras ativas: 101 · com teste: 101
 | RN-015 | Apagar uma conta pede confirmação; "apagar também os dados de login" apaga a sessão dela d… | tests/integracao/adaptadores-node.test.ts<br>tests/unidade/motor.test.ts |
 | RN-016 | "Duplicar configuração" cria conta nova com o mesmo jogo e ajustes e **sessão nova e vazia… | tests/unidade/contas.test.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts |
 | RN-017 | Uma conta está sempre em um destes estados: desligada, carregando, ativa, econômica, escon… | tests/componentes/interface.test.ts<br>tests/unidade/estado.test.ts<br>tests/unidade/motor.test.ts |
-| RN-018 | Recarregar mantém a URL atual se ela for do domínio do jogo; senão volta à URL cadastrada.… | tests/unidade/contas.test.ts<br>tests/unidade/motor.test.ts |
+| RN-018 | A conta fica no link em que está: recarregar, otimizar, reabrir o app ou religar a conta v… | tests/integracao/adaptadores-node.test.ts<br>tests/unidade/contas.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts |
 | RN-019 | Conta solta em janela própria continua a mesma página, sem recarregar; fechar a janela dev… | tests/e2e/contas.spec.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts |
 | RN-030 | Grupo ligado = contas carregadas; grupo desligado = nenhuma conta dele na memória. (R)… | tests/unidade/motor.test.ts |
 | RN-031 | "Trocar para este grupo" desliga todos os outros grupos e liga este. (R)… | tests/e2e/contas.spec.ts<br>tests/unidade/fila-grupos.test.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts |
@@ -93,7 +94,7 @@ Regras ativas: 101 · com teste: 101
 | RN-151 | Pop-ups de login (Google, Discord, Twitch, Kick, carteiras) abrem na sessão da conta e fec… | tests/e2e/recursos.spec.ts<br>tests/unidade/seguranca-politicas.test.ts |
 | RN-152 | Câmera, microfone, localização e acesso a dispositivos são sempre negados às páginas; noti… | tests/seguranca/seguranca.spec.ts<br>tests/unidade/seguranca-politicas.test.ts |
 | RN-153 | Páginas só navegam em `https:` (e `http:` em localhost). (P)… | tests/seguranca/seguranca.spec.ts<br>tests/unidade/seguranca-politicas.test.ts<br>tests/unidade/shared.test.ts |
-| RN-154 | Login com Google funciona dentro do app: só nas páginas de login do Google o HDeck se apre… | tests/unidade/geral.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts<br>tests/unidade/seguranca-politicas.test.ts |
+| RN-154 | Login com Google funciona dentro do app: só nas páginas de login do Google a conta se apre… | tests/unidade/geral.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts<br>tests/unidade/seguranca-politicas.test.ts |
 | RN-160 | Exportar backup gera um arquivo com configurações, grupos, contas e textos vigiados; o cof… | tests/e2e/recursos.spec.ts<br>tests/integracao/adaptadores-node.test.ts |
 | RN-161 | "Incluir dados de login dos jogos" copia as sessões; o app avisa que quem tiver o arquivo … | tests/integracao/adaptadores-node.test.ts |
 | RN-162 | Importar backup numa instalação nova restaura tudo o que foi exportado. (P)… | tests/e2e/recursos.spec.ts<br>tests/integracao/adaptadores-node.test.ts |

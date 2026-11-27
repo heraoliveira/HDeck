@@ -3,6 +3,7 @@ import { CORES_CONTA, PADROES } from '@shared/dados/padroes-config.ts'
 import { t } from '@shared/i18n/index.ts'
 import type {
   AcaoLote,
+  DetalheConta,
   EspacoTela,
   EstadoDaConta,
   MetricasEvento,
@@ -631,6 +632,8 @@ export class Motor {
       if (patch.zoom !== undefined) rt.pagina.definirZoom(nova.zoom)
       if (patch.url && patch.url !== c.url) rt.pagina.carregar(nova.url)
     }
+    // Endereço novo: o link guardado do anterior não vale mais.
+    if (patch.url && patch.url !== c.url) this.d.armazem.salvarUltimaUrl(id, null)
     if (patch.som !== undefined) this.aplicarSom()
     if (patch.politicaForaTela) this.reaplicarExibicao()
     this.emitirEstado()
@@ -703,6 +706,13 @@ export class Motor {
     this.emitirEstado()
   }
 
+  /** RN-018: guarda o link atual da conta (só se for do jogo; login de terceiros não conta). */
+  private lembrarUrl(id: string, url: string): void {
+    const c = this.conta(id)
+    if (!c || !url || urlDeRecarga(url, c, this.jogoDe(id)) !== url) return
+    if (this.d.armazem.ultimaUrl(id) !== url) this.d.armazem.salvarUltimaUrl(id, url)
+  }
+
   /** A página avisou que o usuário mexeu nela (clique ou tecla). */
   usou(id: string): void {
     const rt = this.rt.get(id)
@@ -745,7 +755,7 @@ export class Motor {
       wsAbriu: (wid, url) => saude.wsAbriu(wid, url),
       wsFechou: (wid) => saude.wsFechou(wid),
       dadoRecebido: (wid) => saude.dado(wid),
-      navegou: () => {},
+      navegou: (url) => this.lembrarUrl(contaId, url),
       devtools: (aberto) => {
         if (rtRef) rtRef.devtools = aberto
         this.emitirEstado()
@@ -778,7 +788,8 @@ export class Motor {
     rtRef.espaco = this.espacoDe(id, false)
     pagina.definirZoom(c.zoom)
     pagina.vigiar(this.precisaVigia(id))
-    pagina.carregar(c.url)
+    // RN-018: abre no link em que a conta estava; o endereço cadastrado só vale na primeira vez.
+    pagina.carregar(urlDeRecarga(this.d.armazem.ultimaUrl(id) ?? c.url, c, jogo))
     this.otimizacao.marcarRecarga(id)
     this.reaplicarExibicao()
     this.aplicarSom()
@@ -818,6 +829,8 @@ export class Motor {
       rt.saude.recarregouPorFora()
       this.d.armazem.registrarEvento({ contaId: id, tipo: 'recarga', motivo, em: this.d.relogio.agora() })
     }
+    // Toda recarga fica no log com o motivo (para saber por que uma conta recarregou).
+    this.d.log.info('recarga', { conta: c.nome, motivo, semCache })
     this.evento(id, { tipo: 'recarregar' })
     this.detector.esquecer(id)
     rt.loginPedido = false
@@ -920,6 +933,7 @@ export class Motor {
       motivo: 'otimizar',
       em: this.d.relogio.agora(),
     })
+    this.d.log.info('otimizar', { conta: this.conta(id)?.nome })
     this.evento(id, { tipo: 'recarregar' })
     this.detector.esquecer(id)
     rt.pagina.renovarProcesso()
@@ -934,6 +948,7 @@ export class Motor {
     if (!c) return false
     this.d.cofre.apagar(id)
     await this.d.paginas.apagarSessao(id)
+    this.d.armazem.salvarUltimaUrl(id, null)
     this.rt.get(id)?.pagina.carregar(c.url)
     this.emitirEstado()
     return true
@@ -1289,6 +1304,22 @@ export class Motor {
 
   metricasAtuais(): MetricasEvento {
     return this.ultimasMetricas
+  }
+
+  /** Painel direito: consumo da conta na última hora (por minuto), histórico e próxima otimização. */
+  detalheConta(id: string): DetalheConta {
+    const agora = this.d.relogio.agora()
+    return {
+      serieHora: this.d.armazem
+        .listarMetricas(agora - 3_600_000)
+        .filter((l) => l.contaId === id)
+        .map((l) => ({ em: l.minuto, ramMb: l.ramMb, cpuPct: l.cpuPct })),
+      historico: this.d.armazem
+        .listarEventos(agora - 7 * 86_400_000, id)
+        .slice(-20)
+        .reverse(),
+      proximaOtimizacao: this.otimizacao.proximaOtimizacao(id),
+    }
   }
 
   dadosDoPainel(): PainelDados {

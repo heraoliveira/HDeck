@@ -19,7 +19,7 @@ const HORA = 60 * MIN
 const DIA = 24 * HORA
 
 /**
- * Otimização programada (RN-056, RN-057, RN-058). Só "Otimizar sozinho" vem ligado (1 h).
+ * Otimização programada (RN-056, RN-057, RN-058). Tudo vem desligado: só recarrega sozinho o que a dona ligar.
  * Recargas programadas passam por uma fila de 20 s e nunca pegam a conta em uso.
  */
 export class AgendaOtimizacao {
@@ -52,6 +52,13 @@ export class AgendaOtimizacao {
   marcarRecarga(id: string): void {
     this.ultimaRecarga.set(id, this.relogio.agora())
     this.ultimaOtimizacao.set(id, this.relogio.agora())
+  }
+
+  /** Quando "Otimizar sozinho" vai rodar nesta conta (null = desligado ou conta ainda sem relógio). */
+  proximaOtimizacao(id: string): number | null {
+    const min = this.config().otimizacao.otimizarACadaMin
+    const ult = this.ultimaOtimizacao.get(id)
+    return min > 0 && ult !== undefined ? ult + min * MIN : null
   }
 
   esquecer(id: string): void {

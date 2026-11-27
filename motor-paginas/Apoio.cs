@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using System.Runtime.InteropServices;
 using Microsoft.Web.WebView2.Core;
 
@@ -61,7 +62,6 @@ static class Politicas
 /// </summary>
 sealed class LoginGoogle
 {
-    public const string Firefox = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0";
     private static readonly string[] Hosts = ["accounts.google.com", "accounts.youtube.com", "myaccount.google.com"];
     private bool ativo;
 
@@ -82,10 +82,49 @@ sealed class LoginGoogle
     public async Task Aplicar(CoreWebView2 w, bool google)
     {
         ativo = google;
-        // Sem userAgentMetadata o Chromium não manda client hints; texto vazio desfaz a troca.
-        await w.CallDevToolsProtocolMethodAsync("Network.setUserAgentOverride",
-            new System.Text.Json.Nodes.JsonObject { ["userAgent"] = google ? Firefox : "" }.ToJsonString());
+        if (!google)
+        {
+            // Texto vazio desfaz a troca: o resto da navegação é o WebView2 de sempre (RN-002).
+            await w.CallDevToolsProtocolMethodAsync("Network.setUserAgentOverride", "{\"userAgent\":\"\"}");
+            return;
+        }
+        // O Google recusa o WebView2 pela marca "Microsoft Edge WebView2" nas client hints. No login dele, a
+        // página se apresenta como o Edge comum da mesma versão: mesmo motor, mesmos recursos, sem a marca.
+        var versao = w.Environment.BrowserVersionString.Split(' ')[0];
+        var maior = versao.Split('.')[0];
+        JsonArray Marcas(string v) => new()
+        {
+            new JsonObject { ["brand"] = "Microsoft Edge", ["version"] = v },
+            new JsonObject { ["brand"] = "Chromium", ["version"] = v },
+            new JsonObject { ["brand"] = "Not.A/Brand", ["version"] = maior == v ? "24" : "24.0.0.0" },
+        };
+        var pedido = new JsonObject
+        {
+            ["userAgent"] = $"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{maior}.0.0.0 Safari/537.36 Edg/{maior}.0.0.0",
+            ["userAgentMetadata"] = new JsonObject
+            {
+                ["brands"] = Marcas(maior),
+                ["fullVersionList"] = Marcas(versao),
+                ["fullVersion"] = versao,
+                ["platform"] = "Windows",
+                ["platformVersion"] = "19.0.0",
+                ["architecture"] = "x86",
+                ["model"] = "",
+                ["mobile"] = false,
+                ["bitness"] = "64",
+                ["wow64"] = false,
+            },
+        };
+        await w.CallDevToolsProtocolMethodAsync("Network.setUserAgentOverride", pedido.ToJsonString());
     }
+
+    /// <summary>
+    /// Só nas páginas de login do Google: tira o objeto chrome.webview, que denuncia o navegador embutido.
+    /// Roda no começo de cada documento e não faz nada em nenhum outro site (o jogo não é tocado).
+    /// </summary>
+    public const string ScriptEsconder =
+        @"(() => { const h = location.hostname; if (!/(^|\.)(accounts\.google\.com|accounts\.youtube\.com|myaccount\.google\.com)$/.test(h)) return;" +
+        " try { if (window.chrome) delete window.chrome.webview } catch {} })()";
 }
 
 /// <summary>Tecla do WebView2 no mesmo texto dos atalhos do HDeck ("Ctrl+Shift+R", "F5").</summary>
@@ -176,6 +215,7 @@ sealed class JanelaPopup : Form
         w.Settings.IsGeneralAutofillEnabled = false;
         w.Settings.AreHostObjectsAllowed = false;
         w.Settings.IsWebMessageEnabled = false;
+        await w.AddScriptToExecuteOnDocumentCreatedAsync(LoginGoogle.ScriptEsconder);
         if (LoginGoogle.Eh(urlInicial)) await google.Aplicar(w, true);
         w.NavigationStarting += (_, e) =>
         {
