@@ -82,7 +82,7 @@ class PaginaLiveElectron implements PaginaLive {
 
   async lerEstado(): Promise<EstadoLidoLive> {
     const wc = this.janela.webContents
-    if (wc.isDestroyed()) return { aoVivo: false, offline: false, pedeLogin: false, tocando: false }
+    if (!wc || wc.isDestroyed()) return { aoVivo: false, offline: false, pedeLogin: false, tocando: false }
     const r = await wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [{ code: scriptEstadoLive(this.sel) }])
     return estadoSchema.parse(r)
   }
@@ -119,7 +119,7 @@ class PaginaLiveElectron implements PaginaLive {
 
   pid(): number | null {
     const wc = this.janela.webContents
-    if (wc.isDestroyed()) return null
+    if (!wc || wc.isDestroyed()) return null
     const p = wc.getOSProcessId()
     return p > 0 ? p : null
   }

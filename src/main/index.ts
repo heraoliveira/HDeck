@@ -876,6 +876,10 @@ async function iniciar(): Promise<void> {
 /** RN-070: erro não tratado → registra e reabre (no máximo 3 vezes em 10 min). */
 function instalarReabertura(log: ReturnType<typeof criarLog>): void {
   const arquivo = join(pastaDados, 'reaberturas.json')
+  // Promessa rejeitada sem tratamento não derruba o app: só vai para o log.
+  process.on('unhandledRejection', (e) =>
+    log.aviso('promessa rejeitada sem tratamento', { erro: String((e as Error)?.stack ?? e) }),
+  )
   process.on('uncaughtException', (e) => {
     log.erro('erro não tratado', { erro: String(e?.stack ?? e) })
     let lista: number[] = []

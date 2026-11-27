@@ -205,6 +205,7 @@ test('RN-019 conta solta em janela própria e de volta sem recarregar', async ()
   try {
     await garantirJogoFalso(a)
     const [c] = await criarContas(a, 1)
+    await expect.poll(() => naConta<number>(a, c!, 'window.__contagem?.intervalo ?? 0')).toBeGreaterThan(8)
     const antes = await naConta<number>(a, c!, 'window.__contagem.intervalo')
     await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.motor.soltar(id), c!)
     await expect

@@ -34,7 +34,7 @@ export function criarLog(pasta: string): Log {
     }
     renameSync(base, `${base}.1`)
   }
-  electronLog.transports.console.level = process.env.HDECK_TESTE ? false : 'info'
+  electronLog.transports.console.level = process.env.HDECK_TESTE && !process.env.DEPURAR ? false : 'info'
   electronLog.initialize({ preload: false })
   return {
     info: (m, d) => electronLog.info(m, limparDados(d) ?? ''),

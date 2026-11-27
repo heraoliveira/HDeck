@@ -92,7 +92,7 @@ class PaginaContaElectron implements PaginaConta {
       if (!this.jaDesenhou) {
         this.jaDesenhou = true
         setTimeout(() => {
-          if (!this.vivaAgora && !this.view.webContents.isDestroyed()) this.view.setVisible(false)
+          if (!this.vivaAgora && !wc.isDestroyed()) this.view.setVisible(false)
         }, 800)
       }
       ev.carregou(wc.getURL())
@@ -137,7 +137,8 @@ class PaginaContaElectron implements PaginaConta {
       if (input.type === 'keyDown' && d.aoTeclar(conta.id, input)) e.preventDefault()
     })
     this.anexar(d.principal())
-    this.batimento = setInterval(() => void this.conferirResposta(), 5000)
+    this.batimento = setInterval(() => void this.conferirResposta().catch(() => {}), 5000)
+    wc.once('destroyed', () => clearInterval(this.batimento))
   }
 
   /**
@@ -146,7 +147,7 @@ class PaginaContaElectron implements PaginaConta {
    */
   private async conferirResposta(): Promise<void> {
     const wc = this.view.webContents
-    if (wc.isDestroyed() || wc.isLoading() || wc.isCrashed()) return
+    if (!wc || wc.isDestroyed() || wc.isLoading() || wc.isCrashed()) return
     const respondeu = await Promise.race([
       wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [{ code: '1' }]).then(
         () => true,
@@ -202,11 +203,11 @@ class PaginaContaElectron implements PaginaConta {
     if (this.janelaAtual && !this.janelaAtual.isDestroyed())
       this.janelaAtual.contentView.removeChildView(this.view)
     this.janelaAtual = null
-    if (!this.view.webContents.isDestroyed()) this.view.webContents.close()
+    if (!(this.view.webContents?.isDestroyed() ?? true)) this.view.webContents.close()
   }
 
   urlAtual(): string {
-    return this.view.webContents.isDestroyed()
+    return (this.view.webContents?.isDestroyed() ?? true)
       ? this.conta.url
       : this.view.webContents.getURL() || this.conta.url
   }
@@ -248,7 +249,7 @@ class PaginaContaElectron implements PaginaConta {
 
   async capturar(largura: number, altura: number): Promise<Uint8Array | null> {
     const wc = this.view.webContents
-    if (wc.isDestroyed() || wc.isLoading()) return null
+    if (!wc || wc.isDestroyed() || wc.isLoading()) return null
     // A foto é do tamanho do espaço na tela (Seção 4.4): a view assume esse tamanho mesmo escondida.
     if (largura > 0 && altura > 0 && !this.vivaAgora) {
       const b = this.view.getBounds()
@@ -268,14 +269,14 @@ class PaginaContaElectron implements PaginaConta {
 
   pid(): number | null {
     const wc = this.view.webContents
-    if (wc.isDestroyed()) return null
+    if (!wc || wc.isDestroyed()) return null
     const p = wc.getOSProcessId()
     return p > 0 ? p : null
   }
 
   async procurarTextos(textos: string[]): Promise<string[]> {
     const wc = this.view.webContents
-    if (wc.isDestroyed() || textos.length === 0) return []
+    if (!wc || wc.isDestroyed() || textos.length === 0) return []
     const r = await wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [
       { code: scriptProcurarTextos(textos) },
     ])
@@ -284,7 +285,7 @@ class PaginaContaElectron implements PaginaConta {
 
   async preencherLogin(dados: DadosLogin, seletores: Seletores | null): Promise<boolean> {
     const wc = this.view.webContents
-    if (wc.isDestroyed()) return false
+    if (!wc || wc.isDestroyed()) return false
     const r = await wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [
       { code: scriptPreencher(dados.usuario, dados.senha, seletores) },
     ])
@@ -293,7 +294,7 @@ class PaginaContaElectron implements PaginaConta {
 
   async existeSeletor(seletor: string): Promise<boolean> {
     const wc = this.view.webContents
-    if (wc.isDestroyed()) return false
+    if (!wc || wc.isDestroyed()) return false
     return (
       (await wc.executeJavaScriptInIsolatedWorld(MUNDO_ISOLADO, [{ code: scriptExisteSeletor(seletor) }])) ===
       true
@@ -340,7 +341,7 @@ export class FabricaPaginasElectron implements FabricaPaginas {
   async gravarSessoes(): Promise<void> {
     await Promise.all(
       [...this.paginas.values()].map((p) =>
-        p.view.webContents.isDestroyed()
+        (p.view.webContents?.isDestroyed() ?? true)
           ? undefined
           : p.view.webContents.session.cookies.flushStore().catch(() => {}),
       ),

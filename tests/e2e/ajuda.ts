@@ -32,6 +32,10 @@ export async function abrirApp(
       ...opcoes.env,
     },
   })
+  if (process.env.DEPURAR) {
+    app.process().stderr?.on('data', (d) => process.stdout.write(`[stderr] ${d}`))
+    app.process().stdout?.on('data', (d) => process.stdout.write(`[stdout] ${d}`))
+  }
   const janela = await app.firstWindow()
   await janela.waitForLoadState('domcontentloaded')
   await expect
