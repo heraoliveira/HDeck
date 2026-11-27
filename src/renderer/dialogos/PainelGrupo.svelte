@@ -24,8 +24,10 @@ let url = $state('')
 
 async function lote(acao: 'ligar' | 'desligar' | 'recarregar' | 'otimizar') {
   if (ids.length === 0) return
+  const n = ligadas
+  fecharDialogo()
   await tentar('contas.lote', { ids, acao, confirmado: true })
-  if (acao === 'otimizar') mensagem('ok', t('otimizar.feito', { n: ligadas }))
+  if (acao === 'otimizar') mensagem('ok', t('otimizar.feito', { n }))
 }
 async function politica(p: 'manter' | 'economizar') {
   for (const j of jogos) await chamar('grupos.politica', { grupoId: id, jogoId: j, politica: p })

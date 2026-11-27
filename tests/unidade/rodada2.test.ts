@@ -121,3 +121,28 @@ describe('pedidos de 2026-11-27', () => {
     expect(UA_LOGIN_GOOGLE).toContain('Firefox/')
   })
 })
+
+describe('conta nova pronta', () => {
+  it('RN-043 sem conta ativa na tela, a primeira visível vira a ativa e abre ao vivo sem clique', () => {
+    const m = montarMotor()
+    const c = m.novaConta()
+    m.motor.ligarGrupo(m.grupoId, true)
+    m.relogio.avancar(0)
+    m.motor.definirEspacos('principal', [
+      { contaId: c.id, retangulo: { x: 0, y: 0, largura: 800, altura: 600 }, tipo: 'conta' },
+    ])
+    expect(m.paginas.de(c.id).exibicao).toMatchObject({
+      modo: 'viva',
+      retangulo: { largura: 800, altura: 600 },
+    })
+    expect(m.motor.snapshot().ativaId).toBe(c.id)
+    // Uma conta criada depois já entra como a ativa.
+    const d = m.novaConta()
+    m.relogio.avancar(3000)
+    m.motor.definirEspacos('principal', [
+      { contaId: c.id, retangulo: { x: 0, y: 0, largura: 400, altura: 600 }, tipo: 'conta' },
+      { contaId: d.id, retangulo: { x: 400, y: 0, largura: 400, altura: 600 }, tipo: 'conta' },
+    ])
+    expect(m.paginas.de(d.id).exibicao.modo).toBe('viva')
+  })
+})

@@ -250,15 +250,22 @@ function soltar(e: DragEvent, grupoId: string) {
     gap: 8px;
     padding: 4px 0;
   }
+  /* O espaço todo do grupo fica na cor escolhida (cabeça e contas). */
   .grupo {
     border-radius: var(--raio-m);
-    border: 1px solid transparent;
-    background: rgb(0 0 0 / 0.14);
+    border: 1px solid color-mix(in srgb, var(--cor) 45%, transparent);
+    background: color-mix(in srgb, var(--cor) 22%, rgb(0 0 0 / 0.35));
+  }
+  .grupo .cabeca {
+    border-radius: var(--raio-m) var(--raio-m) 0 0;
+    background: color-mix(in srgb, var(--cor) 30%, transparent);
   }
   .grupo.atual {
     border-color: var(--cor);
-    background: var(--lateral-ativo);
-    box-shadow: inset 3px 0 0 var(--dourado);
+    background: color-mix(in srgb, var(--cor) 32%, rgb(0 0 0 / 0.3));
+    box-shadow:
+      inset 3px 0 0 var(--dourado),
+      0 0 0 1px var(--cor);
   }
   .grupo.soltando {
     border-style: dashed;

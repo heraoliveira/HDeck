@@ -748,6 +748,42 @@ async function iniciar(): Promise<void> {
     })
   }
   log.info('HDeck aberto', { versao: app.getVersion(), reaberto })
+
+  // Diagnóstico sem automação (modo de teste): abre uma URL numa conta, espera e grava foto + sinais
+  // que sites antirrobô olham. Serve para conferir o Cloudflare sem o Playwright ligado.
+  if (modoTeste && process.env.HDECK_TESTE_DIAG_URL) {
+    const url = process.env.HDECK_TESTE_DIAG_URL
+    const saida = process.env.HDECK_TESTE_DIAG_SAIDA ?? join(pastaDados, 'diag')
+    if (process.env.HDECK_TESTE_DIAG_SEM_VIGIA) m.alterarConfig('queda.recarregarQuandoCair', false)
+    const g = m.listarGrupos()[0]!
+    const r = m.adicionarConta({ grupoId: g.id, url, nome: 'Diag' })
+    m.ligarGrupo(g.id, true, true)
+    if (r.ok && process.env.HDECK_TESTE_DIAG_ATIVA) setTimeout(() => m.ativar(r.valor.id), 500)
+    setTimeout(
+      async () => {
+        const wc = r.ok ? fabrica.view(r.valor.id)?.webContents : undefined
+        if (wc) {
+          const img = await wc.capturePage()
+          writeFileSync(`${saida}.png`, img.toPNG())
+          const sinais = await wc
+            .executeJavaScript(
+              'JSON.stringify({ ua: navigator.userAgent, webdriver: navigator.webdriver, brands: navigator.userAgentData?.brands, plugins: navigator.plugins.length, langs: navigator.languages })',
+            )
+            .catch((e: unknown) => String(e))
+          writeFileSync(
+            `${saida}.json`,
+            JSON.stringify(
+              { url: wc.getURL(), sinais, frames: wc.mainFrame.framesInSubtree.map((f) => f.url) },
+              null,
+              2,
+            ),
+          )
+        }
+        app.exit(0)
+      },
+      Number(process.env.HDECK_TESTE_DIAG_SEG ?? 25) * 1000,
+    )
+  }
 }
 
 /** RN-070: erro não tratado → registra e reabre (no máximo 3 vezes em 10 min). */

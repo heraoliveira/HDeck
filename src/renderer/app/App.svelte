@@ -110,7 +110,8 @@ const visao = $derived(painel ? 'painel' : (grupo?.visao ?? 'grade'))
     </main>
   </div>
 
-  {#if dialogo}
+  <!-- Cada diálogo vive num bloco com chave própria: fechar não deixa os filhos lerem um diálogo que já saiu. -->
+  {#each loja.dialogos.slice(-1) as dialogo (dialogo)}
     {#if dialogo.qual === 'configuracoes'}
       <Configuracoes aoFechar={fecharDialogo} secaoInicial={dialogo.secao} buscaInicial={dialogo.busca} />
     {:else if dialogo.qual === 'adicionarConta'}
@@ -138,7 +139,7 @@ const visao = $derived(painel ? 'painel' : (grupo?.visao ?? 'grade'))
         <Simples d={dialogo} aoFechar={fecharDialogo} />
       {/if}
     {/if}
-  {/if}
+  {/each}
 
   <div class="mensagens" role="status" aria-live="polite">
     {#each loja.mensagens as m (m.id)}<div class="mensagem {m.tipo}">{m.texto}</div>{/each}

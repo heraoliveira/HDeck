@@ -25,6 +25,8 @@ function tecla(e: KeyboardEvent) {
 }
 </script>
 
+<svelte:window onkeydown={tecla} />
+
 <div class="fundo" role="presentation" onclick={(e) => e.target === e.currentTarget && aoFechar()}>
   <div
     class="caixa"
@@ -34,7 +36,7 @@ function tecla(e: KeyboardEvent) {
     tabindex="-1"
     bind:this={caixa}
     style:width="{largura}px"
-    onkeydown={tecla}
+
   >
     <header>
       <h2>{titulo}</h2>
