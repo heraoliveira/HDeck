@@ -139,6 +139,30 @@ function soltar(e: DragEvent, grupoId: string) {
         ondrop={(e) => soltar(e, g.id)}
         aria-label={g.nome}
       >
+        {#if loja.lateralRecolhida}
+          <!-- Recolhida: só as contas do grupo, na cor dele (clique abre; botão direito, o painel). -->
+          <div class="compacto" title={`${g.nome} · ${resumo(g.id)}`}>
+            {#each contas as c (c.id)}
+              <button
+                class="mini-conta"
+                class:ativa={s?.ativaId === c.id}
+                class:desligada={estado(c.id) === 'desligada'}
+                title={c.nome}
+                aria-label={c.nome}
+                onclick={() => abrirConta(c)}
+                oncontextmenu={(e) => painelConta(e, c.id)}
+              >
+                <span class="avatar" style:--cor-conta={c.cor}>
+                  {iniciais(c.nome)}
+                  <span class="status" data-estado={estado(c.id)} class:problema={problemas.has(estado(c.id))}></span>
+                </span>
+              </button>
+            {:else}
+              <button class="mini-conta" aria-label={g.nome} title={g.nome} onclick={() => chamar('grupos.selecionar', { id: g.id })} oncontextmenu={(e) => painelGrupo(e, g.id)}><span class="avatar" style:--cor-conta={g.cor}>{iniciais(g.nome)}</span></button>
+            {/each}
+            <button class="mini-grupo" aria-label={`${g.nome} ⋯`} title={g.nome} onclick={(e) => painelGrupo(e, g.id)} oncontextmenu={(e) => painelGrupo(e, g.id)}><Icone nome="pontos" tamanho={12} /></button>
+          </div>
+        {:else}
         <div
           class="cabeca"
           role="button"
@@ -178,6 +202,7 @@ function soltar(e: DragEvent, grupoId: string) {
             >
           {/if}
         </div>
+        {/if}
         {#if aberto}
           <ul>
             {#each contas as c, i (c.id)}
@@ -212,6 +237,8 @@ function soltar(e: DragEvent, grupoId: string) {
     <div class="acoes">
       <button class="botao" onclick={() => abrirDialogo({ qual: 'novoGrupo' })}><Icone nome="mais" />{t('lateral.novoGrupo')}</button>
     </div>
+  {:else}
+    <button class="mini-novo" aria-label={t('lateral.novoGrupo')} title={t('lateral.novoGrupo')} onclick={() => abrirDialogo({ qual: 'novoGrupo' })}><Icone nome="mais" /></button>
   {/if}
 </aside>
 
@@ -227,7 +254,61 @@ function soltar(e: DragEvent, grupoId: string) {
     padding: 6px;
   }
   .lateral.recolhida {
-    width: 56px;
+    width: 64px;
+  }
+  .compacto {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+  }
+  .mini-conta {
+    padding: 1px;
+    border: 2px solid transparent;
+    border-radius: 9px;
+    background: none;
+    cursor: pointer;
+  }
+  .mini-conta:hover {
+    border-color: color-mix(in srgb, var(--cor) 60%, transparent);
+  }
+  .mini-conta.ativa {
+    border-color: var(--destaque);
+  }
+  .mini-conta.desligada .avatar {
+    opacity: 0.45;
+  }
+  .compacto .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 11px;
+  }
+  .mini-grupo,
+  .mini-novo {
+    width: 32px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--lateral-texto-2);
+    cursor: pointer;
+  }
+  .mini-novo {
+    height: 32px;
+    margin: 6px auto;
+    border: 1px dashed var(--borda);
+  }
+  .mini-grupo:hover,
+  .mini-novo:hover {
+    color: var(--destaque);
+  }
+  .recolhida .lista {
+    padding: 0 6px;
+    overflow-x: hidden;
   }
   .topo {
     display: flex;

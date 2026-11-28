@@ -332,3 +332,35 @@ test('RN-008 painel direito personalizável: tira e põe de volta botões e bloc
     await a.fechar()
   }
 })
+
+test('RN-008 RN-007 painéis recolhidos: contas por grupo e cor à esquerda, botões escolhidos à direita', async () => {
+  const a = await abrirApp()
+  try {
+    await garantirJogoFalso(a)
+    const [c1, c2] = await criarContas(a, 2)
+    await esperarEstado(a, c1!, ['ativa', 'economica', 'escondida'])
+    const j = a.janela
+    await j.getByRole('button', { name: 'Recolher' }).first().click()
+    const minis = j.locator('aside.lateral .mini-conta')
+    await expect(minis).toHaveCount(2)
+    // Clique esquerdo abre a conta; direito abre o painel dela.
+    await minis.nth(1).click()
+    await expect.poll(async () => (await snap(a)).ativaId).toBe(c2)
+    await minis.nth(0).click({ button: 'right' })
+    await expect(j.getByRole('menu')).toContainText('Conta 1')
+    await j.keyboard.press('Escape')
+    // Direita recolhida: só os ícones dos botões escolhidos (botões + rodapé).
+    const painel = j.getByRole('complementary', { name: 'Configurações da conta' })
+    await painel.getByRole('button', { name: 'Recolher o painel da conta' }).click()
+    const cfg = (await snap(a)).config.painelDireito
+    await expect(painel.locator('.mini-acao:not(.lives)')).toHaveCount(
+      cfg.botoes.length + cfg.rodape.length + 1,
+    )
+    await j.screenshot({ path: 'test-results/paineis-recolhidos.png' })
+    await painel.getByRole('button', { name: 'Abrir o painel da conta' }).click()
+    await expect(painel.locator('.rolagem')).toBeVisible()
+    void c1
+  } finally {
+    await a.fechar()
+  }
+})

@@ -32,6 +32,9 @@ const prefsPagina = (contaId: string) => ({
  * Live escondida (Seção 8.2, ADR 0004): BrowserWindow offscreen, sem mostrar, muda, a 1 quadro/s
  * no modo econômico, na partição da conta (RN-081). Ninguém ouve o evento `paint`.
  */
+/** Janelas que as lives abriram e ainda valem (o player escondido e o "Mostrar"): o zelador não as fecha. */
+export const janelasDasLives = new Map<BrowserWindow, string>()
+
 class PaginaLiveElectron implements PaginaLive {
   private readonly janela: BrowserWindow
   private visivel: BrowserWindow | null = null
@@ -49,8 +52,12 @@ class PaginaLiveElectron implements PaginaLive {
       paintWhenInitiallyHidden: true,
       webPreferences: { ...prefsPagina(live.contaId), offscreen: true, backgroundThrottling: false },
     })
+    janelasDasLives.set(this.janela, live.id)
+    this.janela.on('closed', () => janelasDasLives.delete(this.janela))
     const wc = this.janela.webContents
     wc.setAudioMuted(true) // RN-083 / RN-101
+    // Live escondida nunca abre janela (pop-up de uma página oculta ficaria escondido e esquecido).
+    wc.setWindowOpenHandler(() => ({ action: 'deny' }))
     wc.on('did-finish-load', () => ev.carregou(wc.getURL()))
     wc.on('did-navigate', (_e, url) => ev.navegou(url))
     wc.on('did-navigate-in-page', (_e, url, principal) => {
@@ -107,6 +114,10 @@ class PaginaLiveElectron implements PaginaLive {
       webPreferences: prefsPagina(this.live.contaId),
     })
     this.visivel.webContents.setAudioMuted(!somLigado)
+    this.visivel.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+    const visivel = this.visivel
+    janelasDasLives.set(visivel, this.live.id)
+    visivel.on('closed', () => janelasDasLives.delete(visivel))
     this.visivel.on('closed', () => {
       this.visivel = null
     })
@@ -137,6 +148,10 @@ export class FabricaLivesElectron implements FabricaLives {
     private readonly log: Log,
     /** Modo de teste: a live falsa (ex.: http://localhost:1234/live/{canal}). */
     private readonly urlDeTeste: string | null = null,
+    /** Regra: o login abre no motor do Edge (o Google recusa o Electron). Sem ele, abre aqui mesmo. */
+    private readonly loginNoMotor:
+      | ((contaId: string, plataforma: PlataformaLive, url: string) => boolean)
+      | null = null,
   ) {}
 
   criar(live: Live, eventos: EventosLive): PaginaLive {
@@ -163,6 +178,15 @@ export class FabricaLivesElectron implements FabricaLives {
 
   abrirLogin(contaId: string, plataforma: PlataformaLive): void {
     const url = plataforma === 'twitch' ? 'https://www.twitch.tv/login' : 'https://kick.com/login'
+    // No modo de teste, HDECK_TESTE_LOGIN_MOTOR=1 usa o motor com a página de login da live falsa.
+    const urlLogin = this.urlDeTeste
+      ? new URL('/live-login', this.urlDoCanal(plataforma, 'x')).toString()
+      : url
+    if (
+      (!this.urlDeTeste || process.env.HDECK_TESTE_LOGIN_MOTOR) &&
+      this.loginNoMotor?.(contaId, plataforma, urlLogin)
+    )
+      return
     const w = new BrowserWindow({
       width: 520,
       height: 760,

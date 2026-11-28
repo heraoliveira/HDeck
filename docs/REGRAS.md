@@ -27,7 +27,7 @@
 - **RN-005** O HDeck não bloqueia nem altera anúncios ou conteúdo dos sites dos jogos e das lives. (P)
 - **RN-006** Toda frase da interface é pt-BR simples e direta. (D)
 - **RN-007** Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, tokens de `estilos/tokens.css`); nada de menu nativo do sistema dentro do app (a bandeja do Windows é a exceção). Clicar ou passar o mouse num controle da interface devolve o teclado que ficou na página de uma conta: nenhum campo deixa de aceitar texto e nenhum botão pede dois cliques. (D, 2026-11-27)
-- **RN-008** À direita fica o painel da conta selecionada, que recolhe e expande como o dos grupos: estado, Início, Recarregar, Som, Destacar, lives, consumo de RAM e CPU da última hora, Otimizar (com o horário do automático) e o histórico da conta; Foco, Desligar e Mais no rodapé. Totalmente personalizável: cada bloco (botões, lives, consumo, Otimizar, histórico, endereço, zoom, fora da tela, notas) e cada botão sai, volta e muda de lugar. (D, 2026-11-27; personalização 2026-11-28)
+- **RN-008** À direita fica o painel da conta selecionada, que recolhe e expande como o dos grupos: estado, Início, Recarregar, Som, Destacar, lives, consumo de RAM e CPU da última hora, Otimizar (com o horário do automático) e o histórico da conta; Foco, Desligar e Mais no rodapé. Recolhido, mostra só o avatar e os ícones dos botões escolhidos (e as lives ligadas); a barra dos grupos recolhida mostra as contas de cada grupo, na cor dele, com clique e botão direito. Totalmente personalizável: cada bloco (botões, lives, consumo, Otimizar, histórico, endereço, zoom, fora da tela, notas) e cada botão sai, volta e muda de lugar. (D, 2026-11-27; personalização 2026-11-28)
 
 ## 2. Contas
 
@@ -106,6 +106,7 @@
 - **RN-089** **Ligar de novo quando voltar ao vivo** (desligado), conferindo a cada (2 h; 30 min, 1, 2, 4, 6 h): o app reabre a live para ver se voltou; voltou, fica ligada; senão, desliga de novo. A opção "conferir a cada" só fica ativa com esta ligada. (R)
 - **RN-090** O HDeck não clica em nada da live (baús, botões, anúncios). (D)
 - **RN-091** Se a live pedir login, a conta mostra "Entre na Twitch/Kick desta conta" e avisa. (P)
+- **RN-092** Nenhuma janela fica aberta escondida: a live desligada (ou de conta desligada) fecha o player; live escondida não abre pop-up; pop-ups e logins de uma conta fecham com ela; ao sair do HDeck não sobra motor nem navegador. Um zelador confere a cada 30 s e fecha qualquer janela escondida que não seja da interface nem de uma live ligada. (D, 2026-11-28)
 
 ## 8. Som
 
@@ -147,7 +148,7 @@
 - **RN-151** Pop-ups de login (Google, Discord, Twitch, Kick, carteiras) abrem na sessão da conta e fecham ao terminar; outros pop-ups e abas novas pedem confirmação mostrando o endereço. (R)
 - **RN-152** Câmera, microfone, localização e acesso a dispositivos são sempre negados às páginas; notificações das páginas só se o usuário ligar na conta. (P)
 - **RN-153** Páginas só navegam em `https:` (e `http:` em localhost). (P)
-- **RN-154** Login com Google funciona dentro do app: as contas se apresentam como o Microsoft Edge comum da mesma versão desde a primeira navegação (sem a marca "WebView2" nas client hints; nas páginas de login do Google também sem o objeto `chrome.webview`); nas lives, que rodam no Electron, ela se apresenta como Firefox sem client hints, porque o Google bloqueia navegadores embutidos. Se mesmo assim o Google recusar, a conta mostra a orientação de usar outro método de login do jogo. (D, alterada 2026-11-27)
+- **RN-154** Login com Google funciona dentro do app: **regra: todo login (contas, pop-ups, Twitch e Kick das lives) abre no motor do Edge**, nunca numa janela do Electron; as contas se apresentam como o Microsoft Edge comum da mesma versão desde a primeira navegação (sem a marca "WebView2" nas client hints; nas páginas de login do Google também sem o objeto `chrome.webview`). O login da Twitch/Kick feito lá é copiado para a sessão das lives da conta, porque o Google bloqueia navegadores embutidos. Se mesmo assim o Google recusar, a conta mostra a orientação de usar outro método de login do jogo. (D, alterada 2026-11-27)
 
 ## 14. Backup e dados
 
@@ -184,6 +185,7 @@
 - [ ] MEDICOES.md atualizado se a mudança mexe em desempenho.
 
 ## Histórico
+- 2026-11-28 · v6 · pedidos da dona: RN-092 nova (nada aberto escondido); RN-154 (todo login no motor do Edge) e RN-008 (painéis recolhidos) alteradas.
 - 2026-11-28 · v5 · pedidos da dona: RN-008 (personalizável), RN-045 (detalhamento), RN-051 (conta segue o grupo), RN-052 (5 s, foto proporcional), RN-058 (Otimizar sozinho por conta, por tempo ou RAM), RN-080 (janela de lives e links), RN-112 (avisos lidos ao abrir) e RN-176 (trocar de conta já foca) alteradas.
 - 2026-11-27 · v4 · pedidos da dona: RN-030 (grupo novo ligado), RN-051/052 (Economizar padrão, foto não desenha entre fotos), RN-111 (avisos discretos), RN-154 e RN-002 (identidade Edge desde o início) e RN-007 (teclado volta à interface) alteradas.
 - 2026-11-27 · v3 · pedidos da dona: RN-008 nova (painel direito); RN-018 (fica no link atual), RN-058 (nada recarrega sozinho sem ela ligar) e RN-154 (Google vê o Edge comum) alteradas; RN-045 (RAM e CPU como no Gerenciador de Tarefas) alterada.

@@ -11,7 +11,8 @@ import { type Comando, comandoDaTecla, mapaDeAtalhos } from '@shared/dados/atalh
 import { catalogoDeJogos } from '@shared/dados/catalogo.ts'
 import { t } from '@shared/i18n/index.ts'
 import { type Evento, eventoIpc } from '@shared/ipc/contrato.ts'
-import type { Conta, Grupo } from '@shared/tipos/dominio.ts'
+import type { Conta, Grupo, PlataformaLive } from '@shared/tipos/dominio.ts'
+import { urlSemParametros } from '@shared/util/texto.ts'
 import {
   app,
   BrowserWindow,
@@ -22,12 +23,13 @@ import {
   net,
   protocol,
   safeStorage,
+  session,
   shell,
 } from 'electron'
 import { Bandeja } from './adaptadores/electron/bandeja.ts'
 import { instalarEndurecimento } from './adaptadores/electron/endurecimento.ts'
 import { GerenciadorJanelas } from './adaptadores/electron/janelas.ts'
-import { FabricaLivesElectron } from './adaptadores/electron/live-offscreen.ts'
+import { FabricaLivesElectron, janelasDasLives } from './adaptadores/electron/live-offscreen.ts'
 import {
   type Perguntador,
   PerguntadorDeTeste,
@@ -65,7 +67,22 @@ import { userAgentLimpo } from './nucleo/seguranca/politicas.ts'
 const modoTeste = process.env.HDECK_TESTE === '1'
 if (process.env.HDECK_DADOS) app.setPath('userData', process.env.HDECK_DADOS)
 app.setName('HDeck')
-app.setAppUserModelId('br.hera.hdeck')
+// Barra de tarefas: o app instalado usa o id dele; fora dele (desenvolvimento, testes) usa outro, para o
+// Windows não misturar com o electron.exe e mostrar o ícone do Electron no lugar do HDeck.
+const ID_APP = app.isPackaged && process.env.HDECK_TESTE !== '1' ? 'br.hera.hdeck' : 'br.hera.hdeck.dev'
+app.setAppUserModelId(ID_APP)
+process.env.HDECK_AUMID = ID_APP // o motor das páginas usa o mesmo id (pop-ups agrupam com o HDeck)
+// Toda janela leva o ícone do HDeck também para a barra de tarefas (fixar, reabrir), não só no título.
+app.on('browser-window-created', (_e, w) => {
+  const icone = app.isPackaged ? process.execPath : join(import.meta.dirname, '..', '..', 'build', 'icon.ico')
+  w.setAppDetails({
+    appId: ID_APP,
+    appIconPath: icone,
+    appIconIndex: 0,
+    relaunchCommand: `"${process.execPath}"`,
+    relaunchDisplayName: 'HDeck',
+  })
+})
 const pastaDados = app.getPath('userData')
 mkdirSync(pastaDados, { recursive: true })
 
@@ -284,6 +301,65 @@ async function iniciar(): Promise<void> {
     },
   })
   apagarParticoesAntigas(pastaDados, log)
+
+  // ---------- Regra: todo login abre no motor do Edge (RN-154) ----------
+  // O Google recusa o Electron ("navegador não seguro"). O login da Twitch/Kick das lives abre no motor
+  // (mesma identidade de Edge das contas) e os cookies dele vão para a sessão das lives da conta.
+  const DOMINIOS_LOGIN: Record<PlataformaLive, string[]> = {
+    twitch: ['www.twitch.tv', 'twitch.tv', 'passport.twitch.tv', 'id.twitch.tv', 'gql.twitch.tv'],
+    kick: ['kick.com', 'www.kick.com'],
+  }
+  function abrirLoginNoMotor(contaId: string, plataforma: PlataformaLive, url: string): boolean {
+    if (!cliente.pid) return false
+    cliente.enviar('abrirLogin', {
+      chave: contaId,
+      perfil: `live-${contaId}`.replace(/[^A-Za-z0-9-]/g, '').slice(0, 64),
+      url,
+      dominios: modoTeste && process.env.HDECK_TESTE_LOGIN_MOTOR ? ['localhost'] : DOMINIOS_LOGIN[plataforma],
+    })
+    return true
+  }
+  type CookieMotor = {
+    nome: string
+    valor: string
+    dominio: string
+    caminho: string
+    expira: number | null
+    httpOnly: boolean
+    seguro: boolean
+    sameSite: string
+  }
+  const ultimosCookies = new Map<string, string>()
+  cliente.ouvirGeral('cookiesLogin', (e) => {
+    const contaId = String(e.chave ?? '')
+    const lista = (e.cookies ?? []) as CookieMotor[]
+    const chave = JSON.stringify(lista.map((c) => [c.dominio, c.nome, c.valor]))
+    if (!motor?.conta(contaId) || lista.length === 0 || ultimosCookies.get(contaId) === chave) return
+    ultimosCookies.set(contaId, chave)
+    const s = session.fromPartition(`persist:live-${contaId}`)
+    const sameSite = (v: string) =>
+      v === 'Strict' ? 'strict' : v === 'Lax' ? 'lax' : v === 'None' ? 'no_restriction' : 'unspecified'
+    void Promise.all(
+      lista.map((c) =>
+        s.cookies
+          .set({
+            url: `https://${c.dominio.replace(/^\./, '')}${c.caminho || '/'}`,
+            name: c.nome,
+            value: c.valor,
+            domain: c.dominio,
+            path: c.caminho || '/',
+            secure: c.seguro,
+            httpOnly: c.httpOnly,
+            sameSite: sameSite(c.sameSite) as 'lax',
+            ...(c.expira ? { expirationDate: c.expira } : {}),
+          })
+          .catch(() => {}),
+      ),
+    ).then(() => {
+      log.info('login das lives copiado', { conta: motor?.conta(contaId)?.nome, cookies: lista.length })
+      motor?.recarregarLivesDaConta(contaId)
+    })
+  })
   const sistema = new SistemaElectron()
   const http = new ClienteHttpFetch((url, init) => net.fetch(url, init))
   const locais = new CanaisLocaisElectron({
@@ -322,7 +398,11 @@ async function iniciar(): Promise<void> {
     armazem,
     configArquivo: arquivoConfig,
     paginas: fabrica,
-    lives: new FabricaLivesElectron(log, modoTeste ? (process.env.HDECK_TESTE_LIVE_URL ?? null) : null),
+    lives: new FabricaLivesElectron(
+      log,
+      modoTeste ? (process.env.HDECK_TESTE_LIVE_URL ?? null) : null,
+      (contaId, plataforma, url) => abrirLoginNoMotor(contaId, plataforma, url),
+    ),
     http,
     rede: redeElectron,
     locais,
@@ -833,6 +913,32 @@ async function iniciar(): Promise<void> {
   }
   fabrica.definirAtalhos([...mapa.keys()])
   // RAM e CPU (Painel, barra de título e grupos): o motor mede tudo a cada 2 s, como o Gerenciador de Tarefas.
+  // Regra (RN-092): nenhuma janela fica aberta escondida. A cada 30 s o zelador fecha toda janela do
+  // Electron que não está à vista e não é da interface nem de uma live ligada (ex.: pop-up de uma página
+  // oculta, player de uma live que já desligou). Devolve quantas fechou.
+  function zelarJanelas(): number {
+    const snap = m.snapshot()
+    const interfaces = new Set([
+      janelas.principal,
+      janelas.lives,
+      ...janelas.grupos.values(),
+      ...janelas.soltas.values(),
+    ])
+    let fechadas = 0
+    for (const w of BrowserWindow.getAllWindows()) {
+      if (w.isDestroyed() || interfaces.has(w)) continue
+      const liveId = janelasDasLives.get(w)
+      const live = liveId ? snap.lives.find((l) => l.id === liveId) : undefined
+      const daLiveLigada = !!live && live.ligada && snap.estados[live.contaId]?.estado !== 'desligada'
+      if (daLiveLigada || (w.isVisible() && !liveId)) continue
+      log.aviso('janela escondida fechada', { url: urlSemParametros(w.webContents.getURL()) })
+      w.destroy()
+      fechadas++
+    }
+    return fechadas
+  }
+  setInterval(() => !saindo && zelarJanelas(), 30_000)
+
   let medindo = false
   setInterval(() => {
     if (medindo || saindo) return
@@ -859,6 +965,7 @@ async function iniciar(): Promise<void> {
         armazem,
         sistema,
         executarComando,
+        zelarJanelas,
         proximoArquivo: undefined,
         async encerrar() {
           saindo = true

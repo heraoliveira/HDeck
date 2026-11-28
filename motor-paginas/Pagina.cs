@@ -171,7 +171,7 @@ sealed class Pagina
                 var acao = r?["acao"]?.GetValue<string>() ?? "negar";
                 if (acao == "login" || acao == "abrir")
                 {
-                    var jan = new JanelaPopup(motor, Id, acao == "login" ? r?["fecharEm"]?.GetValue<string>() : null,
+                    var jan = new JanelaPopup(motor, PerfilDa(Id), acao == "login" ? r?["fecharEm"]?.GetValue<string>() : null,
                         acao == "login" ? 520 : 900, acao == "login" ? 720 : 700);
                     var nova = await jan.Montar(e.Uri);
                     if (acao == "login") e.NewWindow = nova;
@@ -291,6 +291,8 @@ sealed class Pagina
 
     public void Fechar()
     {
+        // Os pop-ups desta conta (ex.: login) fecham junto: nada fica aberto sem a conta.
+        foreach (var f in Application.OpenForms.OfType<JanelaPopup>().Where(f => f.Perfil == PerfilDa(Id)).ToList()) f.Close();
         var c = ctl;
         ctl = null;
         c?.Close();

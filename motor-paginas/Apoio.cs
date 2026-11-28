@@ -150,17 +150,23 @@ static class Teclas
 sealed class JanelaPopup : Form
 {
     private readonly Motor motor;
-    private readonly string conta;
+    private readonly string perfil;
     private readonly string? fecharEm;
+
+    /// <summary>Depois de cada página carregada (ex.: copiar os cookies do login para as lives).</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public Func<CoreWebView2, Task>? AoCarregar { get; set; }
     private CoreWebView2Controller? ctl;
 
-    /** Pop-ups abertos agora (diagnóstico e testes). */
+    public string Perfil => perfil;
+
+    /// <summary>Pop-ups abertos agora (diagnóstico e testes).</summary>
     public static int Abertas { get; private set; }
 
-    public JanelaPopup(Motor motor, string conta, string? fecharEm, int largura, int altura)
+    public JanelaPopup(Motor motor, string perfil, string? fecharEm, int largura, int altura)
     {
         this.motor = motor;
-        this.conta = conta;
+        this.perfil = perfil;
         this.fecharEm = fecharEm;
         Text = "HDeck";
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
@@ -183,7 +189,7 @@ sealed class JanelaPopup : Form
     {
         Show();
         var op = motor.Env.CreateCoreWebView2ControllerOptions();
-        op.ProfileName = Pagina.PerfilDa(conta);
+        op.ProfileName = perfil;
         ctl = await motor.Env.CreateCoreWebView2ControllerAsync(Handle, op);
         ctl.Bounds = ClientRectangle;
         var w = ctl.CoreWebView2;
@@ -199,7 +205,39 @@ sealed class JanelaPopup : Form
         };
         w.LaunchingExternalUriScheme += (_, e) => e.Cancel = true;
         w.PermissionRequested += (_, e) => e.State = CoreWebView2PermissionState.Deny;
-        w.NewWindowRequested += (_, e) => e.Handled = true;
+        // Pop-up de dentro do login (ex.: "Entrar com Google" na Twitch): abre noutra janela no mesmo perfil,
+        // com a mesma identidade de Edge; ela fecha sozinha quando o site a fecha.
+        w.NewWindowRequested += async (_, e) =>
+        {
+            e.Handled = true;
+            if (!Politicas.NavegacaoPermitida(e.Uri)) return;
+            var adiar = e.GetDeferral();
+            try
+            {
+                var filha = new JanelaPopup(motor, perfil, null, 520, 720) { AoCarregar = AoCarregar };
+                e.NewWindow = await filha.Montar(e.Uri);
+            }
+            catch (Exception ex)
+            {
+                motor.Log("aviso", $"pop-up do login falhou: {ex.Message}");
+            }
+            finally
+            {
+                adiar.Complete();
+            }
+        };
+        w.NavigationCompleted += async (_, _) =>
+        {
+            if (AoCarregar == null) return;
+            try
+            {
+                await AoCarregar(w);
+            }
+            catch
+            {
+                // a janela fechou no meio: na próxima carga copia de novo
+            }
+        };
         w.DownloadStarting += (_, e) => e.Cancel = true;
         w.DocumentTitleChanged += (_, _) => Text = w.DocumentTitle;
         w.WindowCloseRequested += (_, _) => Close();

@@ -1572,6 +1572,11 @@ export class Motor {
     if (l) this.d.lives.abrirLogin(l.contaId, l.plataforma)
   }
 
+  /** Depois do login na Twitch/Kick: as lives abertas da conta recarregam já logadas. */
+  recarregarLivesDaConta(contaId: string): void {
+    this.controleLives.recarregarDaConta(contaId)
+  }
+
   /** "Conectar Twitch/Kick" da janela de lives: login na sessão das lives desta conta. */
   entrarNaPlataforma(contaId: string, plataforma: PlataformaLive): boolean {
     if (!this.conta(contaId)) return false

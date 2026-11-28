@@ -32,6 +32,7 @@ export class ClienteMotor {
   private seq = 0
   private readonly pendentes = new Map<number, Pendente>()
   private readonly ouvintes = new Map<string, (e: EventoMotor) => void>()
+  private readonly gerais = new Map<string, (e: EventoMotor) => void>()
   private saindo = false
   versao = ''
 
@@ -112,6 +113,11 @@ export class ClienteMotor {
         .then((r) => this.escrever({ resposta: id, r: r ?? null }))
       return
     }
+    const geral = this.gerais.get(m.ev)
+    if (geral) {
+      geral(m)
+      return
+    }
     if (m.conta) this.ouvintes.get(m.conta)?.(m)
   }
 
@@ -149,6 +155,11 @@ export class ClienteMotor {
 
   ouvir(conta: string, f: (e: EventoMotor) => void): void {
     this.ouvintes.set(conta, f)
+  }
+
+  /** Eventos que não são de uma página (ex.: cookies de uma janela de login). */
+  ouvirGeral(ev: string, f: (e: EventoMotor) => void): void {
+    this.gerais.set(ev, f)
   }
 
   soltar(conta: string): void {

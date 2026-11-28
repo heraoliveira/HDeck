@@ -121,6 +121,11 @@ export async function iniciarServidorFalso(porta = 0): Promise<ServidorFalso> {
         '<!doctype html><title>oauth</title><p id="p">ok</p><script>document.cookie="oauth=1; path=/";setTimeout(()=>window.close(),600)</script>',
       )
     }
+    if (u.pathname === '/live-login') {
+      return responder(res, 200, 'text/html', '<!doctype html><title>login da live</title><p>logado</p>', {
+        'set-cookie': 'twitch_auth=ok; Path=/; Max-Age=3600; SameSite=Lax',
+      })
+    }
     if (u.pathname === '/comum') {
       return responder(res, 200, 'text/html', '<!doctype html><title>comum</title><p>popup comum</p>')
     }

@@ -17,7 +17,7 @@ static class Programa
     static void Main()
     {
         // Mesma identidade do HDeck na barra de tarefas (as janelas de pop-up agrupam com ele, com o ícone dele).
-        SetCurrentProcessExplicitAppUserModelID("br.hera.hdeck");
+        SetCurrentProcessExplicitAppUserModelID(Environment.GetEnvironmentVariable("HDECK_AUMID") ?? "br.hera.hdeck");
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         var sc = new WindowsFormsSynchronizationContext();

@@ -171,6 +171,40 @@ sealed class Motor
                 await Encerrar();
                 return null;
             case "popups": return JanelaPopup.Abertas;
+            case "fecharPopups":
+                foreach (var f in Application.OpenForms.OfType<JanelaPopup>().ToList()) f.Close();
+                return null;
+            case "abrirLogin":
+            {
+                // Regra: todo login (Twitch, Kick, Google…) abre aqui, no Edge, com a mesma identidade das contas.
+                // Os cookies dos domínios pedidos voltam ao HDeck a cada página carregada (para a sessão das lives).
+                var chave = S(m, "chave");
+                var dominios = m["dominios"]?.AsArray().Select(x => x!.GetValue<string>()).ToList() ?? [];
+                var jan = new JanelaPopup(this, S(m, "perfil"), null, 520, 760)
+                {
+                    AoCarregar = async w =>
+                    {
+                        var lista = new JsonArray();
+                        foreach (var d in dominios)
+                            foreach (var c in await w.CookieManager.GetCookiesAsync("https://" + d))
+                                lista.Add(new JsonObject
+                                {
+                                    ["nome"] = c.Name,
+                                    ["valor"] = c.Value,
+                                    ["dominio"] = c.Domain,
+                                    ["caminho"] = c.Path,
+                                    ["expira"] = c.IsSession ? null : c.Expires.ToUniversalTime().Subtract(DateTime.UnixEpoch).TotalSeconds,
+                                    ["httpOnly"] = c.IsHttpOnly,
+                                    ["seguro"] = c.IsSecure,
+                                    ["sameSite"] = c.SameSite.ToString(),
+                                });
+                        saida.Enviar(new JsonObject { ["ev"] = "cookiesLogin", ["chave"] = chave, ["cookies"] = lista });
+                    },
+                };
+                var wv = await jan.Montar(S(m, "url"));
+                wv.Navigate(S(m, "url"));
+                return null;
+            }
             case "teclado": return Win32.DonoDoTeclado(Hwnd(S(m, "janela")));
             case "devolverTeclado":
                 Win32.DevolverTeclado(Hwnd(S(m, "janela")));
@@ -261,6 +295,8 @@ sealed class Motor
         encerrando = true;
         foreach (var t in perguntas.Values) t.TrySetResult(null);
         var navegador = env != null ? (int?)TryPid() : null;
+        // Regra: nada fica aberto escondido. Pop-ups e janelas de login fecham junto com o motor.
+        foreach (var f in Application.OpenForms.OfType<JanelaPopup>().ToList()) f.Close();
         foreach (var p in paginas.Values) p.Fechar();
         paginas.Clear();
         // Fechar a última página encerra o navegador, que grava cookies e armazenamento no disco (RN-011).

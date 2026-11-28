@@ -2,6 +2,10 @@
 
 ## Próxima versão
 
+- Login da Twitch/Kick (inclusive com Google) abre no motor do Edge e vale para as lives da conta.
+- Nenhuma janela fica aberta escondida: lives, logins e pop-ups fecham de verdade; um zelador confere a cada 30 s.
+- Barras laterais recolhidas: contas por grupo e cor à esquerda; botões escolhidos à direita.
+- Ícone do HDeck na barra de tarefas.
 - Otimizar sozinho por conta: por tempo ou quando a página passa de X MB de RAM; otimizar à mão zera o relógio.
 - Painel direito personalizável (tirar, pôr de volta e arrastar blocos e botões).
 - Janela de lives com filtro por conta; link de live clicado no jogo abre lá, na conta certa.

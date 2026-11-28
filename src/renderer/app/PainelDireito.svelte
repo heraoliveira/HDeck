@@ -255,6 +255,25 @@ const politicaDoGrupo = $derived(c ? (grupo?.layout.politicas[c.jogoId] ?? 'econ
 </script>
 
 <aside class="direita" class:recolhida={loja.direitaRecolhida} class:editando aria-label={t('pd.titulo')}>
+  {#if loja.direitaRecolhida}
+    <!-- Recolhido: os botões que a dona escolheu, só o ícone (o nome aparece ao passar o mouse). -->
+    <div class="mini">
+      {#if c}
+        <button class="avatar mini-avatar" style:--cor={c.cor} title={c.nome} aria-label={c.nome} onclick={alternar}>{iniciais(c.nome)}<span class="ponto" data-estado={est?.estado ?? 'desligada'}></span></button>
+        {#each [...cfg.botoes, ...cfg.rodape] as b (b)}
+          {@const a = acoes[b]}
+          <button class="mini-acao" class:ligado={a.ativo} disabled={a.precisaLigada && !ligada} title={a.rotulo} aria-label={a.rotulo} onclick={() => (b === 'mais' ? alternar() : a.fazer())}>
+            <Icone nome={a.icone as 'casa'} tamanho={16} />
+          </button>
+        {/each}
+        {#if cfg.secoes.includes('lives')}
+          <button class="mini-acao lives" title={t('pd.lives')} aria-label={t('pd.lives')} onclick={() => chamar('lives.janela', { contaId: c.id })}><Icone nome="live" tamanho={16} /><span class="contagem">{livesDaConta.filter((l) => l.ligada).length}</span></button>
+        {/if}
+      {/if}
+      <span class="cresce"></span>
+      <button class="mini-acao" aria-label={t('pd.expandir')} title={t('pd.expandir')} onclick={alternar}><Icone nome="seta" tamanho={14} /></button>
+    </div>
+  {:else}
   <div class="topo">
     <button class="icone-botao" aria-label={loja.direitaRecolhida ? t('pd.expandir') : t('pd.recolher')} onclick={alternar}>
       <Icone nome={loja.direitaRecolhida ? 'seta' : 'descer'} tamanho={14} />
@@ -422,6 +441,7 @@ const politicaDoGrupo = $derived(c ? (grupo?.layout.politicas[c.jogoId] ?? 'econ
       </div>
     {/if}
   {/if}
+  {/if}
 </aside>
 
 <style>
@@ -436,7 +456,72 @@ const politicaDoGrupo = $derived(c ? (grupo?.layout.politicas[c.jogoId] ?? 'econ
     min-height: 0;
   }
   .direita.recolhida {
-    width: 40px;
+    width: 52px;
+  }
+  .mini {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 0;
+  }
+  .mini-avatar {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    cursor: pointer;
+    margin-bottom: 6px;
+  }
+  .ponto {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--texto-3);
+    border: 2px solid var(--fundo-lateral);
+  }
+  .ponto[data-estado='ativa'],
+  .ponto[data-estado='economica'],
+  .ponto[data-estado='escondida'] {
+    background: var(--ok);
+  }
+  .mini-acao {
+    position: relative;
+    width: 34px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: var(--raio-m);
+    background: none;
+    color: var(--lateral-texto);
+    cursor: pointer;
+  }
+  .mini-acao:hover:not(:disabled) {
+    border-color: var(--borda);
+    background: var(--fundo-cartao);
+  }
+  .mini-acao:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .mini-acao.ligado {
+    color: var(--ok);
+  }
+  .mini-acao.lives {
+    border-color: var(--borda);
+    border-radius: 999px;
+    width: 44px;
+    gap: 2px;
+    grid-auto-flow: column;
+  }
+  .contagem {
+    font-size: 11px;
+    font-weight: 700;
   }
   .topo {
     display: flex;
