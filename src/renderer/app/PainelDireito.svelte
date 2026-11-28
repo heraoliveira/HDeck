@@ -360,7 +360,8 @@ const politicaDoGrupo = $derived(c ? (grupo?.layout.politicas[c.jogoId] ?? 'econ
                 <p class="muted pequeno">{t('pd.semLives')}</p>
               {:else}
                 {#each livesDaConta.filter((l) => l.ligada) as l (l.id)}
-                  <div class="linha"><span class="selo {l.plataforma}">{l.plataforma === 'twitch' ? 'T' : 'K'}</span><span class="cresce">{l.canal}</span><span class="pequeno muted">{t(`lives.estado.${s.livesEstado[l.id] ?? 'desligada'}` as 'lives.estado.tocando')}</span></div>
+                  {@const ml = loja.metricas?.porLive?.[l.id]}
+                  <button class="linha live" title={t('pd.abrirEstaLive')} onclick={() => chamar('lives.janela', { contaId: c.id, liveId: l.id })}><span class="selo {l.plataforma}">{l.plataforma === 'twitch' ? 'T' : 'K'}</span><span class="cresce canal">{l.canal}</span><span class="pequeno muted">{ml ? `${Math.round(ml.ramMb)} MB · ${ml.cpuPct.toFixed(1)}%` : t(`lives.estado.${s.livesEstado[l.id] ?? 'desligada'}` as 'lives.estado.tocando')}</span></button>
                 {:else}
                   <p class="muted pequeno">{t('pd.livesDesligadas', { n: livesDaConta.length })}</p>
                 {/each}
@@ -728,6 +729,25 @@ const politicaDoGrupo = $derived(c ? (grupo?.layout.politicas[c.jogoId] ?? 'econ
   }
   .medida {
     justify-content: space-between;
+  }
+  .linha.live {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid transparent;
+    border-radius: var(--raio-s);
+    background: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .linha.live:hover {
+    border-color: var(--borda);
+    background: var(--fundo-cartao);
+  }
+  .canal {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .centro {
     text-align: center;

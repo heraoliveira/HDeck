@@ -249,6 +249,8 @@ test('RN-080 link de live clicado no jogo vira live da conta e abre a janela de 
       .waitForEvent('window', { predicate: (p) => p.url().includes('janela=lives') })
       .catch(async () => a.app.windows().find((p) => p.url().includes('janela=lives')))
     expect(janela!.url()).toContain(`conta=${c}`)
+    // Abre já na live clicada.
+    expect(janela!.url()).toContain('live=')
     await expect(janela!.getByText('canaldoteste').first()).toBeVisible()
     // Clicar de novo no mesmo link não duplica.
     await naConta(a, c!, `window.open('${a.servidor.url}/live/canaldoteste')`)

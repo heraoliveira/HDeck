@@ -296,7 +296,7 @@ async function iniciar(): Promise<void> {
     aoLinkDeLive: (contaId, url) => {
       const r = motor?.abrirLinkDeLive(contaId, url)
       if (!r?.ok) return false
-      janelas.abrirLives(contaId)
+      janelas.abrirLives(contaId, r.valor.id)
       return true
     },
   })
@@ -399,6 +399,7 @@ async function iniciar(): Promise<void> {
     (contaId, plataforma, url) => abrirLoginNoMotor(contaId, plataforma, url),
   )
   const liveNaJanela = new LiveNaJanela()
+  livesFab.naJanela = liveNaJanela
   motor = new Motor({
     relogio: relogioReal,
     armazem,
@@ -506,15 +507,12 @@ async function iniciar(): Promise<void> {
     return s.contas.filter((c) => c.grupoId === s.grupoAtualId).sort((a, b) => a.ordem - b.ordem)
   }
   // Trocar de conta pelo teclado já deixa a conta pronta: o teclado vai para a página (sem precisar clicar).
+  // Sem espera: o motor já recebeu o "mostrar" da conta antes (os pedidos andam em ordem).
   const focarConta = (id: string) =>
-    setTimeout(
-      () =>
-        void fabrica
-          .pagina(id)
-          ?.focarTeclado()
-          .catch(() => {}),
-      150,
-    )
+    void fabrica
+      .pagina(id)
+      ?.focarTeclado()
+      .catch(() => {})
   const executarComando = (cmd: Comando): void => {
     const s = m.snapshot()
     const ativa = s.ativaId
@@ -709,13 +707,19 @@ async function iniciar(): Promise<void> {
       return r.ok ? { ok: true, id: r.valor.id } : { ok: false, erro: r.erro }
     },
     'lives.ligarTodas': (e) => m.ligarLivesDaConta(e.contaId, e.plataforma, e.ligada),
-    'lives.janela': (e) => janelas.abrirLives(e.contaId ?? m.snapshot().ativaId ?? undefined),
+    'lives.janela': (e) => janelas.abrirLives(e.contaId ?? m.snapshot().ativaId ?? undefined, e.liveId),
     // A live selecionada na janela de lives aparece nela, com o chat (null = esconder).
     'lives.exibir': (e) => {
       const live = e.id ? m.snapshot().lives.find((l) => l.id === e.id) : undefined
       const w = janelas.lives
       if (!live || !e.retangulo || !w || w.isDestroyed()) return liveNaJanela.fechar()
-      liveNaJanela.mostrar(w, live.contaId, livesFab.urlDoCanal(live.plataforma, live.canal), e.retangulo)
+      liveNaJanela.mostrar(
+        w,
+        live.id,
+        live.contaId,
+        livesFab.urlDoCanal(live.plataforma, live.canal),
+        e.retangulo,
+      )
       liveNaJanela.som(e.som)
     },
     // A conta já entrou na Twitch/Kick? (cookie de login na sessão das lives dela): o "Conectar" some.

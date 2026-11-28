@@ -578,6 +578,7 @@
   "pd.lives": "Lives",
   "pd.semLives": "Nenhuma live nesta conta.",
   "pd.abrirLives": "Abrir as lives",
+  "pd.abrirEstaLive": "Abrir esta live na janela de lives",
   "pd.consumo": "Consumo na última hora",
   "pd.memoria": "Memória",
   "pd.cpu": "CPU",

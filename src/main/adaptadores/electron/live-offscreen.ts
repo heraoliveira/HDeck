@@ -176,6 +176,13 @@ export class FabricaLivesElectron implements FabricaLives {
     return decodeURIComponent(caminho.slice(prefixo.length).split('/')[0] ?? '') || null
   }
 
+  /** A live aberta na janela de lives (definida pelo index). */
+  naJanela: LiveNaJanela | null = null
+
+  exibidaAgora(): { liveId: string; pid: number } | null {
+    return this.naJanela?.atual() ?? null
+  }
+
   abrirLogin(contaId: string, plataforma: PlataformaLive): void {
     const url = plataforma === 'twitch' ? 'https://www.twitch.tv/login' : 'https://kick.com/login'
     // No modo de teste, HDECK_TESTE_LOGIN_MOTOR=1 usa o motor com a página de login da live falsa.
@@ -207,9 +214,11 @@ export class LiveNaJanela {
   private view: WebContentsView | null = null
   private janela: BrowserWindow | null = null
   private chave = ''
+  private liveId = ''
 
   mostrar(
     janela: BrowserWindow,
+    liveId: string,
     contaId: string,
     url: string,
     r: { x: number; y: number; largura: number; altura: number },
@@ -231,6 +240,7 @@ export class LiveNaJanela {
       this.view = v
       this.janela = janela
       this.chave = chave
+      this.liveId = liveId
     }
     this.view.setBounds({ x: r.x, y: r.y, width: Math.max(0, r.largura), height: Math.max(0, r.altura) })
   }
@@ -249,7 +259,11 @@ export class LiveNaJanela {
     this.janela = null
   }
 
-  aberta(): boolean {
-    return this.view !== null
+  /** A live aberta agora e o processo dela (para o consumo contar na conta e na live). */
+  atual(): { liveId: string; pid: number } | null {
+    const wc = this.view?.webContents
+    if (!wc || wc.isDestroyed()) return null
+    const pid = wc.getOSProcessId()
+    return pid > 0 ? { liveId: this.liveId, pid } : null
   }
 }

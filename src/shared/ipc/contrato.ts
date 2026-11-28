@@ -59,6 +59,8 @@ export type Snapshot = {
 export type MetricasEvento = {
   porConta: Record<string, { ramMb: number; cpuPct: number }>
   total: { ramMb: number; cpuPct: number }
+  /** RAM e CPU de cada live (o player escondido e a live aberta na janela de lives). */
+  porLive?: Record<string, { ramMb: number; cpuPct: number }>
   /** Detalhamento do consumo (clique em RAM/CPU na barra de título): cada grupo, a interface, a GPU e a base. */
   partes?: { chave: string; nome: string; detalhe: string; ramMb: number; cpuPct: number }[]
 }
@@ -224,7 +226,7 @@ export const canais = {
   'lives.ligarTodas': z
     .object({ contaId: idSchema, plataforma: plataformaLiveSchema, ligada: z.boolean() })
     .strict(),
-  'lives.janela': z.object({ contaId: idSchema.optional() }).strict(),
+  'lives.janela': z.object({ contaId: idSchema.optional(), liveId: idSchema.optional() }).strict(),
   'lives.conexoes': z.object({ contaId: idSchema }).strict(),
   'lives.exibir': z
     .object({

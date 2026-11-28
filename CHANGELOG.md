@@ -2,6 +2,8 @@
 
 ## Próxima versão
 
+- Ctrl+Tab mais rápido: a foto da conta que sai espera a troca terminar, a foto é processada fora da thread das páginas e o teclado vai direto para a conta nova.
+- Lives: o botão da lista desliga de verdade; live clicada no jogo abre a janela já nela; a janela lembra o tamanho; RAM/CPU das lives somam na conta e aparecem por live no painel direito.
 - Cada instalador sai com versão nova, e instalar fecha o HDeck antes de trocar os arquivos (a versão velha não fica mais). Os seus dados ficam.
 - A live selecionada aparece na janela de lives, com o chat.
 - Anti-tremor: o tamanho das contas não muda por diferenças de 1–2 px.

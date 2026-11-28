@@ -1091,12 +1091,18 @@ export class Motor {
       rt.fotoTimer?.()
       rt.fotoTimer = null
       if (modo === 'foto') {
-        void this.capturarFoto(id)
+        // A primeira foto espera 300 ms: na troca de conta (Ctrl+Tab), a conta nova aparece antes; a foto da
+        // que saiu de cena vem logo depois, sem disputar a máquina com a troca.
+        const primeira = this.d.relogio.depois(300, () => void this.capturarFoto(id))
         const ms =
           rt.espaco?.tipo === 'miniatura' && this.painelAberto
             ? PADROES.fotoPainelSeg * 1000
             : intervaloDaFotoMs(this.config, id)
-        rt.fotoTimer = this.d.relogio.aCada(ms, () => void this.capturarFoto(id))
+        const periodica = this.d.relogio.aCada(ms, () => void this.capturarFoto(id))
+        rt.fotoTimer = () => {
+          primeira()
+          periodica()
+        }
       }
     }
   }
@@ -1343,10 +1349,19 @@ export class Motor {
       const pid = rt.pagina.pid()
       if (pid) pids.set(pid, id)
     }
-    for (const [pid, conta] of this.controleLives.pids()) pids.set(pid, conta)
+    // As lives são da conta: o consumo delas entra na conta e aparece também por live.
+    const pidsLive = this.controleLives.pidsPorLive()
+    const exibida = this.d.lives.exibidaAgora?.()
+    if (exibida) pidsLive.set(exibida.pid, exibida.liveId)
+    for (const [pid, liveId] of pidsLive) {
+      const conta = this.lives.find((l) => l.id === liveId)?.contaId
+      if (conta && !pids.has(pid)) pids.set(pid, conta)
+    }
     const porConta = metricasPorConta(ms, pids)
+    const porLive = metricasPorConta(ms, pidsLive)
     const evento: MetricasEvento = {
       porConta: Object.fromEntries(porConta),
+      porLive: Object.fromEntries(porLive),
       total: totais(ms),
       partes: this.partesDoConsumo(ms, pids, porConta),
     }

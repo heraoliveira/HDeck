@@ -119,6 +119,8 @@ describe('motor: casos de borda', () => {
     ])
     const p = m.paginas.de(a!.id)
     expect(p.exibicao.modo).toBe('foto')
+    m.relogio.avancar(400) // a primeira foto sai 300 ms depois de virar foto
+    await esvaziarPromessas()
     const antes = p.capturas
     m.relogio.avancar(10_000)
     await esvaziarPromessas()

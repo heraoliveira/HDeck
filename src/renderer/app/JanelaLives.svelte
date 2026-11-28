@@ -13,7 +13,8 @@ const s = $derived(loja.snap!)
 const inicial = new URLSearchParams(location.search).get('conta')
 let contaId = $state(inicial ?? '')
 let plataforma: PlataformaLive = $state('twitch')
-let selecionada: string | null = $state(null)
+// Aberta por uma live clicada no jogo: já vem nela (?live=<id>).
+let selecionada: string | null = $state(new URLSearchParams(location.search).get('live'))
 let texto = $state('')
 let comSom = $state(false)
 
@@ -65,10 +66,19 @@ $effect(() => {
   return () => clearInterval(t)
 })
 
+// Aberta numa live: a aba (Twitch/Kick) segue a plataforma dela.
+let abaAjustada = false
+$effect(() => {
+  if (abaAjustada || !live) return
+  abaAjustada = true
+  plataforma = live.plataforma
+})
+
 // A live selecionada aparece no palco: o main põe a página da live exatamente sobre ele.
 let palco: HTMLDivElement | undefined = $state()
 $effect(() => {
-  const id = live?.id ?? null
+  // Desligada não toca em lugar nenhum (nem aqui): o botão de desligar desliga de verdade.
+  const id = live?.ligada ? live.id : null
   const som = comSom
   const el = palco
   if (!id || !el) {
@@ -146,7 +156,7 @@ const urlDe = (l: Live) => (l.plataforma === 'twitch' ? `twitch.tv/${l.canal}` :
               <span class="selo {l.plataforma}">{l.plataforma === 'twitch' ? 'T' : 'K'}</span>
               <span class="cresce texto">
                 <span class="canal">{l.canal}</span>
-                <span class="pequeno" class:vivo={aoVivo(l)}>● {l.ligada ? tDinamico(`lives.estado.${estado(l)}`) : t('lives.estado.desligada')}</span>
+                <span class="pequeno" class:vivo={aoVivo(l)}>● {l.ligada ? tDinamico(`lives.estado.${estado(l)}`) : t('lives.estado.desligada')}{#if l.ligada && loja.metricas?.porLive?.[l.id]} · {Math.round(loja.metricas.porLive[l.id]!.ramMb)} MB{/if}</span>
               </span>
             </button>
             <button class="icone-botao liga" class:ligada={l.ligada} aria-label={l.ligada ? t('lj.desligar') : t('lj.ligar')} title={l.ligada ? t('lj.desligar') : t('lj.ligar')} onclick={() => ligar(l, !l.ligada)}><Icone nome="ligar" tamanho={14} /></button>
@@ -177,7 +187,11 @@ const urlDe = (l: Live) => (l.plataforma === 'twitch' ? `twitch.tv/${l.canal}` :
             {/if}
           </div>
           <!-- A live (com o chat) aparece aqui, na sessão das lives da conta. -->
-          <div class="palco" bind:this={palco}><span class="muted pequeno">{t('lj.carregando')}</span></div>
+          {#if live.ligada}
+            <div class="palco" bind:this={palco}><span class="muted pequeno">{t('lj.carregando')}</span></div>
+          {:else}
+            <div class="palco"><div class="desligada"><p>{t('lj.desligadaTexto')}</p><button class="botao primario" onclick={() => ligar(live, true)}><Icone nome="ligar" />{t('lj.ligarEsta')}</button></div></div>
+          {/if}
         </div>
       {:else}
         <div class="vazio-grande">
@@ -446,6 +460,12 @@ const urlDe = (l: Live) => (l.plataforma === 'twitch' ? `twitch.tv/${l.canal}` :
   }
   .barra-live .ligado {
     color: var(--ok);
+  }
+  .desligada {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
   }
   .palco {
     flex: 1;

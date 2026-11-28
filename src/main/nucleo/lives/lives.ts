@@ -59,6 +59,16 @@ export class ControleLives {
     return [...this.vivas.values()].filter((v) => v.live.contaId === contaId && v.pagina !== null).length
   }
 
+  /** Processo de cada live aberta (para RAM e CPU por live no painel da conta). */
+  pidsPorLive(): Map<number, string> {
+    const out = new Map<number, string>()
+    for (const [id, v] of this.vivas) {
+      const pid = v.pagina?.pid()
+      if (pid) out.set(pid, id)
+    }
+    return out
+  }
+
   pids(): Map<number, string> {
     const out = new Map<number, string>()
     for (const v of this.vivas.values()) {

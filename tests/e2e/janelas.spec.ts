@@ -190,3 +190,67 @@ test('RN-080 RN-092 live selecionada aparece dentro da janela de lives (com o ch
     await a.fechar()
   }
 })
+
+test('RN-080 RN-092 desligar a live pelo botão da lista desliga de verdade; janela reabre do tamanho em que fechou; consumo por live', async () => {
+  const a = await abrirApp()
+  try {
+    await garantirJogoFalso(a)
+    const [c] = await criarContas(a, 1)
+    await esperarEstado(a, c!, ['ativa', 'economica', 'escondida'])
+    const l = await a.app.evaluate(
+      (_e, id) => (globalThis as H).hdeckTeste.motor.adicionarLive(id, 'twitch', 'canaldois'),
+      c!,
+    )
+    // RAM/CPU da live entram na conta e aparecem por live.
+    await expect
+      .poll(
+        async () =>
+          (await a.app.evaluate(() => (globalThis as H).hdeckTeste.motor.coletarMetricas())).porLive?.[
+            l.valor.id
+          ]?.ramMb ?? 0,
+        { timeout: 20_000 },
+      )
+      .toBeGreaterThan(0)
+    // Abre a janela já na live.
+    await a.janela.evaluate(
+      ({ id, live }) => (window as H).hdeck.lives.janela({ contaId: id, liveId: live }),
+      { id: c!, live: l.valor.id },
+    )
+    const janela = await a.app.waitForEvent('window', { predicate: (p) => p.url().includes('janela=lives') })
+    expect(janela.url()).toContain(`live=${l.valor.id}`)
+    const filhos = () =>
+      a.app.evaluate(() => (globalThis as H).hdeckTeste.janelas.lives.contentView.children.length)
+    await expect.poll(filhos).toBe(1)
+    const players = () =>
+      a.app.evaluate(
+        ({ webContents }) =>
+          webContents
+            .getAllWebContents()
+            .filter((w) => !w.isDestroyed() && w.getURL().includes('/live/canaldois')).length,
+      )
+    // O botão verde/vermelho desliga: nada da live continua tocando (nem o player escondido, nem o da janela).
+    await janela.getByRole('button', { name: 'Desligar esta live' }).first().click()
+    await expect
+      .poll(
+        async () =>
+          (await a.app.evaluate(() => (globalThis as H).hdeckTeste.motor.snapshot())).lives[0].ligada,
+      )
+      .toBe(false)
+    await expect.poll(players).toBe(0)
+    await expect.poll(filhos).toBe(0)
+    // Tamanho lembrado: muda, fecha e abre de novo do mesmo tamanho.
+    await a.app.evaluate(() =>
+      (globalThis as H).hdeckTeste.janelas.lives.setBounds({ x: 120, y: 90, width: 900, height: 640 }),
+    )
+    await a.app.evaluate(() => (globalThis as H).hdeckTeste.janelas.lives.close())
+    await expect
+      .poll(() => a.app.evaluate(() => (globalThis as H).hdeckTeste.janelas.lives === null))
+      .toBe(true)
+    await a.janela.evaluate((id) => (window as H).hdeck.lives.janela({ contaId: id }), c!)
+    await expect
+      .poll(() => a.app.evaluate(() => (globalThis as H).hdeckTeste.janelas.lives?.getBounds()))
+      .toMatchObject({ width: 900, height: 640 })
+  } finally {
+    await a.fechar()
+  }
+})

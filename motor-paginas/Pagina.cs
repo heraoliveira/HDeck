@@ -542,8 +542,15 @@ sealed class Pagina
         }
         if (ms.Length == 0) return null;
         if (largura == 0 || altura == 0) return ms.ToArray();
-        ms.Position = 0;
-        using var img = new Bitmap(ms);
+        // Reduzir e codificar fica fora da thread das páginas: trocar de conta (Ctrl+Tab) não espera foto nenhuma.
+        var png = ms.ToArray();
+        return await Task.Run(() => Reduzir(png, largura, altura, qualidade));
+    }
+
+    private static byte[] Reduzir(byte[] png, int largura, int altura, int qualidade)
+    {
+        using var entrada = new MemoryStream(png);
+        using var img = new Bitmap(entrada);
         using var saida = new MemoryStream();
         var fator = Math.Min(largura / (double)img.Width, altura / (double)img.Height);
         if (fator < 1)

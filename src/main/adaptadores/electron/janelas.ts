@@ -182,8 +182,8 @@ export class GerenciadorJanelas {
   lives: BrowserWindow | null = null
 
   /** Janela de lives (RN-080): lista por conta, com filtro; uma só, reaproveitada. */
-  abrirLives(contaId?: string): void {
-    const consulta = `janela=lives${contaId ? `&conta=${encodeURIComponent(contaId)}` : ''}`
+  abrirLives(contaId?: string, liveId?: string): void {
+    const consulta = `janela=lives${contaId ? `&conta=${encodeURIComponent(contaId)}` : ''}${liveId ? `&live=${encodeURIComponent(liveId)}` : ''}`
     if (this.lives && !this.lives.isDestroyed()) {
       void this.lives.loadURL(this.o.urlInterface(consulta))
       if (this.lives.isMinimized()) this.lives.restore()
@@ -201,6 +201,8 @@ export class GerenciadorJanelas {
       webPreferences: prefsInterface(this.o.preload),
     })
     this.lembrar(w, 'lives')
+    // Abre do jeito que foi fechada (tamanho, lugar e maximizada).
+    if (this.posicoes.lives?.maximizada) w.maximize()
     w.on('closed', () => {
       this.lives = null
     })

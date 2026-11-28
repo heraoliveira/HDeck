@@ -114,6 +114,8 @@ export interface FabricaLives {
   canalDaUrl(plataforma: PlataformaLive, url: string): string | null
   /** Login da Twitch/Kick na sessão das lives desta conta (RN-081). */
   abrirLogin(contaId: string, plataforma: PlataformaLive): void
+  /** Live aberta na janela de lives agora (processo dela), para o consumo contar na conta e na live. */
+  exibidaAgora?(): { liveId: string; pid: number } | null
 }
 
 export type LinhaMetrica = { contaId: string; minuto: number; ramMb: number; cpuPct: number; estado: string }
