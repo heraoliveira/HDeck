@@ -24,7 +24,7 @@ Regras ativas: 102 · com teste: 102
 | RN-017 | Uma conta está sempre em um destes estados: desligada, carregando, ativa, econômica, escon… | tests/componentes/interface.test.ts<br>tests/unidade/estado.test.ts<br>tests/unidade/motor.test.ts |
 | RN-018 | A conta fica no link em que está: recarregar, otimizar, reabrir o app ou religar a conta v… | tests/integracao/adaptadores-node.test.ts<br>tests/unidade/contas.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts |
 | RN-019 | Conta solta em janela própria continua a mesma página, sem recarregar; fechar a janela dev… | tests/e2e/contas.spec.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts |
-| RN-030 | Grupo ligado = contas carregadas; grupo desligado = nenhuma conta dele na memória. (R)… | tests/unidade/motor.test.ts |
+| RN-030 | Grupo ligado = contas carregadas; grupo desligado = nenhuma conta dele na memória. Grupo n… | tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts |
 | RN-031 | "Trocar para este grupo" desliga todos os outros grupos e liga este. (R)… | tests/e2e/contas.spec.ts<br>tests/unidade/fila-grupos.test.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts |
 | RN-032 | Ligar contas (abrir o app, ligar grupo, trocar grupo, voltar da suspensão) é escalonado: u… | tests/e2e/contas.spec.ts<br>tests/unidade/fila-grupos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-033 | Ao abrir o app, restaura os grupos que estavam ligados (opções: todos, nenhum). (P)… | tests/unidade/fila-grupos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
@@ -40,7 +40,7 @@ Regras ativas: 102 · com teste: 102
 | RN-044 | Ao abrir um diálogo por cima das contas, elas aparecem como foto e continuam rodando; ao f… | tests/e2e/contas.spec.ts<br>tests/unidade/motor.test.ts |
 | RN-045 | Painel: estado, tempo online, quedas do dia, recargas, último dado recebido, RAM, CPU e li… | tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/ping-painel-cofre.test.ts |
 | RN-050 | Conta com política "Manter farmando" roda a 100% (timers, animações e rede) com a janela m… | tests/e2e/contas.spec.ts<br>tests/provas/webview2.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
-| RN-051 | A política fora da tela é por jogo, no menu "⋯" do grupo: "Manter farmando" (padrão) ou "E… | tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
+| RN-051 | A política fora da tela é por jogo, no menu "⋯" do grupo: "Economizar" (padrão) ou "Manter… | tests/e2e/contas.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
 | RN-052 | Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece com… | tests/e2e/contas.spec.ts<br>tests/provas/webview2.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-053 | Clicar numa conta em foto a põe ao vivo e a torna ativa. Opcional: voltar a ser foto após … | tests/componentes/interface.test.ts<br>tests/e2e/contas.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-054 | Fotos não são capturadas para contas cujo espaço não está na tela. (P)… | tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
@@ -74,7 +74,7 @@ Regras ativas: 102 · com teste: 102
 | RN-100 | **Som dos jogos** (Todas; Só a conta ativa; Nenhuma). "Conta ativa" = a última em que o us… | tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-101 | Lives são sempre mudas, exceto quando "Mostrar" é usado e o usuário liga o som. (P)… | tests/unidade/lives.test.ts |
 | RN-110 | Canais: notificação do Windows, som, selo na barra de tarefas (contador), Discord (webhook… | tests/unidade/avisos.test.ts |
-| RN-111 | O que avisa (cada item liga/desliga por canal): conta caiu e não voltou; sem dados; texto … | tests/unidade/avisos.test.ts<br>tests/unidade/motor.test.ts |
+| RN-111 | O que avisa (cada item liga/desliga por canal): conta caiu e não voltou; sem dados; texto … | tests/unidade/avisos.test.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-112 | Avisos iguais seguidos viram um só ("3 contas de X caíram"). Nenhum aviso é perdido: todos… | tests/unidade/avisos.test.ts<br>tests/unidade/motor.test.ts |
 | RN-113 | Horário de silêncio (desligado): avisos só vão para o histórico, sem som e sem notificação… | tests/unidade/avisos.test.ts<br>tests/unidade/shared.test.ts |
 | RN-114 | Avisos para Discord e Telegram funcionam mesmo com o cofre trancado. (P)… | tests/e2e/recursos.spec.ts<br>tests/integracao/adaptadores-node.test.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts |
@@ -94,7 +94,7 @@ Regras ativas: 102 · com teste: 102
 | RN-151 | Pop-ups de login (Google, Discord, Twitch, Kick, carteiras) abrem na sessão da conta e fec… | tests/e2e/recursos.spec.ts<br>tests/unidade/seguranca-politicas.test.ts |
 | RN-152 | Câmera, microfone, localização e acesso a dispositivos são sempre negados às páginas; noti… | tests/seguranca/seguranca.spec.ts<br>tests/unidade/seguranca-politicas.test.ts |
 | RN-153 | Páginas só navegam em `https:` (e `http:` em localhost). (P)… | tests/seguranca/seguranca.spec.ts<br>tests/unidade/seguranca-politicas.test.ts<br>tests/unidade/shared.test.ts |
-| RN-154 | Login com Google funciona dentro do app: só nas páginas de login do Google a conta se apre… | tests/unidade/geral.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts<br>tests/unidade/seguranca-politicas.test.ts |
+| RN-154 | Login com Google funciona dentro do app: as contas se apresentam como o Microsoft Edge com… | tests/unidade/geral.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts<br>tests/unidade/seguranca-politicas.test.ts |
 | RN-160 | Exportar backup gera um arquivo com configurações, grupos, contas e textos vigiados; o cof… | tests/e2e/recursos.spec.ts<br>tests/integracao/adaptadores-node.test.ts |
 | RN-161 | "Incluir dados de login dos jogos" copia as sessões; o app avisa que quem tiver o arquivo … | tests/integracao/adaptadores-node.test.ts |
 | RN-162 | Importar backup numa instalação nova restaura tudo o que foi exportado. (P)… | tests/e2e/recursos.spec.ts<br>tests/integracao/adaptadores-node.test.ts |

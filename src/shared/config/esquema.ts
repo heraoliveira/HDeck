@@ -30,29 +30,35 @@ export const OPCOES = {
   canalAtualizacao: ['estavel', 'teste'] as const,
 } as const
 
-const canaisDoTipo = z
-  .object({
-    windows: z.boolean().default(true),
-    som: z.boolean().default(true),
-    selo: z.boolean().default(true),
-    discord: z.boolean().default(true),
-    telegram: z.boolean().default(true),
-  })
-  .prefault({})
+const canaisDoTipo = (ligado: boolean) =>
+  z
+    .object({
+      windows: z.boolean().default(ligado),
+      som: z.boolean().default(ligado),
+      selo: z.boolean().default(ligado),
+      discord: z.boolean().default(ligado),
+      telegram: z.boolean().default(ligado),
+    })
+    .prefault({})
+
+/**
+ * RN-111 (alterada a pedido da dona): por padrão só avisa o que acontece no jogo ou é importante (conta
+ * caiu, travou, texto vigiado, login pedido, sem internet…). Estes ficam só no histórico até ela ligar.
+ */
+export const AVISOS_DISCRETOS = ['ping', 'memoria', 'live', 'limite_contas'] as const
 
 const tiposAvisoConfig = z
   .object(
-    Object.fromEntries(tiposAviso.map((t) => [t, canaisDoTipo])) as Record<
-      (typeof tiposAviso)[number],
-      typeof canaisDoTipo
-    >,
+    Object.fromEntries(
+      tiposAviso.map((t) => [t, canaisDoTipo(!(AVISOS_DISCRETOS as readonly string[]).includes(t))]),
+    ) as Record<(typeof tiposAviso)[number], ReturnType<typeof canaisDoTipo>>,
   )
   .prefault({})
 
 const hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
 
 export const configSchema = z.object({
-  versao: z.literal(3).default(3),
+  versao: z.literal(4).default(4),
   geral: z
     .object({
       iniciarComWindows: z.boolean().default(false),
@@ -173,13 +179,26 @@ export function migrarConfig(bruto: unknown): Config {
     obj.otimizacao = ot
     obj.versao = 3
   }
+  if (obj.versao === 3) {
+    // v3 avisava tudo em todos os canais; agora ping, memória, lives e limite de contas só vão ao histórico.
+    const av = (obj.avisos ?? {}) as Record<string, unknown>
+    const tipos = (av.tipos ?? {}) as Record<string, Record<string, unknown>>
+    for (const t of AVISOS_DISCRETOS) {
+      const c = tipos[t]
+      if (!c || Object.values(c).every((v) => v === true))
+        tipos[t] = { windows: false, som: false, selo: false, discord: false, telegram: false }
+    }
+    av.tipos = tipos
+    obj.avisos = av
+    obj.versao = 4
+  }
   const r = configSchema.safeParse(obj)
   if (r.success) return r.data
   // Campo inválido: descarta só as seções com problema.
-  const limpo: Record<string, unknown> = { versao: 3 }
+  const limpo: Record<string, unknown> = { versao: 4 }
   for (const [chave, valor] of Object.entries(obj)) {
     if (chave === 'versao') continue
-    const parcial = configSchema.safeParse({ versao: 3, [chave]: valor })
+    const parcial = configSchema.safeParse({ versao: 4, [chave]: valor })
     if (parcial.success) limpo[chave] = valor
   }
   return configSchema.parse(limpo)

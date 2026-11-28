@@ -41,19 +41,21 @@ const grupo = (politicas = {}) => ({
 })
 
 describe('economia', () => {
-  it('RN-051 política por jogo no grupo, padrão Manter farmando, exceção da conta vence', () => {
-    expect(politicaEfetiva(conta(), grupo(), undefined)).toBe('manter')
+  it('RN-051 política por jogo no grupo, padrão Economizar, exceção da conta vence', () => {
+    expect(politicaEfetiva(conta(), grupo(), undefined)).toBe('economizar')
+    expect(politicaEfetiva(conta(), grupo({ j: 'manter' }), undefined)).toBe('manter')
     expect(politicaEfetiva(conta(), grupo({ j: 'economizar' }), undefined)).toBe('economizar')
     expect(
       politicaEfetiva(conta({ politicaForaTela: 'manter' }), grupo({ j: 'economizar' }), undefined),
     ).toBe('manter')
-    expect(politicaEfetiva(conta(), undefined, undefined)).toBe('manter')
+    expect(politicaEfetiva(conta(), undefined, undefined)).toBe('economizar')
   })
 
-  it('RN-050 Manter farmando nunca é estrangulada; Economizar só fora da tela', () => {
+  it('RN-050 Manter farmando nunca é estrangulada; Economizar quando não está ao vivo', () => {
     for (const m of ['viva', 'foto', 'fora'] as const) expect(deveEstrangular('manter', m)).toBe(false)
     expect(deveEstrangular('economizar', 'fora')).toBe(true)
-    expect(deveEstrangular('economizar', 'foto')).toBe(false)
+    expect(deveEstrangular('economizar', 'foto')).toBe(true) // para de desenhar; acorda só para a foto
+    expect(deveEstrangular('economizar', 'viva')).toBe(false)
   })
 
   it('RN-052 com modo econômico, visíveis não ativas viram foto', () => {

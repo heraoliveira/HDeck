@@ -26,7 +26,9 @@ describe('motor: casos de borda', () => {
       m.relogio.avancar(5 * 60_000)
       await esvaziarPromessas()
     }
-    expect(m.armazem.avisos.filter((a) => a.tipo === 'site_fora').map((a) => a.mensagem)).toHaveLength(2)
+    // Fica no histórico (tipo próprio "ping"), mas por padrão não notifica (RN-111).
+    expect(m.armazem.avisos.filter((a) => a.tipo === 'ping').map((a) => a.mensagem)).toHaveLength(2)
+    expect(m.locais.notificacoes?.length ?? 0).toBe(0)
     expect(m.eventos.some((e) => e.evento === 'ping.resultado')).toBe(true)
   })
 

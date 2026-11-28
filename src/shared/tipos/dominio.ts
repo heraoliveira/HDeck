@@ -151,6 +151,8 @@ export const tiposAviso = [
   'live',
   'login_pedido',
   'limite_contas',
+  // Ping lento ou com erro (antes saía como "site fora").
+  'ping',
 ] as const
 export type TipoAviso = (typeof tiposAviso)[number]
 

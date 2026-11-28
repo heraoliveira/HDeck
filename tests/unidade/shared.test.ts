@@ -92,11 +92,34 @@ describe('configuração', () => {
 
   it('RN-174 migra da versão 1 e descarta só as seções inválidas', () => {
     const m = migrarConfig({ versao: 1, economia: { fotoMs: 5000 }, queda: { esperaQuedaSeg: 'lixo' } })
-    expect(m.versao).toBe(3)
+    expect(m.versao).toBe(4)
     expect(m.economia.fotoACadaSeg).toBe(5)
     expect(m.queda.esperaQuedaSeg).toBe(45)
     expect(migrarConfig(null)).toEqual(configPadrao())
-    expect(migrarConfig({ versao: 1 }).versao).toBe(3)
+    expect(migrarConfig({ versao: 1 }).versao).toBe(4)
+  })
+
+  it('RN-111 v3 → v4: ping, memória, lives e limite de contas só no histórico; o resto avisa', () => {
+    const m = migrarConfig({ versao: 3 })
+    expect(m.avisos.tipos.ping).toEqual({
+      windows: false,
+      som: false,
+      selo: false,
+      discord: false,
+      telegram: false,
+    })
+    expect(m.avisos.tipos.memoria.windows).toBe(false)
+    expect(m.avisos.tipos.caiu.windows).toBe(true)
+    expect(m.avisos.tipos.texto_vigiado.som).toBe(true)
+    // Escolha dela é mantida.
+    const meu = migrarConfig({
+      versao: 3,
+      avisos: {
+        tipos: { memoria: { windows: true, som: false, selo: true, discord: false, telegram: false } },
+      },
+    })
+    expect(meu.avisos.tipos.memoria.windows).toBe(true)
+    expect(configPadrao().avisos.tipos.live.windows).toBe(false)
   })
 
   it('RN-058 v2 → v3: o Otimizar sozinho que vinha ligado por padrão passa a desligado; escolha diferente fica', () => {

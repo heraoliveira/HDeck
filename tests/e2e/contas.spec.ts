@@ -78,6 +78,53 @@ test('RN-050 minimizada, na bandeja e coberta por 2 min: os timers seguem', asyn
   }
 })
 
+test('RN-051 Economizar (padrão): a conta em foto não desenha, mas os timers seguem a 100% e a foto atualiza', async () => {
+  test.setTimeout(2 * 60_000)
+  const a = await abrirApp()
+  try {
+    await garantirJogoFalso(a)
+    const [c1, c2] = await criarContas(a, 2)
+    await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.motor.ativar(id), c1!)
+    await esperarEstado(a, c2!, ['economica'])
+    await expect
+      .poll(
+        async () =>
+          (await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.pagina(id).nativo(), c2!))
+            .visivel,
+      )
+      .toBe(false)
+    const ticks = () => naConta<{ intervalo: number }>(a, c2!, '({...window.__contagem})')
+    const antes = await ticks()
+    const t0 = Date.now()
+    const f1 = await a.app.evaluate(async (_e, id) => {
+      const b = await (globalThis as H).hdeckTeste.fabrica.pagina(id).capturar(320, 200)
+      return b ? Buffer.from(b).toString('base64') : null
+    }, c2!)
+    await new Promise((r) => setTimeout(r, 30_000))
+    const depois = await ticks()
+    const pct = ((depois.intervalo - antes.intervalo) / (((Date.now() - t0) / 1000) * 4)) * 100
+    console.log(`timers da conta em foto (Economizar): ${pct.toFixed(1)}%`)
+    expect(pct).toBeGreaterThanOrEqual(95)
+    // A foto acorda a página só para ela: sai uma imagem nova (o contador mudou) e a página volta a dormir.
+    const f2 = await a.app.evaluate(async (_e, id) => {
+      const b = await (globalThis as H).hdeckTeste.fabrica.pagina(id).capturar(320, 200)
+      return b ? Buffer.from(b).toString('base64') : null
+    }, c2!)
+    expect(f1).not.toBeNull()
+    expect(f2).not.toBeNull()
+    expect(f2).not.toBe(f1)
+    await expect
+      .poll(
+        async () =>
+          (await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.pagina(id).nativo(), c2!))
+            .visivel,
+      )
+      .toBe(false)
+  } finally {
+    await a.fechar()
+  }
+})
+
 test('RN-052 RN-053 RN-044 modo econômico: foto continua farmando, clique põe ao vivo, diálogo vira foto', async () => {
   const a = await abrirApp()
   try {

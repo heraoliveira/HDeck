@@ -19,9 +19,12 @@ test.describe.configure({ mode: 'serial' })
 test.beforeAll(async () => {
   a = await abrirApp()
   await garantirJogoFalso(a)
-  await a.app.evaluate(() =>
-    (globalThis as H).hdeckTeste.motor.alterarConfig('economia.modoEconomico', false),
-  )
+  await a.app.evaluate(() => {
+    const m = (globalThis as H).hdeckTeste.motor
+    m.alterarConfig('economia.modoEconomico', false)
+    // Estas provas são do "Manter farmando" (RN-050): a conta fora da tela segue visível para a página.
+    m.definirPolitica(m.listarGrupos()[0].id, 'falso', 'manter')
+  })
   ids = await criarContas(a, 2)
   for (const id of ids) await esperarEstado(a, id, ['ativa', 'escondida', 'economica'])
 })

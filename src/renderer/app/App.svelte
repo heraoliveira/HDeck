@@ -56,6 +56,30 @@ $effect(() => {
   })
 })
 
+// Clique na interface: se o teclado ficou na página de uma conta (janela nativa do Edge), ele volta para cá.
+// Sem isso, depois de mexer num jogo, os campos dos painéis paravam de aceitar texto.
+$effect(() => {
+  let ultimo = 0
+  const devolver = () => {
+    ultimo = Date.now()
+    void chamar('app.focarInterface').catch(() => {})
+  }
+  // O primeiro clique num botão também se perdia (era gasto para tirar o foco do jogo): ao passar o mouse
+  // por um controle da interface sem o teclado estar aqui, ele volta antes do clique.
+  const controles =
+    'button, input, select, textarea, a, [role="button"], [role="radio"], [role="menuitem"], [contenteditable]'
+  const aoPassar = (e: PointerEvent) => {
+    if (document.hasFocus() || Date.now() - ultimo < 300) return
+    if ((e.target as Element | null)?.closest?.(controles)) devolver()
+  }
+  window.addEventListener('pointerdown', devolver, true)
+  window.addEventListener('pointerover', aoPassar, true)
+  return () => {
+    window.removeEventListener('pointerdown', devolver, true)
+    window.removeEventListener('pointerover', aoPassar, true)
+  }
+})
+
 // Tema (Seção 12.1).
 $effect(() => {
   const tema = loja.snap?.config.geral.tema ?? 'escuro'

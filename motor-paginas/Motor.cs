@@ -171,6 +171,10 @@ sealed class Motor
                 await Encerrar();
                 return null;
             case "popups": return JanelaPopup.Abertas;
+            case "teclado": return Win32.DonoDoTeclado(Hwnd(S(m, "janela")));
+            case "devolverTeclado":
+                Win32.DevolverTeclado(Hwnd(S(m, "janela")));
+                return null;
             case "metricas":
                 return await metricas.Coletar(env, paginas.Values, m["pids"]?.AsArray().Select(x => x!.GetValue<int>()) ?? []);
             case "processos":
@@ -226,6 +230,11 @@ sealed class Motor
             case "devtools": pg.AbrirDevtools(); return null;
             case "moveu": pg.PaiMoveu(); return null;
             case "estado": return pg.Estado();
+            case "focar":
+                // Só no modo de teste: põe o teclado na página (como um clique do usuário no jogo).
+                if (!Teste) throw new InvalidOperationException("só no modo de teste");
+                pg.Focar();
+                return null;
         }
         throw new InvalidOperationException($"pedido desconhecido: {cmd}");
     }
@@ -338,6 +347,40 @@ static class Win32
         foreach (var h in nossas)
             SetWindowPos(h, IntPtr.Zero, 0, 0, 0, 0, SwpNoMove | SwpNoSize | SwpNoActivate | SwpNoOwnerZOrder);
         return true;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetFocus();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetFocus(IntPtr h);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsChild(IntPtr pai, IntPtr filho);
+
+    /// <summary>
+    /// O teclado fica com a janela nativa da conta depois de um clique no jogo; clicar na interface do
+    /// Electron não o pega de volta (para o Chromium a janela já está ativa). As janelas das contas são filhas
+    /// da do HDeck e dividem a fila de entrada, então daqui dá para devolver o foco à janela principal.
+    /// </summary>
+    /// <summary>Com quem está o teclado: "interface" (Electron), "conta" (WebView2) ou "nenhum".</summary>
+    public static string DonoDoTeclado(IntPtr janela)
+    {
+        var atual = GetFocus();
+        if (atual == IntPtr.Zero) return "nenhum";
+        GetWindowThreadProcessId(janela, out var dono);
+        GetWindowThreadProcessId(atual, out var deQuem);
+        return deQuem == dono ? "interface" : "conta";
+    }
+
+    public static void DevolverTeclado(IntPtr janela)
+    {
+        if (janela == IntPtr.Zero || !IsWindow(janela)) return;
+        var atual = GetFocus();
+        // Já está com o Electron (mesmo processo da janela): nada a fazer, para não tirar o foco de um campo.
+        GetWindowThreadProcessId(janela, out var dono);
+        if (atual != IntPtr.Zero && GetWindowThreadProcessId(atual, out var deQuem) != 0 && deQuem == dono) return;
+        SetFocus(janela);
     }
 
     public static double Escala(IntPtr hwnd)

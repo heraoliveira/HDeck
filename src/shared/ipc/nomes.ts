@@ -64,6 +64,7 @@ export const NOMES_CANAIS = [
   'app.abrirPasta',
   'app.limparCacheTodas',
   'app.sair',
+  'app.focarInterface',
   'app.silenciarTudo',
   'app.telaCheia',
 ] as const

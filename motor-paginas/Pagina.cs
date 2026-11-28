@@ -27,7 +27,6 @@ sealed class Pagina
     private string? urlDesejada;
     private int? pidRender;
     private readonly Dictionary<string, long> ultimoDado = new();
-    private readonly LoginGoogle google = new();
     private readonly Dictionary<string, string> wsUrls = new();
     private readonly HashSet<string> fechadas = new();
     private readonly List<(string, EventHandler<CoreWebView2DevToolsProtocolEventReceivedEventArgs>)> receptores = new();
@@ -88,7 +87,8 @@ sealed class Pagina
         Posicionar();
         AplicarVisibilidade();
         await InstalarScriptUso(w);
-        await w.AddScriptToExecuteOnDocumentCreatedAsync(LoginGoogle.ScriptEsconder);
+        await w.AddScriptToExecuteOnDocumentCreatedAsync(Identidade.ScriptEsconder);
+        await Identidade.Aplicar(w);
         // A rede é observada desde antes da primeira navegação: assim o vigia conhece toda conexão
         // que a página abrir (ligar depois deixaria de fora as que já existiam). Os avisos só saem com o vigia ligado.
         await LigarRede(w);
@@ -105,7 +105,6 @@ sealed class Pagina
                 motor.Log("aviso", $"navegação bloqueada: {Politicas.SemParametros(e.Uri)}");
                 return;
             }
-            if (google.Trocar(w, e)) return;
             pidRender = null;
             Ev("comecou");
         };
@@ -343,6 +342,8 @@ sealed class Pagina
         };
     }
 
+    public void Focar() => ctl?.MoveFocus(CoreWebView2MoveFocusReason.Programmatic);
+
     public void PaiMoveu() => ctl?.NotifyParentWindowPositionChanged();
 
     /// <summary>Política Economizar (RN-050): fora da tela e estrangulada, a página fica oculta.</summary>
@@ -487,10 +488,26 @@ sealed class Pagina
                 Posicionar();
             }
         }
+        // Economizar: a página fica oculta (não desenha) entre as fotos; acorda só para a foto (~120 ms).
+        var acordou = false;
+        if (!ctl.IsVisible)
+        {
+            ctl.IsVisible = true;
+            acordou = true;
+            await Task.Delay(120);
+        }
         using var ms = new MemoryStream();
-        var captura = Wv.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, ms);
-        if (await Task.WhenAny(captura, Task.Delay(3000)) != captura) return null;
-        await captura;
+        try
+        {
+            if (ctl == null) return null;
+            var captura = Wv.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, ms);
+            if (await Task.WhenAny(captura, Task.Delay(3000)) != captura) return null;
+            await captura;
+        }
+        finally
+        {
+            if (acordou) AplicarVisibilidade();
+        }
         if (ms.Length == 0) return null;
         if (largura == 0 || altura == 0) return ms.ToArray();
         ms.Position = 0;

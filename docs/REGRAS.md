@@ -21,12 +21,12 @@
 ## 1. Princípios
 
 - **RN-001** O HDeck não joga pelo usuário: não clica, não digita, não usa macro, não resolve captcha ou verificação humana, não envia formulários. (D/R)
-- **RN-002** O HDeck não usa proxy, VPN, nem disfarça o navegador; todas as contas saem pelo IP do usuário. Única exceção: as páginas de login do Google (RN-154). (R; exceção D 2026-11-27)
+- **RN-002** O HDeck não usa proxy, VPN, nem disfarça o navegador; todas as contas saem pelo IP do usuário. O navegador das contas se apresenta como o Edge comum, sem a marca "WebView2" (RN-154). (R; alterada D 2026-11-27)
 - **RN-003** O HDeck não tem anúncios, telemetria, analytics nem conta online. (D)
 - **RN-004** O HDeck só se conecta a: sites dos jogos abertos, Twitch/Kick com live ligada, Discord/Telegram se configurados, e o servidor de atualização. (P)
 - **RN-005** O HDeck não bloqueia nem altera anúncios ou conteúdo dos sites dos jogos e das lives. (P)
 - **RN-006** Toda frase da interface é pt-BR simples e direta. (D)
-- **RN-007** Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, tokens de `estilos/tokens.css`); nada de menu nativo do sistema dentro do app (a bandeja do Windows é a exceção). (D, 2026-11-27)
+- **RN-007** Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, tokens de `estilos/tokens.css`); nada de menu nativo do sistema dentro do app (a bandeja do Windows é a exceção). Clicar ou passar o mouse num controle da interface devolve o teclado que ficou na página de uma conta: nenhum campo deixa de aceitar texto e nenhum botão pede dois cliques. (D, 2026-11-27)
 - **RN-008** À direita fica o painel da conta selecionada, que recolhe e expande como o dos grupos: estado, Início, Recarregar, Som, Destacar, lives, consumo de RAM e CPU da última hora, Otimizar (com o horário do automático) e o histórico da conta; Foco, Desligar e Mais no rodapé. (D, 2026-11-27)
 
 ## 2. Contas
@@ -44,7 +44,7 @@
 
 ## 3. Grupos
 
-- **RN-030** Grupo ligado = contas carregadas; grupo desligado = nenhuma conta dele na memória. (R)
+- **RN-030** Grupo ligado = contas carregadas; grupo desligado = nenhuma conta dele na memória. Grupo novo já vem ligado. (R; alterada D 2026-11-27)
 - **RN-031** "Trocar para este grupo" desliga todos os outros grupos e liga este. (R)
 - **RN-032** Ligar contas (abrir o app, ligar grupo, trocar grupo, voltar da suspensão) é escalonado: uma conta a cada N s (3 s). (P)
 - **RN-033** Ao abrir o app, restaura os grupos que estavam ligados (opções: todos, nenhum). (P)
@@ -66,8 +66,8 @@
 ## 5. Rodar escondido e economia
 
 - **RN-050** Conta com política "Manter farmando" roda a 100% (timers, animações e rede) com a janela minimizada, na bandeja, coberta, ou com a conta fora da tela. (D/R)
-- **RN-051** A política fora da tela é por jogo, no menu "⋯" do grupo: "Manter farmando" (padrão) ou "Economizar"; a conta pode ter exceção própria. "Economizar" deixa o navegador desacelerar a conta quando ela não está visível. (R)
-- **RN-052** Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece como foto atualizada a cada N s (1 s; opções 1, 2, 5, 10, 30 s) e continua farmando normalmente. (R)
+- **RN-051** A política fora da tela é por jogo, no menu "⋯" do grupo: "Economizar" (padrão) ou "Manter farmando"; a conta pode ter exceção própria. "Economizar": a conta que não está ao vivo (foto ou fora da tela) para de desenhar e acorda só para cada foto; timers e rede seguem a 100%. "Manter farmando": continua desenhando, para jogos que param quando a página fica oculta. (R; alterada D 2026-11-27, CPU)
+- **RN-052** Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece como foto atualizada a cada N s (1 s; opções 1, 2, 5, 10, 30 s) e continua farmando normalmente. Com "Economizar", ela só desenha na hora da foto (RN-051). (R)
 - **RN-053** Clicar numa conta em foto a põe ao vivo e a torna ativa. Opcional: voltar a ser foto após X sem mexer (desligado; 30 s, 1 min, 5 min). (R/P)
 - **RN-054** Fotos não são capturadas para contas cujo espaço não está na tela. (P)
 - **RN-055** Com contas ligadas, o PC é impedido de dormir (ligado); a tela pode apagar. (P)
@@ -115,7 +115,7 @@
 ## 9. Avisos
 
 - **RN-110** Canais: notificação do Windows, som, selo na barra de tarefas (contador), Discord (webhook) e Telegram (bot). Cada um liga/desliga; Discord e Telegram têm botão "Testar". (R)
-- **RN-111** O que avisa (cada item liga/desliga por canal): conta caiu e não voltou; sem dados; texto vigiado; página travou ou fechou; site fora do ar; sem internet há mais de X min (5); memória acima do limite; live encerrou/voltou; login pedido; perto do limite de contas. (R/P)
+- **RN-111** O que avisa (cada item liga/desliga por canal): conta caiu e não voltou; sem dados; texto vigiado; página travou ou fechou; site fora do ar; sem internet há mais de X min (5); memória acima do limite; live encerrou/voltou; login pedido; perto do limite de contas. Ping lento ou com erro é um item próprio. Por padrão só avisa o que acontece no jogo ou é importante; ping, memória, lives e limite de contas ficam só no histórico até a dona ligar. (R/P; alterada D 2026-11-27)
 - **RN-112** Avisos iguais seguidos viram um só ("3 contas de X caíram"). Nenhum aviso é perdido: todos ficam no histórico. (P)
 - **RN-113** Horário de silêncio (desligado): avisos só vão para o histórico, sem som e sem notificação. (P)
 - **RN-114** Avisos para Discord e Telegram funcionam mesmo com o cofre trancado. (P)
@@ -147,7 +147,7 @@
 - **RN-151** Pop-ups de login (Google, Discord, Twitch, Kick, carteiras) abrem na sessão da conta e fecham ao terminar; outros pop-ups e abas novas pedem confirmação mostrando o endereço. (R)
 - **RN-152** Câmera, microfone, localização e acesso a dispositivos são sempre negados às páginas; notificações das páginas só se o usuário ligar na conta. (P)
 - **RN-153** Páginas só navegam em `https:` (e `http:` em localhost). (P)
-- **RN-154** Login com Google funciona dentro do app: só nas páginas de login do Google a conta se apresenta como o Microsoft Edge comum da mesma versão (sem a marca "WebView2" nas client hints e sem o objeto `chrome.webview`); nas lives, que rodam no Electron, ela se apresenta como Firefox sem client hints, porque o Google bloqueia navegadores embutidos. Se mesmo assim o Google recusar, a conta mostra a orientação de usar outro método de login do jogo. (D, alterada 2026-11-27)
+- **RN-154** Login com Google funciona dentro do app: as contas se apresentam como o Microsoft Edge comum da mesma versão desde a primeira navegação (sem a marca "WebView2" nas client hints; nas páginas de login do Google também sem o objeto `chrome.webview`); nas lives, que rodam no Electron, ela se apresenta como Firefox sem client hints, porque o Google bloqueia navegadores embutidos. Se mesmo assim o Google recusar, a conta mostra a orientação de usar outro método de login do jogo. (D, alterada 2026-11-27)
 
 ## 14. Backup e dados
 
@@ -184,6 +184,7 @@
 - [ ] MEDICOES.md atualizado se a mudança mexe em desempenho.
 
 ## Histórico
+- 2026-11-27 · v4 · pedidos da dona: RN-030 (grupo novo ligado), RN-051/052 (Economizar padrão, foto não desenha entre fotos), RN-111 (avisos discretos), RN-154 e RN-002 (identidade Edge desde o início) e RN-007 (teclado volta à interface) alteradas.
 - 2026-11-27 · v3 · pedidos da dona: RN-008 nova (painel direito); RN-018 (fica no link atual), RN-058 (nada recarrega sozinho sem ela ligar) e RN-154 (Google vê o Edge comum) alteradas; RN-045 (RAM e CPU como no Gerenciador de Tarefas) alterada.
 - 2026-11-27 · v2 · pedidos da dona: RN-007, RN-037, RN-038, RN-058 novas; RN-002, RN-036 e RN-154 alteradas.
 

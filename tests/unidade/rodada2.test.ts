@@ -193,3 +193,14 @@ describe('pedidos de 2026-11-27 (rodada 5)', () => {
     expect(feitas).toEqual([])
   })
 })
+
+describe('pedidos de 2026-11-27 (rodada 6)', () => {
+  it('RN-030 grupo novo já vem ligado e a conta que entra nele abre sozinha', () => {
+    const m = montarMotor()
+    const g = m.motor.criarGrupo('Novo')
+    expect(g.ligado).toBe(true)
+    const c = m.novaConta({ grupoId: g.id })
+    m.relogio.avancar(5000)
+    expect(m.paginas.paginas.has(c.id)).toBe(true)
+  })
+})
