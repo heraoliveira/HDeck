@@ -13,6 +13,7 @@ import {
   jogoSchema,
   type Live,
   layoutGrupoSchema,
+  otimizarAutoSchema,
   plataformaLiveSchema,
   politicaForaTelaSchema,
   type TextoVigiado,
@@ -58,6 +59,8 @@ export type Snapshot = {
 export type MetricasEvento = {
   porConta: Record<string, { ramMb: number; cpuPct: number }>
   total: { ramMb: number; cpuPct: number }
+  /** Detalhamento do consumo (clique em RAM/CPU na barra de título): cada grupo, a interface, a GPU e a base. */
+  partes?: { chave: string; nome: string; detalhe: string; ramMb: number; cpuPct: number }[]
 }
 
 export type PainelDados = {
@@ -172,6 +175,7 @@ export const canais = {
       notificacoesDaPagina: z.boolean().optional(),
       notas: z.string().max(2000).optional(),
       jogoId: idSchema.optional(),
+      otimizarAuto: otimizarAutoSchema.optional(),
     })
     .strict(),
   'contas.apagar': z.object({ id: idSchema, apagarLogin: z.boolean() }).strict(),
@@ -209,6 +213,18 @@ export const canais = {
   'lives.ligar': z.object({ id: idSchema, ligada: z.boolean() }).strict(),
   'lives.mostrar': z.object({ id: idSchema, som: z.boolean() }).strict(),
   'lives.entrar': comId,
+  'lives.entrarPlataforma': z.object({ contaId: idSchema, plataforma: plataformaLiveSchema }).strict(),
+  'lives.abrirLink': z
+    .object({
+      contaId: idSchema,
+      texto: z.string().min(1).max(300),
+      plataforma: plataformaLiveSchema.optional(),
+    })
+    .strict(),
+  'lives.ligarTodas': z
+    .object({ contaId: idSchema, plataforma: plataformaLiveSchema, ligada: z.boolean() })
+    .strict(),
+  'lives.janela': z.object({ contaId: idSchema.optional() }).strict(),
 
   'textos.salvar': z
     .object({

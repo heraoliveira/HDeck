@@ -4,7 +4,6 @@
  */
 
 type Cor = [number, number, number, number]
-const ROXO: Cor = [0x7c, 0x6c, 0xf0, 255]
 const BRANCO: Cor = [255, 255, 255, 255]
 const VERMELHO: Cor = [0xe5, 0x53, 0x4b, 255]
 
@@ -23,16 +22,37 @@ function tela(t: number) {
   return { px, pintar }
 }
 
-/** Logo: quadrado arredondado roxo com um H branco. */
+/** Gradiente do logo da barra de título (#00e5ff → #07b6d5 → #075985, na diagonal). */
+function ciano(f: number): Cor {
+  const p: [number, Cor][] = [
+    [0, [0x00, 0xe5, 0xff, 255]],
+    [0.58, [0x07, 0xb6, 0xd5, 255]],
+    [1, [0x07, 0x59, 0x85, 255]],
+  ]
+  const i = f <= 0.58 ? 0 : 1
+  const [a, ca] = p[i]!
+  const [b, cb] = p[i + 1]!
+  const k = Math.min(1, Math.max(0, (f - a) / (b - a)))
+  return [0, 1, 2].map((j) => Math.round(ca[j]! + (cb[j]! - ca[j]!) * k)).concat(255) as Cor
+}
+const DOURADO: Cor = [0xff, 0xd7, 0x00, 255]
+
+/** Logo: o mesmo da barra de título (quadrado arredondado ciano com borda dourada e H branco). */
 export function bitmapLogo(t: number): Buffer {
   const { px, pintar } = tela(t)
   const r = t * 0.22
+  const borda = Math.max(1, t / 64)
   for (let y = 0; y < t; y++)
     for (let x = 0; x < t; x++) {
       const dx = Math.max(r - x - 0.5, 0, x + 0.5 - (t - r))
       const dy = Math.max(r - y - 0.5, 0, y + 0.5 - (t - r))
       const d = Math.hypot(dx, dy)
-      if (d <= r) pintar(x, y, ROXO, Math.min(1, r - d + 0.5))
+      if (d > r) continue
+      const cobre = Math.min(1, r - d + 0.5)
+      pintar(x, y, ciano((x + y) / (2 * t)), cobre)
+      // Distância até a borda do quadrado arredondado: perto dela, a linha dourada (55%).
+      const dentro = Math.min(x + 0.5, y + 0.5, t - x - 0.5, t - y - 0.5, r - d + (d > 0 ? 0 : r))
+      if (dentro < borda) pintar(x, y, DOURADO, 0.55 * cobre)
     }
   const m = Math.round(t * 0.27)
   const haste = Math.max(2, Math.round(t * 0.13))

@@ -163,6 +163,7 @@ sealed class JanelaPopup : Form
         this.conta = conta;
         this.fecharEm = fecharEm;
         Text = "HDeck";
+        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(LogicalToDeviceUnits(largura), LogicalToDeviceUnits(altura));
         BackColor = Color.FromArgb(8, 17, 31);

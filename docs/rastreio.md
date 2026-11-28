@@ -34,14 +34,14 @@ Regras ativas: 102 · com teste: 102
 | RN-037 | Cada grupo tem um endereço padrão: a conta nova do grupo começa nele, e o usuário pode tro… | tests/componentes/interface.test.ts<br>tests/e2e/paineis.spec.ts<br>tests/unidade/rodada2.test.ts |
 | RN-038 | Arrastar (ou mover) uma conta para outro grupo pede confirmação. (D, 2026-11-27)… | tests/componentes/interface.test.ts<br>tests/e2e/paineis.spec.ts |
 | RN-040 | Visões: Grade, Principal + miniaturas, Foco (abas) e Painel. (R)… | tests/e2e/fumaca.spec.ts<br>tests/unidade/layout.test.ts |
-| RN-041 | Divisões: 1, 2 lado a lado, 2 empilhadas, 1+2, 1+3, 2×2, 3×2, 3×3, 4×4 e Personalizada. Ca… | tests/componentes/interface.test.ts<br>tests/e2e/contas.spec.ts<br>tests/unidade/layout.test.ts |
+| RN-041 | Divisões: 1, 2 lado a lado, 2 empilhadas, 1+2, 1+3, 2×2, 3×2, 3×3, 4×4 e Personalizada. Ca… | tests/componentes/interface.test.ts<br>tests/e2e/contas.spec.ts<br>tests/unidade/layout.test.ts<br>tests/unidade/rodada2.test.ts |
 | RN-042 | Espaços nunca se sobrepõem e sempre cabem na área disponível, em qualquer tamanho de janel… | tests/e2e/contas.spec.ts<br>tests/unidade/layout.test.ts |
 | RN-043 | A conta ativa tem a borda destacada. Clicar numa conta a torna ativa. (R)… | tests/componentes/interface.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts |
 | RN-044 | Ao abrir um diálogo por cima das contas, elas aparecem como foto e continuam rodando; ao f… | tests/e2e/contas.spec.ts<br>tests/unidade/motor.test.ts |
-| RN-045 | Painel: estado, tempo online, quedas do dia, recargas, último dado recebido, RAM, CPU e li… | tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/ping-painel-cofre.test.ts |
+| RN-045 | Painel: estado, tempo online, quedas do dia, recargas, último dado recebido, RAM, CPU e li… | tests/e2e/paineis.spec.ts<br>tests/unidade/motor-casos.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/ping-painel-cofre.test.ts |
 | RN-050 | Conta com política "Manter farmando" roda a 100% (timers, animações e rede) com a janela m… | tests/e2e/contas.spec.ts<br>tests/provas/webview2.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
 | RN-051 | A política fora da tela é por jogo, no menu "⋯" do grupo: "Economizar" (padrão) ou "Manter… | tests/e2e/contas.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
-| RN-052 | Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece com… | tests/e2e/contas.spec.ts<br>tests/provas/webview2.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
+| RN-052 | Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece com… | tests/e2e/contas.spec.ts<br>tests/provas/webview2.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/rodada2.test.ts<br>tests/unidade/shared.test.ts |
 | RN-053 | Clicar numa conta em foto a põe ao vivo e a torna ativa. Opcional: voltar a ser foto após … | tests/componentes/interface.test.ts<br>tests/e2e/contas.spec.ts<br>tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-054 | Fotos não são capturadas para contas cujo espaço não está na tela. (P)… | tests/unidade/economia.test.ts<br>tests/unidade/motor.test.ts |
 | RN-055 | Com contas ligadas, o PC é impedido de dormir (ligado); a tela pode apagar. (P)… | tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
@@ -59,7 +59,7 @@ Regras ativas: 102 · com teste: 102
 | RN-068 | Site fora do ar (falha ao carregar ou erro do servidor): mesma espera da RN-061 e aviso. (… | tests/unidade/motor.test.ts<br>tests/unidade/saude.test.ts |
 | RN-069 | Toda queda, recarga, travamento e volta fica registrada no histórico da conta. (R)… | tests/unidade/motor.test.ts<br>tests/unidade/saude.test.ts |
 | RN-070 | Se a interface do HDeck cair, ela volta sozinha sem recarregar as contas. Se o app fechar … | tests/e2e/contas.spec.ts<br>tests/unidade/ping-painel-cofre.test.ts |
-| RN-080 | Uma conta pode ter várias lives (Twitch ou Kick + canal). O botão "Lives" aparece nas cont… | tests/unidade/lives.test.ts<br>tests/unidade/motor.test.ts |
+| RN-080 | Uma conta pode ter várias lives (Twitch ou Kick + canal). O botão "Lives" aparece nas cont… | tests/e2e/recursos.spec.ts<br>tests/unidade/lives.test.ts<br>tests/unidade/motor.test.ts |
 | RN-081 | A live usa a sessão da própria conta: o login na Twitch/Kick é por conta e serve também ao… | tests/e2e/recursos.spec.ts<br>tests/unidade/lives.test.ts |
 | RN-082 | **Lives nas contas** (ligado): liga o sistema; desligado fecha todas as lives. (R)… | tests/unidade/lives.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-083 | As lives tocam sem som e não aparecem na tela. "Mostrar" abre a live numa janela pequena; … | tests/e2e/recursos.spec.ts<br>tests/provas/provas.spec.ts<br>tests/unidade/lives.test.ts<br>tests/unidade/motor.test.ts |

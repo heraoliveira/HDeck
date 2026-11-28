@@ -22,6 +22,7 @@ export type DialogoAberto =
       aoConfirmar: () => void
     }
   | { qual: 'painelConta' | 'painelGrupo'; id: string; x: number; y: number }
+  | { qual: 'consumo'; x: number; y: number }
 
 const params = new URLSearchParams(location.search)
 

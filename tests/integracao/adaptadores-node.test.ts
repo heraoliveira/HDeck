@@ -58,6 +58,7 @@ const conta = {
   notificacoesDaPagina: false,
   notas: 'x',
   criadaEm: 1,
+  otimizarAuto: { modo: 'desligado' as const, aCadaMin: 60, limiteMb: 800 },
 }
 
 describe('armazém SQLite', () => {
@@ -65,7 +66,7 @@ describe('armazém SQLite', () => {
     const arq = join(pasta(), 'hdeck.db')
     const a = new ArmazemSqlite(arq)
     expect(a.modoJournal()).toBe('wal')
-    expect(a.versao()).toBe(2)
+    expect(a.versao()).toBe(3)
     a.salvarJogo(jogoFalso)
     a.salvarGrupo(grupo)
     a.salvarConta(conta)

@@ -83,6 +83,9 @@ const ARGUMENTOS_WEBVIEW2 = [
   '--disable-background-timer-throttling',
   '--disable-renderer-backgrounding',
   '--disable-backgrounding-occluded-windows',
+  // Barras de rolagem por cima do conteúdo: aparecer ou sumir não muda a largura da página (o jogo não fica
+  // "tremendo" num tamanho em que a barra liga e desliga sem parar).
+  '--enable-features=msOverlayScrollbarWinStyle,OverlayScrollbar',
   '--disable-features=CalculateNativeWinOcclusion,IntensiveWakeUpThrottling,BackForwardCache,SpareRendererForSitePerProcess,MediaRouter,OptimizationHints,Translate,AutofillServerCommunication,msSmartScreenProtection,msEdgeShoppingUI',
 ].join(' ')
 
@@ -273,6 +276,12 @@ async function iniciar(): Promise<void> {
       const cmd = mapa.get(texto)
       if (cmd) executarComando(cmd)
     },
+    aoLinkDeLive: (contaId, url) => {
+      const r = motor?.abrirLinkDeLive(contaId, url)
+      if (!r?.ok) return false
+      janelas.abrirLives(contaId)
+      return true
+    },
   })
   apagarParticoesAntigas(pastaDados, log)
   const sistema = new SistemaElectron()
@@ -414,6 +423,16 @@ async function iniciar(): Promise<void> {
     const s = m.snapshot()
     return s.contas.filter((c) => c.grupoId === s.grupoAtualId).sort((a, b) => a.ordem - b.ordem)
   }
+  // Trocar de conta pelo teclado já deixa a conta pronta: o teclado vai para a página (sem precisar clicar).
+  const focarConta = (id: string) =>
+    setTimeout(
+      () =>
+        void fabrica
+          .pagina(id)
+          ?.focarTeclado()
+          .catch(() => {}),
+      150,
+    )
   const executarComando = (cmd: Comando): void => {
     const s = m.snapshot()
     const ativa = s.ativaId
@@ -423,6 +442,7 @@ async function iniciar(): Promise<void> {
       if (c) {
         m.ativar(c.id)
         emitir('comando', { cmd: 'focar', contaId: c.id })
+        focarConta(c.id)
       }
       return
     }
@@ -439,6 +459,7 @@ async function iniciar(): Promise<void> {
         const prox = lista[(i + (cmd === 'conta.proxima' ? 1 : -1) + lista.length) % lista.length]!
         m.ativar(prox.id)
         emitir('comando', { cmd: 'focar', contaId: prox.id })
+        focarConta(prox.id)
         return
       }
       case 'conta.recarregar':
@@ -600,6 +621,13 @@ async function iniciar(): Promise<void> {
     },
     'lives.mostrar': (e) => m.mostrarLive(e.id, e.som),
     'lives.entrar': (e) => m.entrarNaLive(e.id),
+    'lives.entrarPlataforma': (e) => m.entrarNaPlataforma(e.contaId, e.plataforma),
+    'lives.abrirLink': (e) => {
+      const r = m.abrirLinkDeLive(e.contaId, e.texto, e.plataforma)
+      return r.ok ? { ok: true, id: r.valor.id } : { ok: false, erro: r.erro }
+    },
+    'lives.ligarTodas': (e) => m.ligarLivesDaConta(e.contaId, e.plataforma, e.ligada),
+    'lives.janela': (e) => janelas.abrirLives(e.contaId ?? m.snapshot().ativaId ?? undefined),
     'textos.salvar': (e) => m.salvarTexto(e),
     'textos.apagar': (e) => m.apagarTexto(e.id),
     'avisos.listar': (e) => m.listarAvisos(e.limite),

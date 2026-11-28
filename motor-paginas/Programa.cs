@@ -10,9 +10,14 @@ namespace HDeck.Motor;
 /// </summary>
 static class Programa
 {
+    [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int SetCurrentProcessExplicitAppUserModelID(string id);
+
     [STAThread]
     static void Main()
     {
+        // Mesma identidade do HDeck na barra de tarefas (as janelas de pop-up agrupam com ele, com o ícone dele).
+        SetCurrentProcessExplicitAppUserModelID("br.hera.hdeck");
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         var sc = new WindowsFormsSynchronizationContext();

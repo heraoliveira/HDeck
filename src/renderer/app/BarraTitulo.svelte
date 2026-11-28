@@ -31,7 +31,10 @@ function recarregarGrupo() {
     </button>
   {/if}
   <div class="cresce arrasta"></div>
-  <span class="consumo pequeno" title={t('titulo.consumo', { ram, cpu })}>{t('titulo.consumo', { ram, cpu })}</span>
+  <button class="consumo pequeno" title={t('titulo.consumoDetalhe')} onclick={(e) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    abrirDialogo({ qual: 'consumo', x: r.left - 120, y: r.bottom + 6 })
+  }}>{t('titulo.consumo', { ram, cpu })}</button>
   <button class="icone-botao" class:ligado={eco} aria-pressed={eco} aria-label={t('titulo.economia')} title={t('titulo.economia')} onclick={() => chamar('config.alterar', { caminho: 'economia.modoEconomico', valor: !eco })}>
     <Icone nome="folha" />
   </button>
@@ -44,7 +47,11 @@ function recarregarGrupo() {
   <button class="icone-botao" class:ligado={painel} aria-pressed={painel} aria-label={t('titulo.painel')} title={t('titulo.painel')} onclick={() => (painel = !painel)}>
     <Icone nome="painel" />
   </button>
-  <button class="icone-botao avisos" aria-label={t('titulo.avisos')} title={t('titulo.avisos')} onclick={() => abrirDialogo({ qual: 'avisos' })}>
+  <button class="icone-botao avisos" aria-label={t('titulo.avisos')} title={t('titulo.avisos')} onclick={() => {
+    abrirDialogo({ qual: 'avisos' })
+    // Abrir o painel de avisos marca todos como lidos.
+    void chamar('avisos.marcarLidos')
+  }}>
     <Icone nome="sino" />
     {#if (s?.naoLidos ?? 0) > 0}<span class="contador">{s!.naoLidos > 99 ? '99+' : s!.naoLidos}</span>{/if}
   </button>
@@ -99,6 +106,16 @@ function recarregarGrupo() {
   .consumo {
     color: var(--texto-2);
     margin-right: 6px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--raio-s);
+    padding: 2px 6px;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+  }
+  .consumo:hover {
+    border-color: var(--borda);
+    color: var(--texto);
   }
   .avisos {
     position: relative;

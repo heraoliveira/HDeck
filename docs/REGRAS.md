@@ -27,7 +27,7 @@
 - **RN-005** O HDeck não bloqueia nem altera anúncios ou conteúdo dos sites dos jogos e das lives. (P)
 - **RN-006** Toda frase da interface é pt-BR simples e direta. (D)
 - **RN-007** Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, tokens de `estilos/tokens.css`); nada de menu nativo do sistema dentro do app (a bandeja do Windows é a exceção). Clicar ou passar o mouse num controle da interface devolve o teclado que ficou na página de uma conta: nenhum campo deixa de aceitar texto e nenhum botão pede dois cliques. (D, 2026-11-27)
-- **RN-008** À direita fica o painel da conta selecionada, que recolhe e expande como o dos grupos: estado, Início, Recarregar, Som, Destacar, lives, consumo de RAM e CPU da última hora, Otimizar (com o horário do automático) e o histórico da conta; Foco, Desligar e Mais no rodapé. (D, 2026-11-27)
+- **RN-008** À direita fica o painel da conta selecionada, que recolhe e expande como o dos grupos: estado, Início, Recarregar, Som, Destacar, lives, consumo de RAM e CPU da última hora, Otimizar (com o horário do automático) e o histórico da conta; Foco, Desligar e Mais no rodapé. Totalmente personalizável: cada bloco (botões, lives, consumo, Otimizar, histórico, endereço, zoom, fora da tela, notas) e cada botão sai, volta e muda de lugar. (D, 2026-11-27; personalização 2026-11-28)
 
 ## 2. Contas
 
@@ -61,13 +61,13 @@
 - **RN-042** Espaços nunca se sobrepõem e sempre cabem na área disponível, em qualquer tamanho de janela. (P)
 - **RN-043** A conta ativa tem a borda destacada. Clicar numa conta a torna ativa. (R)
 - **RN-044** Ao abrir um diálogo por cima das contas, elas aparecem como foto e continuam rodando; ao fechar, voltam ao vivo. (P)
-- **RN-045** Painel: estado, tempo online, quedas do dia, recargas, último dado recebido, RAM, CPU e lives de cada conta, de todos os grupos; histórico de 30 dias. RAM e CPU são medidas como no Gerenciador de Tarefas (memória privada; CPU em % do PC inteiro), somando os processos da conta, e atualizam a cada 2 s. (R; alterada D 2026-11-27)
+- **RN-045** Painel: estado, tempo online, quedas do dia, recargas, último dado recebido, RAM, CPU e lives de cada conta, de todos os grupos; histórico de 30 dias. RAM e CPU são medidas como no Gerenciador de Tarefas (memória privada; CPU em % do PC inteiro), somando os processos da conta, e atualizam a cada 2 s. Clicar no consumo da barra de título mostra quanto cada parte usa: cada grupo, a interface, o desenho das contas (GPU) e a base do navegador. (R; alterada D 2026-11-27 e 2026-11-28)
 
 ## 5. Rodar escondido e economia
 
 - **RN-050** Conta com política "Manter farmando" roda a 100% (timers, animações e rede) com a janela minimizada, na bandeja, coberta, ou com a conta fora da tela. (D/R)
-- **RN-051** A política fora da tela é por jogo, no menu "⋯" do grupo: "Economizar" (padrão) ou "Manter farmando"; a conta pode ter exceção própria. "Economizar": a conta que não está ao vivo (foto ou fora da tela) para de desenhar e acorda só para cada foto; timers e rede seguem a 100%. "Manter farmando": continua desenhando, para jogos que param quando a página fica oculta. (R; alterada D 2026-11-27, CPU)
-- **RN-052** Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece como foto atualizada a cada N s (1 s; opções 1, 2, 5, 10, 30 s) e continua farmando normalmente. Com "Economizar", ela só desenha na hora da foto (RN-051). (R)
+- **RN-051** A política fora da tela é por jogo, no menu "⋯" do grupo: "Economizar" (padrão) ou "Manter farmando"; a conta pode ter exceção própria. A conta começa em "Seguir o grupo". "Economizar": a conta que não está ao vivo (foto ou fora da tela) para de desenhar e acorda só para cada foto; timers e rede seguem a 100%. "Manter farmando": continua desenhando, para jogos que param quando a página fica oculta. (R; alterada D 2026-11-27, CPU)
+- **RN-052** Com o **Modo econômico** ligado (ligado), toda conta visível que não é a ativa aparece como foto atualizada a cada N s (5 s; opções 1, 2, 5, 10, 30 s) e continua farmando normalmente. Com "Economizar", ela só desenha na hora da foto (RN-051). A foto mostra a tela inteira da conta, reduzida e na proporção certa (a página é desenhada no tamanho do espaço grande da janela), em todas as divisões. (R; alterada D 2026-11-28)
 - **RN-053** Clicar numa conta em foto a põe ao vivo e a torna ativa. Opcional: voltar a ser foto após X sem mexer (desligado; 30 s, 1 min, 5 min). (R/P)
 - **RN-054** Fotos não são capturadas para contas cujo espaço não está na tela. (P)
 - **RN-055** Com contas ligadas, o PC é impedido de dormir (ligado); a tela pode apagar. (P)
@@ -75,7 +75,7 @@
   - recarregar contas a cada 2, 4, 6, 12 ou 24 h;
   - recarregar a conta cuja memória passar de 1; 1,5; 2 ou 3 GB;
   - limpar o cache de arquivos das contas a cada 1 ou 7 dias (nunca cookies, armazenamento ou login). (D)
-- **RN-058** **Otimizar** reabre a conta num processo novo (o login continua) e solta a memória que o jogo acumulou. Manual (painel do grupo, da conta e ações em lote) e sozinho só se a dona ligar (desligado por padrão; 30 min, 1, 2, 4 h), uma conta por vez e nunca a conta em uso. (D, 2026-11-27)
+- **RN-058** **Otimizar** reabre a conta num processo novo (o login continua) e solta a memória que o jogo acumulou. Manual (painel do grupo, da conta e ações em lote) e sozinho só se a dona ligar, **por conta** (contas do mesmo grupo podem ter regras diferentes): desligado (padrão), por tempo (30 min, 1, 2, 4 h) ou quando a página passa de X MB de RAM (300 MB a 2 GB). Uma conta por vez e nunca a conta em uso. Otimizar à mão ou pelo grupo zera o relógio da conta. (D, alterada 2026-11-28)
 - **RN-057** Recargas programadas são uma conta por vez, com 20 s entre elas, e nunca recarregam a conta ativa usada nos últimos 60 s (ela fica para o fim da fila). (P)
 
 ## 6. Saúde: quedas e recargas
@@ -94,7 +94,7 @@
 
 ## 7. Lives da Twitch e da Kick
 
-- **RN-080** Uma conta pode ter várias lives (Twitch ou Kick + canal). O botão "Lives" aparece nas contas dos jogos marcados no catálogo como "dá bônus por live", ou em todas se o usuário ligar a opção. (R)
+- **RN-080** Uma conta pode ter várias lives (Twitch ou Kick + canal). O botão "Lives" aparece nas contas dos jogos marcados no catálogo como "dá bônus por live", ou em todas se o usuário ligar a opção. A janela de lives mostra as lives com filtro por conta (Twitch e Kick, ligar/desligar tudo, abrir por link ou nome). Um link de live da Twitch ou da Kick clicado no jogo vira live daquela conta e abre nessa janela. O painel direito mostra as lives ligadas da conta. (R; alterada D 2026-11-28)
 - **RN-081** A live usa a sessão da própria conta: o login na Twitch/Kick é por conta e serve também ao vínculo feito dentro do jogo. (P)
 - **RN-082** **Lives nas contas** (ligado): liga o sistema; desligado fecha todas as lives. (R)
 - **RN-083** As lives tocam sem som e não aparecem na tela. "Mostrar" abre a live numa janela pequena; fechar volta ao modo escondido. (D/R)
@@ -116,7 +116,7 @@
 
 - **RN-110** Canais: notificação do Windows, som, selo na barra de tarefas (contador), Discord (webhook) e Telegram (bot). Cada um liga/desliga; Discord e Telegram têm botão "Testar". (R)
 - **RN-111** O que avisa (cada item liga/desliga por canal): conta caiu e não voltou; sem dados; texto vigiado; página travou ou fechou; site fora do ar; sem internet há mais de X min (5); memória acima do limite; live encerrou/voltou; login pedido; perto do limite de contas. Ping lento ou com erro é um item próprio. Por padrão só avisa o que acontece no jogo ou é importante; ping, memória, lives e limite de contas ficam só no histórico até a dona ligar. (R/P; alterada D 2026-11-27)
-- **RN-112** Avisos iguais seguidos viram um só ("3 contas de X caíram"). Nenhum aviso é perdido: todos ficam no histórico. (P)
+- **RN-112** Avisos iguais seguidos viram um só ("3 contas de X caíram"). Nenhum aviso é perdido: todos ficam no histórico. Abrir o painel de avisos marca todos como lidos. (P; alterada D 2026-11-28)
 - **RN-113** Horário de silêncio (desligado): avisos só vão para o histórico, sem som e sem notificação. (P)
 - **RN-114** Avisos para Discord e Telegram funcionam mesmo com o cofre trancado. (P)
 - **RN-115** Discord/Telegram: até 3 novas tentativas (5 s, 30 s, 2 min), respeitando o "espere" dos serviços, e no máximo 1 mensagem a cada 3 s por canal. (P)
@@ -164,7 +164,7 @@
 - **RN-173** Atualizações baixam sozinhas e são aplicadas ao fechar ou em "Reiniciar agora"; o app nunca reinicia sozinho com contas ligadas. (P)
 - **RN-174** Toda configuração vale na hora, salvo as marcadas "vale ao reiniciar". (P)
 - **RN-175** A busca das Configurações encontra pelo título, pela descrição e por palavras-chave. (R)
-- **RN-176** Atalhos padrão: Ctrl+1…9 (conta), Ctrl+Tab (próxima), F5 (recarregar conta), Ctrl+Shift+R (recarregar grupo), Ctrl+M (som da conta), Ctrl+E (modo econômico), Ctrl+K (paleta), Ctrl+, (configurações), F11 (tela cheia da conta), Ctrl+L (preencher login), Ctrl+Alt+1…9 (grupo). Todos editáveis; valem também com o foco dentro de uma conta. (R/P)
+- **RN-176** Atalhos padrão: Ctrl+1…9 (conta), Ctrl+Tab (próxima), F5 (recarregar conta), Ctrl+Shift+R (recarregar grupo), Ctrl+M (som da conta), Ctrl+E (modo econômico), Ctrl+K (paleta), Ctrl+, (configurações), F11 (tela cheia da conta), Ctrl+L (preencher login), Ctrl+Alt+1…9 (grupo). Todos editáveis; valem também com o foco dentro de uma conta. Trocar de conta pelo teclado já deixa a conta pronta para jogar (o teclado vai para ela, sem clique). (R/P; alterada D 2026-11-28)
 
 ## 16. Ações em lote
 
@@ -184,6 +184,7 @@
 - [ ] MEDICOES.md atualizado se a mudança mexe em desempenho.
 
 ## Histórico
+- 2026-11-28 · v5 · pedidos da dona: RN-008 (personalizável), RN-045 (detalhamento), RN-051 (conta segue o grupo), RN-052 (5 s, foto proporcional), RN-058 (Otimizar sozinho por conta, por tempo ou RAM), RN-080 (janela de lives e links), RN-112 (avisos lidos ao abrir) e RN-176 (trocar de conta já foca) alteradas.
 - 2026-11-27 · v4 · pedidos da dona: RN-030 (grupo novo ligado), RN-051/052 (Economizar padrão, foto não desenha entre fotos), RN-111 (avisos discretos), RN-154 e RN-002 (identidade Edge desde o início) e RN-007 (teclado volta à interface) alteradas.
 - 2026-11-27 · v3 · pedidos da dona: RN-008 nova (painel direito); RN-018 (fica no link atual), RN-058 (nada recarrega sozinho sem ela ligar) e RN-154 (Google vê o Edge comum) alteradas; RN-045 (RAM e CPU como no Gerenciador de Tarefas) alterada.
 - 2026-11-27 · v2 · pedidos da dona: RN-007, RN-037, RN-038, RN-058 novas; RN-002, RN-036 e RN-154 alteradas.

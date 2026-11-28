@@ -78,19 +78,28 @@ describe('pedidos de 2026-11-27', () => {
     expect(await m.motor.limparDados('x')).toBe(false)
   })
 
-  it('RN-058 ligado pela dona (1 h), otimiza sozinho uma por vez, nunca a conta em uso', () => {
+  it('RN-058 cada conta tem o seu Otimizar sozinho; por tempo, uma por vez, nunca a conta em uso', () => {
     const r = new RelogioFalso()
     const cfg = configPadrao()
-    cfg.otimizacao.otimizarACadaMin = 60 // desligado por padrão: aqui a dona ligou
+    // Por conta: a e b a cada 1 h; c desligada (mesmo grupo, configurações diferentes).
+    const planos: Record<
+      string,
+      { modo: 'desligado' | 'tempo' | 'memoria'; aCadaMin: number; limiteMb: number }
+    > = {
+      a: { modo: 'tempo', aCadaMin: 60, limiteMb: 800 },
+      b: { modo: 'tempo', aCadaMin: 60, limiteMb: 800 },
+      c: { modo: 'desligado', aCadaMin: 60, limiteMb: 800 },
+    }
     const feitas: string[] = []
     const emUso = new Set(['a'])
     const ag = new AgendaOtimizacao(r, () => cfg, {
-      ligadas: () => ['a', 'b'],
+      ligadas: () => ['a', 'b', 'c'],
       emUso: (id) => emUso.has(id),
       recarregar: () => {},
       limparCache: () => {},
       avisarMemoria: () => {},
       otimizar: (id) => feitas.push(id),
+      planoDe: (id) => planos[id] ?? null,
     })
     ag.iniciar()
     r.avancar(60_000)
@@ -100,8 +109,10 @@ describe('pedidos de 2026-11-27', () => {
     emUso.clear()
     r.avancar(60_000)
     expect(feitas).toContain('a')
+    expect(feitas).not.toContain('c')
     ag.esquecer('a')
-    cfg.otimizacao.otimizarACadaMin = 0
+    planos.a!.modo = 'desligado'
+    planos.b!.modo = 'desligado'
     r.avancar(5 * 3_600_000)
     expect(feitas.length).toBeLessThanOrEqual(3)
   })
@@ -187,6 +198,7 @@ describe('pedidos de 2026-11-27 (rodada 5)', () => {
       limparCache: () => {},
       avisarMemoria: () => {},
       otimizar: (id) => feitas.push(`otimizar:${id}`),
+      planoDe: () => null,
     })
     ag.iniciar()
     r.avancar(24 * 3_600_000)
@@ -202,5 +214,63 @@ describe('pedidos de 2026-11-27 (rodada 6)', () => {
     const c = m.novaConta({ grupoId: g.id })
     m.relogio.avancar(5000)
     expect(m.paginas.paginas.has(c.id)).toBe(true)
+  })
+})
+
+describe('pedidos de 2026-11-27 (rodada 7)', () => {
+  it('RN-041 RN-052 miniatura proporcional: a página é desenhada no tamanho do espaço grande e a foto só reduz', async () => {
+    const m = montarMotor()
+    const a = m.novaConta({ nome: 'A' })
+    const b = m.novaConta({ nome: 'B' })
+    m.motor.ligarGrupo(m.grupoId, true, true)
+    m.relogio.avancar(10_000)
+    // "Principal + miniaturas": A grande ao vivo, B numa miniatura pequena (foto).
+    m.motor.definirEspacos('principal', [
+      { contaId: a.id, retangulo: { x: 0, y: 0, largura: 1200, altura: 700 }, tipo: 'conta' },
+      { contaId: b.id, retangulo: { x: 0, y: 710, largura: 240, altura: 140 }, tipo: 'conta' },
+    ])
+    m.motor.ativar(a.id)
+    await m.motor.capturarFoto(b.id)
+    expect(m.paginas.de(b.id).ultimaCaptura).toEqual({
+      largura: 240,
+      altura: 140,
+      natural: { largura: 1200, altura: 700 },
+    })
+  })
+
+  it('RN-058 otimizar à mão (ou pelo grupo) zera o relógio do Otimizar sozinho da conta', () => {
+    const m = montarMotor()
+    const c = m.novaConta()
+    m.motor.editarConta(c.id, { otimizarAuto: { modo: 'tempo', aCadaMin: 60, limiteMb: 800 } })
+    m.motor.ligarGrupo(m.grupoId, true, true)
+    m.relogio.avancar(5000)
+    m.relogio.avancar(60_000)
+    const antes = m.motor.detalheConta(c.id).proximaOtimizacao!
+    m.relogio.avancar(20 * 60_000)
+    m.motor.otimizar(c.id)
+    const depois = m.motor.detalheConta(c.id).proximaOtimizacao!
+    expect(depois - antes).toBeGreaterThanOrEqual(20 * 60_000)
+  })
+
+  it('RN-058 Otimizar sozinho por RAM: só a conta que passou do limite dela', () => {
+    const r = new RelogioFalso()
+    const feitas: string[] = []
+    const ag = new AgendaOtimizacao(r, () => configPadrao(), {
+      ligadas: () => ['a', 'b'],
+      emUso: () => false,
+      recarregar: () => {},
+      limparCache: () => {},
+      avisarMemoria: () => {},
+      otimizar: (id) => feitas.push(id),
+      planoDe: (id) => ({ modo: id === 'a' ? 'memoria' : 'desligado', aCadaMin: 60, limiteMb: 500 }),
+    })
+    ag.verificarMemoria(
+      new Map([
+        ['a', 900],
+        ['b', 900],
+      ]),
+    )
+    r.avancar(60_000)
+    expect(feitas).toEqual(['a'])
   })
 })

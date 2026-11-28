@@ -292,11 +292,42 @@ test('RN-007 o teclado preso na página de uma conta volta para a interface ao c
         return t.fabrica.donoDoTeclado(t.janelas.principal)
       })
     // O usuário clicou no jogo: o teclado foi para a janela nativa da conta.
-    await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.pagina(id).focarParaTeste(), c1!)
+    await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.pagina(id).focarTeclado(), c1!)
     await expect.poll(teclado).toBe('conta')
     // Um clique na interface devolve o teclado (antes os campos paravam de aceitar texto).
     await j.evaluate(() => (window as H).hdeck.app.focarInterface())
     await expect.poll(teclado).toBe('interface')
+  } finally {
+    await a.fechar()
+  }
+})
+
+test('RN-008 painel direito personalizável: tira e põe de volta botões e blocos; RN-045 detalhamento do consumo', async () => {
+  const a = await abrirApp()
+  try {
+    await garantirJogoFalso(a)
+    const [c1] = await criarContas(a, 1)
+    await esperarEstado(a, c1!, ['ativa'])
+    const j = a.janela
+    const painel = j.getByRole('complementary', { name: 'Configurações da conta' })
+    await painel.getByRole('button', { name: 'Personalizar este painel' }).click()
+    await painel.getByRole('button', { name: 'Tirar Histórico desta conta do painel' }).click()
+    await painel.getByRole('button', { name: 'Tirar Destacar do painel' }).click()
+    await expect.poll(async () => (await snap(a)).config.painelDireito.secoes).not.toContain('historico')
+    await expect.poll(async () => (await snap(a)).config.painelDireito.botoes).not.toContain('destacar')
+    // Volta pelo "Adicionar ao painel".
+    await painel.locator('.item-secao', { hasText: 'Histórico desta conta' }).click()
+    await expect.poll(async () => (await snap(a)).config.painelDireito.secoes).toContain('historico')
+    await painel.getByRole('button', { name: 'Pronto' }).click()
+    // Otimizar sozinho da conta: por RAM.
+    await painel.getByRole('radio', { name: 'Por RAM' }).click()
+    await expect
+      .poll(async () => (await snap(a)).contas.find((c: H) => c.id === c1).otimizarAuto.modo)
+      .toBe('memoria')
+    // Clique no consumo da barra de título: detalhamento por parte.
+    await j.locator('button.consumo').click()
+    await expect(j.getByRole('menu')).toContainText('Tela do HDeck', { timeout: 10_000 })
+    await expect(j.getByRole('menu')).toContainText('Grupo 1')
   } finally {
     await a.fechar()
   }

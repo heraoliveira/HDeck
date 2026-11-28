@@ -221,3 +221,46 @@ test('RN-160 RN-162 exportar backup e importar numa pasta de dados vazia', async
   }
   void esperarEstado
 })
+
+test('RN-080 link de live clicado no jogo vira live da conta e abre a janela de lives filtrada nela', async () => {
+  const a = await abrirApp()
+  try {
+    await garantirJogoFalso(a)
+    const [c] = await criarContas(a, 1)
+    await esperarEstado(a, c!, ['ativa', 'economica', 'escondida'])
+    await naConta(a, c!, `window.open('${a.servidor.url}/live/canaldoteste')`)
+    await expect
+      .poll(() =>
+        a.app.evaluate(
+          (_e, id) =>
+            (globalThis as H).hdeckTeste.motor
+              .snapshot()
+              .lives.filter((l: H) => l.contaId === id)
+              .map((l: H) => l.canal),
+          c!,
+        ),
+      )
+      .toEqual(['canaldoteste'])
+    // A janela de lives abriu, filtrada nesta conta, e mostra a live.
+    await expect
+      .poll(() => a.app.evaluate(() => Boolean((globalThis as H).hdeckTeste.janelas.lives)))
+      .toBe(true)
+    const janela = await a.app
+      .waitForEvent('window', { predicate: (p) => p.url().includes('janela=lives') })
+      .catch(async () => a.app.windows().find((p) => p.url().includes('janela=lives')))
+    expect(janela!.url()).toContain(`conta=${c}`)
+    await expect(janela!.getByText('canaldoteste').first()).toBeVisible()
+    // Clicar de novo no mesmo link não duplica.
+    await naConta(a, c!, `window.open('${a.servidor.url}/live/canaldoteste')`)
+    await new Promise((r) => setTimeout(r, 1000))
+    expect(
+      await a.app.evaluate(
+        (_e, id) =>
+          (globalThis as H).hdeckTeste.motor.snapshot().lives.filter((l: H) => l.contaId === id).length,
+        c!,
+      ),
+    ).toBe(1)
+  } finally {
+    await a.fechar()
+  }
+})

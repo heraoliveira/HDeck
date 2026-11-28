@@ -312,3 +312,26 @@ test('RN-070 a interface cai e volta sem recarregar as contas', async () => {
     await a.fechar()
   }
 })
+
+test('RN-041 barra de rolagem da página da conta fica por cima: não muda a largura do jogo', async () => {
+  const a = await abrirApp()
+  try {
+    await garantirJogoFalso(a)
+    const [c] = await criarContas(a, 1)
+    await esperarEstado(a, c!, ['ativa'])
+    const largura = () => naConta<number>(a, c!, 'document.documentElement.clientWidth')
+    const antes = await largura()
+    // Conteúdo maior que a tela: aparece a barra de rolagem.
+    await naConta(
+      a,
+      c!,
+      'document.body.insertAdjacentHTML(\'beforeend\', \'<div id="alto" style="height:5000px"></div>\')',
+    )
+    await new Promise((r) => setTimeout(r, 300))
+    const com = await largura()
+    expect(await naConta<number>(a, c!, 'document.documentElement.scrollHeight')).toBeGreaterThan(4000)
+    expect(com).toBe(antes)
+  } finally {
+    await a.fechar()
+  }
+})

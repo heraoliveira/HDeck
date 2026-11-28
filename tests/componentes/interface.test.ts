@@ -154,7 +154,7 @@ describe('contas e visões', () => {
     })
   })
 
-  it('RN-176 visão Foco: abas com Ctrl+N e navegação pelo teclado', async () => {
+  it('RN-176 visão Foco: abas sem o texto dos atalhos (Ctrl+N continua valendo) e navegação pelo teclado', async () => {
     const m = preparar()
     const a = m.novaConta({ nome: 'Aba A' })
     const b = m.novaConta({ nome: 'Aba B' })
@@ -163,7 +163,7 @@ describe('contas e visões', () => {
     render(VisaoFoco, { grupo: loja.snap.grupos[0]! })
     const abas = screen.getAllByRole('tab')
     expect(abas).toHaveLength(2)
-    expect(abas[0]!.textContent).toContain('Ctrl+1')
+    expect(abas[0]!.textContent).not.toContain('Ctrl+1')
     await fireEvent.keyDown(abas[0]!, { key: 'ArrowRight' })
     expect(chamadas).toContainEqual({ canal: 'contas.ativar', dados: { id: b.id } })
     expect(loja.focoContaId).toBe(b.id)

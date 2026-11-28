@@ -352,6 +352,9 @@ sealed class Pagina
         if (ctl == null) return;
         var visivel = viva || !Estrangular;
         if (ctl.IsVisible != visivel) ctl.IsVisible = visivel;
+        // Oculta (Economizar): o Edge solta caches e a memória de desenho da página; o jogo segue rodando.
+        var alvo = visivel ? CoreWebView2MemoryUsageTargetLevel.Normal : CoreWebView2MemoryUsageTargetLevel.Low;
+        if (ctl.CoreWebView2.MemoryUsageTargetLevel != alvo) ctl.CoreWebView2.MemoryUsageTargetLevel = alvo;
     }
 
     public void AplicarMudo()
@@ -474,14 +477,19 @@ sealed class Pagina
     }
 
     /// <summary>Foto da página (Seção 4.4). Fora da tela, a página assume o tamanho do espaço antes.</summary>
-    public async Task<byte[]?> Capturar(int largura, int altura, int qualidade)
+    /// <summary>
+    /// Foto que cabe em largura × altura. Fora do ar, a página é desenhada no tamanho natural (o do espaço
+    /// grande da janela) e a foto é reduzida sem distorcer: a miniatura mostra a tela inteira do jogo.
+    /// </summary>
+    public async Task<byte[]?> Capturar(int largura, int altura, int qualidade, int naturalLargura = 0, int naturalAltura = 0)
     {
         if (ctl == null) return null;
         if (!viva && largura > 0 && altura > 0)
         {
             var k = Win32.Escala(pai);
-            var w = (int)Math.Round(largura * k);
-            var h = (int)Math.Round(altura * k);
+            var usarNatural = naturalLargura > 0 && naturalAltura > 0;
+            var w = (int)Math.Round((usarNatural ? naturalLargura : largura) * k);
+            var h = (int)Math.Round((usarNatural ? naturalAltura : altura) * k);
             if (ret.Width != w || ret.Height != h)
             {
                 ret = new Rectangle(Fora, 0, w, h);
@@ -513,14 +521,16 @@ sealed class Pagina
         ms.Position = 0;
         using var img = new Bitmap(ms);
         using var saida = new MemoryStream();
-        if (img.Width > largura)
+        var fator = Math.Min(largura / (double)img.Width, altura / (double)img.Height);
+        if (fator < 1)
         {
-            var alt = Math.Max(1, (int)Math.Round(img.Height * (largura / (double)img.Width)));
-            using var menor = new Bitmap(largura, alt);
+            var larg = Math.Max(1, (int)Math.Round(img.Width * fator));
+            var alt = Math.Max(1, (int)Math.Round(img.Height * fator));
+            using var menor = new Bitmap(larg, alt);
             using (var g = Graphics.FromImage(menor))
             {
                 g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                g.DrawImage(img, 0, 0, largura, alt);
+                g.DrawImage(img, 0, 0, larg, alt);
             }
             Jpeg(menor, saida, qualidade);
         }
