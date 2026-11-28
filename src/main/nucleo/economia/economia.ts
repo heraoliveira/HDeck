@@ -13,12 +13,15 @@ export function politicaEfetiva(
   _jogo: Jogo | undefined,
 ): PoliticaForaTela {
   if (conta.politicaForaTela !== 'padrao_do_jogo') return conta.politicaForaTela
-  return grupo?.layout.politicas[conta.jogoId] ?? 'manter'
+  return grupo?.layout.politicas[conta.jogoId] ?? 'economizar'
 }
 
-/** RN-050/RN-051: só "Economizar" + fora da tela deixa o Chromium desacelerar a conta. */
+/**
+ * RN-050/RN-051: com "Economizar", a conta que não está ao vivo (fora da tela ou em foto) para de
+ * desenhar; os timers e a rede seguem. Em foto, ela acorda só para cada foto (RN-052).
+ */
 export function deveEstrangular(politica: PoliticaForaTela, exibicao: ModoExibicao): boolean {
-  return politica === 'economizar' && exibicao === 'fora'
+  return politica === 'economizar' && exibicao !== 'viva'
 }
 
 /**

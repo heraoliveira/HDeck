@@ -2,6 +2,12 @@
 
 ## Próxima versão
 
+- CPU bem menor: contas em foto ou fora da tela param de desenhar entre as fotos ("Economizar" é o novo padrão; timers e rede seguem).
+- Login com Google em sites de jogo: a conta é o Edge comum desde o início (sem trocar no meio do login).
+- Avisos: por padrão só o que acontece no jogo ou é importante; ping, memória, lives e limite de contas ficam no histórico.
+- Grupo novo já vem ligado.
+- Correção: campos que paravam de aceitar texto e botões que pediam dois cliques depois de mexer num jogo.
+- RAM e CPU com leitura mais estável.
 - A conta fica no link em que estava ao recarregar, otimizar, religar ou reabrir o app.
 - Nada recarrega sozinho sem você ligar ("Otimizar sozinho" agora vem desligado).
 - Painel da conta à direita, que recolhe e expande: ações, lives, consumo da última hora, Otimizar e histórico.

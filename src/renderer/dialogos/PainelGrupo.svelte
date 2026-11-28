@@ -14,7 +14,9 @@ const contas = $derived(contasDoGrupo(id))
 const ids = $derived(contas.map((c) => c.id))
 const ligadas = $derived(contas.filter((c) => s.estados[c.id]?.estado !== 'desligada').length)
 const jogos = $derived([...new Set(contas.map((c) => c.jogoId))])
-const economizar = $derived(jogos.length > 0 && jogos.every((j) => g?.layout.politicas[j] === 'economizar'))
+const economizar = $derived(
+  jogos.length > 0 && jogos.every((j) => (g?.layout.politicas[j] ?? 'economizar') === 'economizar'),
+)
 const ordenados = $derived([...s.grupos].sort((a, b) => a.ordem - b.ordem))
 const posicao = $derived(ordenados.findIndex((x) => x.id === id))
 let editandoNome = $state(false)

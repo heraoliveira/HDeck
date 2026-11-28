@@ -334,6 +334,11 @@ class PaginaWebView2 implements PaginaConta {
     return this.d.motor.pedir('estado', { conta: this.conta.id })
   }
 
+  /** Só no modo de teste: o teclado vai para a página (como um clique no jogo). */
+  focarParaTeste(): Promise<unknown> {
+    return this.d.motor.pedir('focar', { conta: this.conta.id })
+  }
+
   /** Só no modo de teste: lê o mundo da página (contadores do jogo falso). */
   lerPagina<T>(codigo: string): Promise<T> {
     return this.d.motor.pedir<T>('avaliarPagina', { conta: this.conta.id, codigo })
@@ -436,6 +441,17 @@ export class FabricaPaginasWebView2 implements FabricaPaginas {
       const dona = p.conta ? this.paginas.get(p.conta)?.pid() : null
       return { pid: dona ?? p.pid, ramMb: p.ramMb, cpuPct: p.cpuPct }
     })
+  }
+
+  /** Tira o teclado da página de uma conta e devolve à janela do HDeck (campos da interface voltam a aceitar texto). */
+  devolverTeclado(j: BaseWindow): void {
+    const janela = hwndDe(j)
+    if (janela) this.d.motor.enviar('devolverTeclado', { janela })
+  }
+
+  /** Diagnóstico e testes: com quem está o teclado nesta janela. */
+  donoDoTeclado(j: BaseWindow): Promise<string> {
+    return this.d.motor.pedir<string>('teclado', { janela: hwndDe(j) })
   }
 
   /** Pop-ups das contas abertos agora (diagnóstico e testes). */

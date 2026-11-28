@@ -14,6 +14,15 @@ namespace HDeck.Motor;
 sealed class Metricas
 {
     private readonly Dictionary<int, (TimeSpan cpu, long quando)> anteriores = new();
+    /// <summary>Médias suavizadas por processo: o Windows apara e devolve memória o tempo todo, e o número cru pula.</summary>
+    private readonly Dictionary<int, (double ram, double cpu)> medias = new();
+
+    private (double ram, double cpu) Suavizar(int pid, double ram, double cpu)
+    {
+        var m = medias.TryGetValue(pid, out var a) ? (ram: a.ram * 0.7 + ram * 0.3, cpu: a.cpu * 0.5 + cpu * 0.5) : (ram, cpu);
+        medias[pid] = m;
+        return m;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct Contadores
@@ -63,11 +72,13 @@ sealed class Metricas
         try
         {
             using var p = Process.GetProcessById(pid);
-            return new JsonObject { ["pid"] = pid, ["tipo"] = tipo, ["ramMb"] = Math.Round(RamMb(p), 1), ["cpuPct"] = CpuPct(p) };
+            var (ram, cpu) = Suavizar(pid, RamMb(p), CpuPct(p));
+            return new JsonObject { ["pid"] = pid, ["tipo"] = tipo, ["ramMb"] = Math.Round(ram, 1), ["cpuPct"] = Math.Round(cpu, 1) };
         }
         catch
         {
             anteriores.Remove(pid);
+            medias.Remove(pid);
             return null;
         }
     }
@@ -121,6 +132,7 @@ sealed class Metricas
             if (vistos.Add(pid) && Medir(pid, tipo) is JsonObject m) processos.Add(m);
         // Processos que sumiram não guardam medição velha.
         foreach (var pid in anteriores.Keys.Where(k => !vistos.Contains(k)).ToList()) anteriores.Remove(pid);
+        foreach (var pid in medias.Keys.Where(k => !vistos.Contains(k)).ToList()) medias.Remove(pid);
         return new JsonObject { ["processos"] = processos, ["porConta"] = porConta, ["nucleos"] = Environment.ProcessorCount };
     }
 }

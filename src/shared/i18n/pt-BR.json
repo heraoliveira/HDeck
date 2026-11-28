@@ -211,6 +211,7 @@
   "tipoAviso.live": "Live encerrou ou voltou",
   "tipoAviso.login_pedido": "Login pedido",
   "tipoAviso.limite_contas": "Perto do limite de contas",
+  "tipoAviso.ping": "Ping lento ou com erro",
   "canal.windows": "Windows",
   "canal.som": "Som",
   "canal.selo": "Selo",

@@ -209,7 +209,7 @@ export class Motor {
       },
       (a) =>
         this.avisar(
-          'site_fora',
+          'ping',
           null,
           a.tipo === 'lento'
             ? t('avisos.ping', { jogo: a.jogo.nome, ms: a.ms })
@@ -457,7 +457,8 @@ export class Motor {
       nome: nome.slice(0, 60),
       cor: cor ?? CORES_CONTA[0],
       ordem: this.grupos.length,
-      ligado: false,
+      // RN-030 (pedido da dona): grupo novo já vem ligado; as contas que entrarem nele já abrem.
+      ligado: true,
       visao: 'grade',
       layout: layoutGrupoSchema.parse({}),
     }
@@ -1076,7 +1077,9 @@ export class Motor {
       this.grupos.find((g) => g.id === c.grupoId),
       this.jogoDe(id),
     )
-    rt.pagina.definirEstrangulamento(deveEstrangular(politica, modo))
+    // A conta ativa que só virou foto porque um diálogo abriu continua desenhando (volta ao vivo em seguida).
+    const porDialogo = this.dialogoAberto && id === this.ativaId
+    rt.pagina.definirEstrangulamento(deveEstrangular(politica, modo) && !porDialogo)
     this.evento(id, { tipo: 'exibir', modo })
     // Foto: captura logo e depois a cada N s (RN-052), só com espaço na tela (RN-054).
     if (mudou || (modo === 'foto' && !rt.fotoTimer)) {

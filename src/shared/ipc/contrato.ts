@@ -265,6 +265,7 @@ export const canais = {
   'app.abrirPasta': z.object({ qual: z.enum(['logs', 'dados']) }).strict(),
   'app.limparCacheTodas': vazio,
   'app.sair': vazio,
+  'app.focarInterface': vazio,
   'app.silenciarTudo': z.object({ ligado: z.boolean() }).strict(),
   'app.telaCheia': vazio,
 } as const

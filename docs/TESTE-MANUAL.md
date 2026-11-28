@@ -34,6 +34,9 @@ Execução de 2026-11-26 (assistente, no PC da dona, sem contas reais): os itens
 | 25 | Sem recarga sozinha (RN-058) | Deixar a conta jogando 2 h com outra tela por cima: nada recarrega (o histórico do painel direito mostra qualquer recarga com o motivo) | ⏳ dona |
 | 26 | RAM e CPU (RN-045) | Comparar o painel direito e a barra de título com o Gerenciador de Tarefas: números próximos, atualizando a cada 2 s | ⏳ dona |
 | 27 | Atalhos do instalador | Instalar: aparece o HDeck na área de trabalho e no menu Iniciar | ⏳ dona |
+| 28 | CPU com várias contas (Economizar) | 3 contas, modo econômico ligado: a CPU do HDeck fica perto da de uma conta só; as fotos seguem atualizando e o jogo segue rodando nas contas em foto | ⏳ dona |
+| 29 | Login com Google no site do jogo | "Entrar com Google" no pokeafk: volta logado | ⏳ dona |
+| 30 | Teclado depois de mexer no jogo | Clicar no jogo, depois criar/apagar grupos e contas e digitar nos nomes: o texto entra e os botões funcionam com um clique | ⏳ dona |
 
 ## Observações
 - A contagem real do tempo assistido (item 8) é o maior risco: se não contar com a página offscreen, trocar para o plano B do ADR 0004.

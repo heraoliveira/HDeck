@@ -757,6 +757,13 @@ async function iniciar(): Promise<void> {
     'app.abrirPasta': (e) => shell.openPath(e.qual === 'logs' ? join(pastaDados, 'logs') : pastaDados),
     'app.limparCacheTodas': () => m.limparCacheTodas(),
     'app.sair': () => sair(),
+    // O teclado pode ter ficado na página de uma conta (outra janela nativa): volta para a interface.
+    'app.focarInterface': (_e, ctx) => {
+      const w = janelas.obter(ctx.janela) as BrowserWindow | null
+      if (!w || w.isDestroyed()) return
+      fabrica.devolverTeclado(w)
+      w.webContents.focus()
+    },
     'app.silenciarTudo': (e) => m.silenciar(e.ligado),
     'app.telaCheia': (_e, ctx) => {
       const w = BrowserWindow.fromWebContents(ctx.wc)

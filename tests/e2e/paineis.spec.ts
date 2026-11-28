@@ -278,3 +278,26 @@ test('RN-008 painel direito: mostra a conta selecionada, recolhe e expande, e os
     await a.fechar()
   }
 })
+
+test('RN-007 o teclado preso na página de uma conta volta para a interface ao clicar ou passar o mouse num controle', async () => {
+  const a = await abrirApp()
+  try {
+    await garantirJogoFalso(a)
+    const [c1] = await criarContas(a, 1)
+    await esperarEstado(a, c1!, ['ativa'])
+    const j = a.janela
+    const teclado = () =>
+      a.app.evaluate(() => {
+        const t = (globalThis as H).hdeckTeste
+        return t.fabrica.donoDoTeclado(t.janelas.principal)
+      })
+    // O usuário clicou no jogo: o teclado foi para a janela nativa da conta.
+    await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.fabrica.pagina(id).focarParaTeste(), c1!)
+    await expect.poll(teclado).toBe('conta')
+    // Um clique na interface devolve o teclado (antes os campos paravam de aceitar texto).
+    await j.evaluate(() => (window as H).hdeck.app.focarInterface())
+    await expect.poll(teclado).toBe('interface')
+  } finally {
+    await a.fechar()
+  }
+})

@@ -97,6 +97,7 @@ describe('motor: grupos e contas', () => {
     const m = montarMotor()
     const [c] = ligarTudo(m, 1)
     const b = m.motor.criarGrupo('B')
+    m.motor.ligarGrupo(b.id, false) // grupo novo vem ligado (RN-030); aqui o caso é o desligado
     expect(m.motor.moverConta(c!.id, b.id, 0)).toBe(true)
     expect(m.motor.contasLigadas()).toBe(0)
     m.motor.ligarGrupo(b.id, true)
@@ -198,6 +199,9 @@ describe('motor: exibição e economia', () => {
     ])
     m.motor.ativar(a!.id)
     const pb = m.paginas.de(b!.id)
+    // Economizar (padrão): a foto segue atualizando, e a página não desenha entre as fotos.
+    expect(pb.estrangulada).toBe(true)
+    m.motor.definirPolitica(m.grupoId, 'falso', 'manter')
     const antes = pb.capturas
     m.relogio.avancar(5_000)
     await esvaziarPromessas()
@@ -272,6 +276,8 @@ describe('motor: exibição e economia', () => {
     m.motor.definirEspacos('principal', [])
     const p = m.paginas.de(a!.id)
     expect(p.exibicao.modo).toBe('fora')
+    expect(p.estrangulada).toBe(true) // padrão: Economizar
+    m.motor.definirPolitica(m.grupoId, 'falso', 'manter')
     expect(p.estrangulada).toBe(false)
     m.motor.definirPolitica(m.grupoId, 'falso', 'economizar')
     expect(p.estrangulada).toBe(true)

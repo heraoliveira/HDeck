@@ -39,3 +39,13 @@ Uma conta ao vivo na tela em https://ultimatepokeidle.com (sem login), medido co
 Processos: interface Electron ~215 MB, motor .NET ~20 MB, navegador WebView2 ~45 MB, GPU do WebView2 ~300 MB (memória de vídeo contada como privada), rede e armazenamento ~25 MB, página do jogo ~170–230 MB. Desligar o isolamento por site juntou os renderers num só, mas não diminuiu o total; ele ficou ligado.
 
 Provas (`pnpm provas`, 20 s por cenário): timers 99,9% minimizada, 99,9% na bandeja e 100% coberta, para a conta ao vivo e para a conta fora da tela; foto fora da tela atualizando (9 ticks em 2 s); vigia de rede com 20 msg/s: CPU 5,2% sem e 4,7% com (sem diferença mensurável).
+
+## 2026-11-27 · CPU com 3 contas no pokeafk.io (ADR 0014)
+`node tools/bancada/cpu-real.ts https://pokeafk.io/ 3 1 <política>` (modo econômico ligado, 1 conta ao vivo e 2 em foto, 20 s, 12 núcleos):
+
+| Política fora da tela | CPU total do HDeck | Cada conta em foto | GPU do WebView2 |
+|---|---|---|---|
+| Manter farmando (antes, padrão) | ~22% | ~4,4% | ~7,5% |
+| Economizar (agora, padrão) | ~11% | ~0,9% | ~4,1% |
+
+A conta ao vivo gasta o que a página do jogo pede (~3,5–4%, como numa aba do Edge).

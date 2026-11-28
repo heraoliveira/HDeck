@@ -56,40 +56,16 @@ static class Politicas
 }
 
 /// <summary>
-/// RN-154: só nas páginas de login do Google a página se apresenta como Firefox, sem client hints
-/// (o Google recusa login em navegador embutido olhando esses dois). Fora delas, nada muda (RN-002).
-/// A troca vale a partir da navegação: a atual é cancelada, a identidade muda e ela recomeça.
+/// RN-154: as contas se apresentam como o Microsoft Edge comum da mesma versão: o mesmo texto de user
+/// agent que o WebView2 já manda, só que sem a marca "Microsoft Edge WebView2" nas client hints, que faz
+/// Google (e sites que entram com Google) recusarem o login. Vale para a página inteira desde o começo:
+/// trocar no meio do caminho (só no Google) cancelava e refazia navegações e quebrava logins por redirecionamento.
 /// </summary>
-sealed class LoginGoogle
+static class Identidade
 {
-    private static readonly string[] Hosts = ["accounts.google.com", "accounts.youtube.com", "myaccount.google.com"];
-    private bool ativo;
-
-    public static bool Eh(string url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out var u) && Hosts.Any(h => Politicas.DominioPertence(u.Host, h));
-
-    /// <summary>Devolve true se cancelou a navegação para trocar a identidade (ela recomeça sozinha).</summary>
-    public bool Trocar(CoreWebView2 w, CoreWebView2NavigationStartingEventArgs e)
+    /// <summary>Aplica uma vez, antes da primeira navegação: nada é trocado no meio de um login.</summary>
+    public static async Task Aplicar(CoreWebView2 w)
     {
-        var quer = Eh(e.Uri);
-        if (quer == ativo) return false;
-        e.Cancel = true;
-        var uri = e.Uri;
-        _ = Aplicar(w, quer).ContinueWith(_ => w.Navigate(uri), TaskScheduler.FromCurrentSynchronizationContext());
-        return true;
-    }
-
-    public async Task Aplicar(CoreWebView2 w, bool google)
-    {
-        ativo = google;
-        if (!google)
-        {
-            // Texto vazio desfaz a troca: o resto da navegação é o WebView2 de sempre (RN-002).
-            await w.CallDevToolsProtocolMethodAsync("Network.setUserAgentOverride", "{\"userAgent\":\"\"}");
-            return;
-        }
-        // O Google recusa o WebView2 pela marca "Microsoft Edge WebView2" nas client hints. No login dele, a
-        // página se apresenta como o Edge comum da mesma versão: mesmo motor, mesmos recursos, sem a marca.
         var versao = w.Environment.BrowserVersionString.Split(' ')[0];
         var maior = versao.Split('.')[0];
         JsonArray Marcas(string v) => new()
@@ -176,7 +152,6 @@ sealed class JanelaPopup : Form
     private readonly Motor motor;
     private readonly string conta;
     private readonly string? fecharEm;
-    private readonly LoginGoogle google = new();
     private CoreWebView2Controller? ctl;
 
     /** Pop-ups abertos agora (diagnóstico e testes). */
@@ -215,12 +190,11 @@ sealed class JanelaPopup : Form
         w.Settings.IsGeneralAutofillEnabled = false;
         w.Settings.AreHostObjectsAllowed = false;
         w.Settings.IsWebMessageEnabled = false;
-        await w.AddScriptToExecuteOnDocumentCreatedAsync(LoginGoogle.ScriptEsconder);
-        if (LoginGoogle.Eh(urlInicial)) await google.Aplicar(w, true);
+        await w.AddScriptToExecuteOnDocumentCreatedAsync(Identidade.ScriptEsconder);
+        await Identidade.Aplicar(w);
         w.NavigationStarting += (_, e) =>
         {
             if (!Politicas.NavegacaoPermitida(e.Uri)) e.Cancel = true;
-            else google.Trocar(w, e);
         };
         w.LaunchingExternalUriScheme += (_, e) => e.Cancel = true;
         w.PermissionRequested += (_, e) => e.State = CoreWebView2PermissionState.Deny;
@@ -232,7 +206,7 @@ sealed class JanelaPopup : Form
         {
             if (fecharEm == null || !Uri.TryCreate(w.Source, UriKind.Absolute, out var u)) return;
             if (Politicas.DominioPertence(u.Host, fecharEm) || Politicas.DominioPertence(fecharEm, u.Host))
-                _ = Task.Delay(1000).ContinueWith(_ => BeginInvoke(Close));
+                _ = Task.Delay(2500).ContinueWith(_ => BeginInvoke(Close));
         };
         return w;
     }
