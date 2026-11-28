@@ -65,7 +65,12 @@ export interface PaginaConta {
   definirEstrangulamento(estrangular: boolean): void
   /** Liga/desliga o vigia de rede (CDP). */
   vigiar(ligado: boolean): void
-  capturar(largura: number, altura: number): Promise<Uint8Array | null>
+  /** Foto que cabe em largura × altura. Com `natural`, a página é desenhada nesse tamanho e reduzida (sem distorcer). */
+  capturar(
+    largura: number,
+    altura: number,
+    natural?: { largura: number; altura: number },
+  ): Promise<Uint8Array | null>
   pid(): number | null
   /** Procura os textos (já normalizados) no DOM, num mundo isolado; devolve os encontrados. */
   procurarTextos(textos: string[]): Promise<string[]>
@@ -107,7 +112,8 @@ export interface FabricaLives {
   criar(live: Live, eventos: EventosLive): PaginaLive
   urlDoCanal(plataforma: PlataformaLive, canal: string): string
   canalDaUrl(plataforma: PlataformaLive, url: string): string | null
-  abrirLogin(live: Live): void
+  /** Login da Twitch/Kick na sessão das lives desta conta (RN-081). */
+  abrirLogin(contaId: string, plataforma: PlataformaLive): void
 }
 
 export type LinhaMetrica = { contaId: string; minuto: number; ramMb: number; cpuPct: number; estado: string }
@@ -170,7 +176,9 @@ export interface CanaisLocais {
   piscar(): void
 }
 
-export type Metrica = { pid: number; ramMb: number; cpuPct: number }
+/** Medida de um processo. `parte` diz de onde ele é (para o detalhamento do consumo). */
+export type Metrica = { pid: number; ramMb: number; cpuPct: number; parte?: ParteConsumo }
+export type ParteConsumo = 'interface' | 'gpuContas' | 'baseContas'
 
 export interface Sistema {
   impedirDormir(ligado: boolean): void

@@ -37,6 +37,10 @@ Execução de 2026-11-26 (assistente, no PC da dona, sem contas reais): os itens
 | 28 | CPU com várias contas (Economizar) | 3 contas, modo econômico ligado: a CPU do HDeck fica perto da de uma conta só; as fotos seguem atualizando e o jogo segue rodando nas contas em foto | ⏳ dona |
 | 29 | Login com Google no site do jogo | "Entrar com Google" no pokeafk: volta logado | ⏳ dona |
 | 30 | Teclado depois de mexer no jogo | Clicar no jogo, depois criar/apagar grupos e contas e digitar nos nomes: o texto entra e os botões funcionam com um clique | ⏳ dona |
+| 31 | Gerenciador de Tarefas | Abrir o Gerenciador de Tarefas: o grupo "HDeck" deve trazer o motor e os processos do Edge das contas (se aparecerem separados como "hdeck-motor", avisar) | ⏳ dona |
+| 32 | Painel direito personalizado | Personalizar: tirar e pôr blocos e botões, arrastar a ordem; fechar e abrir o app mantém | ⏳ dona |
+| 33 | Lives pelo jogo | Clicar numa live da Twitch/Kick dentro do jogo: abre na janela de lives, na conta certa | ⏳ dona |
+| 34 | Miniaturas | "Principal + miniaturas": cada miniatura mostra a tela inteira do jogo, reduzida | ⏳ dona |
 
 ## Observações
 - A contagem real do tempo assistido (item 8) é o maior risco: se não contar com a página offscreen, trocar para o plano B do ADR 0004.

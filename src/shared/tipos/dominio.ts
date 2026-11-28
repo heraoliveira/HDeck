@@ -84,6 +84,17 @@ export const grupoSchema = z.object({
 })
 export type Grupo = z.infer<typeof grupoSchema>
 
+/** RN-058: Otimizar sozinho, por conta: desligado, a cada X min ou quando a página passa de X MB de RAM. */
+export const OPCOES_OTIMIZAR = { min: [30, 60, 120, 240] as const, mb: [300, 500, 800, 1200, 2000] as const }
+export const otimizarAutoSchema = z
+  .object({
+    modo: z.enum(['desligado', 'tempo', 'memoria']).default('desligado'),
+    aCadaMin: z.number().int().min(10).max(1440).default(60),
+    limiteMb: z.number().int().min(100).max(16000).default(800),
+  })
+  .prefault({})
+export type OtimizarAuto = z.infer<typeof otimizarAutoSchema>
+
 export const contaSchema = z.object({
   id: idSchema,
   grupoId: idSchema,
@@ -99,6 +110,7 @@ export const contaSchema = z.object({
   notificacoesDaPagina: z.boolean(),
   notas: z.string().max(2000),
   criadaEm: z.number().int(),
+  otimizarAuto: otimizarAutoSchema,
 })
 export type Conta = z.infer<typeof contaSchema>
 

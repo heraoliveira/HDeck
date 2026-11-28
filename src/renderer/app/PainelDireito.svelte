@@ -1,17 +1,21 @@
 <script lang="ts">
+import { BOTOES_PAINEL, SECOES_PAINEL } from '@shared/config/esquema.ts'
 import { t } from '@shared/i18n/index.ts'
 import type { DetalheConta } from '@shared/ipc/contrato.ts'
-import type { EventoConta } from '@shared/tipos/dominio.ts'
+import { type EventoConta, OPCOES_OTIMIZAR, type OtimizarAuto } from '@shared/tipos/dominio.ts'
 import { formatarDuracao } from '@shared/util/texto.ts'
 import GraficoLinha from '../componentes/GraficoLinha.svelte'
 import Icone from '../componentes/Icone.svelte'
 import { chamar } from '../estado/api.ts'
-import { abrirDialogo, grupoAtual, loja } from '../estado/loja.svelte.ts'
+import { abrirDialogo, grupoAtual, loja, mensagem } from '../estado/loja.svelte.ts'
 
 /**
- * Painel direito (pedido da dona, 2026-11-27): as configurações e o consumo da conta selecionada.
- * Recolhe para uma faixa fina, como a barra dos grupos.
+ * Painel direito (RN-008): configurações e consumo da conta selecionada. Recolhe para uma faixa fina e
+ * é personalizável: cada bloco e cada botão pode sair, voltar e trocar de lugar ("Personalizar").
  */
+type Secao = (typeof SECOES_PAINEL)[number]
+type Botao = (typeof BOTOES_PAINEL)[number]
+
 const s = $derived(loja.snap!)
 const grupo = $derived(grupoAtual())
 const contasDoGrupo = $derived(s.contas.filter((c) => c.grupoId === grupo?.id))
@@ -19,18 +23,21 @@ const c = $derived(contasDoGrupo.find((x) => x.id === s.ativaId) ?? contasDoGrup
 const est = $derived(c ? s.estados[c.id] : undefined)
 const ligada = $derived((est?.estado ?? 'desligada') !== 'desligada')
 const atual = $derived(c ? loja.metricas?.porConta[c.id] : undefined)
-const jogo = $derived(s.jogos.find((j) => j.id === c?.jogoId))
-const mostrarLives = $derived(s.config.lives.mostrarEmTodas || (jogo?.bonusLive ?? false))
 const livesDaConta = $derived(s.lives.filter((l) => l.contaId === c?.id))
-const otimizarMin = $derived(s.config.otimizacao.otimizarACadaMin)
+const cfg = $derived(s.config.painelDireito)
+const ot = $derived(c?.otimizarAuto)
 
 let detalhe: DetalheConta | null = $state(null)
 let agora = $state(Date.now())
+let editando = $state(false)
+let arrastando: Secao | null = $state(null)
+let editandoUrl = $state(false)
+let url = $state('')
+let notas = $state('')
 
 async function carregar(id: string) {
   detalhe = await chamar<'contas.detalhe', DetalheConta>('contas.detalhe', { id }).catch(() => null)
 }
-
 $effect(() => {
   const id = c?.id
   if (!id || loja.direitaRecolhida) return
@@ -42,6 +49,9 @@ $effect(() => {
     clearInterval(t2)
   }
 })
+$effect(() => {
+  notas = c?.notas ?? ''
+})
 
 function alternar() {
   loja.direitaRecolhida = !loja.direitaRecolhida
@@ -52,12 +62,170 @@ function alternar() {
   }
 }
 
+// ---------- personalização ----------
+const salvar = (campo: 'secoes' | 'botoes' | 'rodape', lista: readonly string[]) =>
+  chamar('config.alterar', { caminho: `painelDireito.${campo}`, valor: [...lista] })
+const tirarSecao = (x: Secao) =>
+  salvar(
+    'secoes',
+    cfg.secoes.filter((y) => y !== x),
+  )
+const porSecao = (x: Secao) => salvar('secoes', [...cfg.secoes, x])
+const tirarBotao = (campo: 'botoes' | 'rodape', x: Botao) =>
+  salvar(
+    campo,
+    cfg[campo].filter((y) => y !== x),
+  )
+const porBotao = (x: Botao) => salvar('botoes', [...cfg.botoes, x])
+const padrao = () => {
+  void salvar('secoes', ['acoes', 'lives', 'consumo', 'otimizar', 'historico'])
+  void salvar('botoes', ['inicio', 'recarregar', 'som', 'destacar'])
+  void salvar('rodape', ['foco', 'ligar', 'mais'])
+}
+const secoesFora = $derived(SECOES_PAINEL.filter((x) => !cfg.secoes.includes(x)))
+const botoesFora = $derived(BOTOES_PAINEL.filter((x) => !cfg.botoes.includes(x) && !cfg.rodape.includes(x)))
+function soltarEm(alvo: Secao) {
+  if (!arrastando || arrastando === alvo) return
+  const lista = cfg.secoes.filter((x) => x !== arrastando)
+  lista.splice(lista.indexOf(alvo), 0, arrastando)
+  arrastando = null
+  void salvar('secoes', lista)
+}
+
+// ---------- ações ----------
+type Acao = { icone: string; rotulo: string; fazer: () => void; ativo?: boolean; precisaLigada?: boolean }
+const acoes = $derived.by((): Record<Botao, Acao> => {
+  const id = c?.id ?? ''
+  const nome = c?.nome ?? ''
+  return {
+    inicio: {
+      icone: 'casa',
+      rotulo: t('pc.inicio'),
+      fazer: () => chamar('contas.inicio', { id }),
+      precisaLigada: true,
+    },
+    recarregar: {
+      icone: 'recarregar',
+      rotulo: t('pc.recarregar'),
+      fazer: () => chamar('contas.lote', { ids: [id], acao: 'recarregar' }),
+      precisaLigada: true,
+    },
+    som: {
+      icone: c?.som ? 'som' : 'mudo',
+      rotulo: t('pd.som'),
+      fazer: () => chamar('contas.editar', { id, som: !c?.som }),
+      ativo: c?.som ?? false,
+    },
+    destacar: {
+      icone: 'janelaPropria',
+      rotulo: t('pd.destacar'),
+      fazer: () => chamar('contas.soltar', { id }),
+      precisaLigada: true,
+    },
+    otimizar: {
+      icone: 'brilho',
+      rotulo: t('pc.otimizar'),
+      fazer: () => chamar('contas.lote', { ids: [id], acao: 'otimizar' }),
+      precisaLigada: true,
+    },
+    renomear: {
+      icone: 'lapis',
+      rotulo: t('pd.renomear'),
+      fazer: () => abrirDialogo({ qual: 'editarConta', id }),
+    },
+    endereco: {
+      icone: 'link',
+      rotulo: t('pd.endereco'),
+      fazer: () => abrirDialogo({ qual: 'editarConta', id }),
+    },
+    login: { icone: 'chave', rotulo: t('pd.login'), fazer: () => abrirDialogo({ qual: 'cofre', id }) },
+    preencher: {
+      icone: 'lapis',
+      rotulo: t('pd.preencher'),
+      fazer: () => chamar('cofre.preencher', { ids: [id] }),
+      precisaLigada: true,
+    },
+    lives: { icone: 'live', rotulo: t('pd.lives'), fazer: () => chamar('lives.janela', { contaId: id }) },
+    mover: { icone: 'pasta', rotulo: t('pd.mover'), fazer: () => mais() },
+    duplicar: { icone: 'mais', rotulo: t('pd.duplicar'), fazer: () => chamar('contas.duplicar', { id }) },
+    devtools: {
+      icone: 'engrenagem',
+      rotulo: t('pd.devtools'),
+      fazer: () => chamar('contas.devtools', { id }),
+      precisaLigada: true,
+    },
+    limpar: {
+      icone: 'lixo',
+      rotulo: t('pd.limpar'),
+      fazer: () =>
+        abrirDialogo({
+          qual: 'confirmar',
+          titulo: t('pc.limparDados'),
+          texto: t('pc.limparDadosConfirma', { nome }),
+          botao: t('cfg.limpar'),
+          perigo: true,
+          aoConfirmar: () => void chamar('contas.limparDados', { id }),
+        }),
+    },
+    excluir: {
+      icone: 'lixo',
+      rotulo: t('pd.excluir'),
+      fazer: () => abrirDialogo({ qual: 'apagarConta', id }),
+    },
+    foco: {
+      icone: 'foco',
+      rotulo: t('pd.foco'),
+      fazer: () =>
+        grupo && chamar('grupos.layout', { id: grupo.id, visao: 'foco' }).then(() => (loja.focoContaId = id)),
+    },
+    ligar: {
+      icone: 'ligar',
+      rotulo: ligada ? t('pc.desligar') : t('pc.ligar'),
+      fazer: () =>
+        ligada
+          ? chamar('contas.lote', { ids: [id], acao: 'desligar' })
+          : chamar('contas.lote', { ids: [id], acao: 'ligar', confirmado: true }),
+    },
+    mais: { icone: 'pontos', rotulo: t('pd.mais'), fazer: () => mais() },
+  }
+})
+let ultimoMais: HTMLElement | undefined = $state()
+function mais() {
+  if (!c) return
+  const r = ultimoMais?.getBoundingClientRect()
+  abrirDialogo({
+    qual: 'painelConta',
+    id: c.id,
+    x: Math.max(8, (r?.left ?? innerWidth) - 300),
+    y: Math.max(48, (r?.top ?? 600) - 520),
+  })
+}
+
+async function salvarUrl() {
+  if (!c) return
+  try {
+    const u = new URL(url.trim())
+    if (!/^https?:$/.test(u.protocol)) throw new Error()
+    await chamar('contas.editar', { id: c.id, url: u.toString() })
+    editandoUrl = false
+  } catch {
+    mensagem('erro', t('adicionar.urlInvalida'))
+  }
+}
+const otimizar = (patch: Partial<OtimizarAuto>) =>
+  c && ot && chamar('contas.editar', { id: c.id, otimizarAuto: { ...ot, ...patch } })
+function zoom(delta: number) {
+  if (!c) return
+  const z = Math.round(Math.min(3, Math.max(0.25, c.zoom + delta)) * 100) / 100
+  void chamar('contas.editar', { id: c.id, zoom: z })
+}
+
+// ---------- consumo e histórico ----------
 const pontos = (campo: 'ramMb' | 'cpuPct') => {
   const serie = (detalhe?.serieHora ?? []).map((p) => ({ x: p.em, y: p[campo] }))
   if (atual) serie.push({ x: agora, y: atual[campo] })
   return serie
 }
-
 const MOTIVOS: Record<string, string> = {
   queda: 'pd.r.queda',
   travou: 'pd.r.travou',
@@ -83,15 +251,10 @@ const iniciais = (n: string) =>
     .replace(/[^\p{L}\p{N}]/gu, '')
     .slice(0, 2)
     .toUpperCase() || '?'
-
-function mais(ev: MouseEvent) {
-  if (!c) return
-  const r = (ev.currentTarget as HTMLElement).getBoundingClientRect()
-  abrirDialogo({ qual: 'painelConta', id: c.id, x: Math.max(8, r.left - 300), y: Math.max(48, r.top - 520) })
-}
+const politicaDoGrupo = $derived(c ? (grupo?.layout.politicas[c.jogoId] ?? 'economizar') : 'economizar')
 </script>
 
-<aside class="direita" class:recolhida={loja.direitaRecolhida} aria-label={t('pd.titulo')}>
+<aside class="direita" class:recolhida={loja.direitaRecolhida} class:editando aria-label={t('pd.titulo')}>
   <div class="topo">
     <button class="icone-botao" aria-label={loja.direitaRecolhida ? t('pd.expandir') : t('pd.recolher')} onclick={alternar}>
       <Icone nome={loja.direitaRecolhida ? 'seta' : 'descer'} tamanho={14} />
@@ -105,6 +268,11 @@ function mais(ev: MouseEvent) {
             · {t('pd.ligadaHa', { tempo: formatarDuracao(agora - est.onlineDesde) })}{/if}
         </div>
       </div>
+      {#if editando}
+        <button class="botao primario pronto" onclick={() => (editando = false)}>{t('pd.pronto')}</button>
+      {:else}
+        <button class="icone-botao" aria-label={t('pd.personalizar')} title={t('pd.personalizar')} onclick={() => (editando = true)}><Icone nome="engrenagem" tamanho={14} /></button>
+      {/if}
     {/if}
   </div>
 
@@ -113,73 +281,144 @@ function mais(ev: MouseEvent) {
       <p class="muted vazio">{t('pd.semConta')}</p>
     {:else}
       <div class="rolagem">
-        <div class="acoes">
-          <button class="acao" disabled={!ligada} onclick={() => chamar('contas.inicio', { id: c.id })}><Icone nome="casa" />{t('pc.inicio')}</button>
-          <button class="acao" disabled={!ligada} onclick={() => chamar('contas.lote', { ids: [c.id], acao: 'recarregar' })}><Icone nome="recarregar" />{t('pc.recarregar')}</button>
-          <button class="acao" class:ligado={c.som} onclick={() => chamar('contas.editar', { id: c.id, som: !c.som })}><Icone nome={c.som ? 'som' : 'mudo'} />{t('pd.som')}</button>
-          <button class="acao" disabled={!ligada} onclick={() => chamar('contas.soltar', { id: c.id })}><Icone nome="janelaPropria" />{t('pd.destacar')}</button>
-        </div>
+        {#each cfg.secoes as secao (secao)}
+          <section
+            class="secao"
+            class:arrastando={arrastando === secao}
+            draggable={editando}
+            ondragstart={() => (arrastando = secao)}
+            ondragover={(e) => editando && e.preventDefault()}
+            ondrop={() => soltarEm(secao)}
+            aria-label={t(`pd.s.${secao}` as 'pd.s.acoes')}
+          >
+            {#if editando}
+              <button class="tirar" aria-label={t('pd.tirar', { item: t(`pd.s.${secao}` as 'pd.s.acoes') })} onclick={() => tirarSecao(secao)}>−</button>
+            {/if}
+            {#if secao === 'acoes'}
+              <div class="acoes">
+                {#each cfg.botoes as b (b)}
+                  {@const a = acoes[b]}
+                  <span class="botao-wrap">
+                    <button class="acao" class:ligado={a.ativo} disabled={!editando && a.precisaLigada && !ligada} onclick={() => !editando && a.fazer()}><Icone nome={a.icone as 'casa'} />{a.rotulo}</button>
+                    {#if editando}<button class="tirar pequeno-x" aria-label={t('pd.tirar', { item: a.rotulo })} onclick={() => tirarBotao('botoes', b)}>−</button>{/if}
+                  </span>
+                {/each}
+              </div>
+            {:else if secao === 'lives'}
+              <h3>{t('pd.lives')}</h3>
+              {#if livesDaConta.length === 0}
+                <p class="muted pequeno">{t('pd.semLives')}</p>
+              {:else}
+                {#each livesDaConta.filter((l) => l.ligada) as l (l.id)}
+                  <div class="linha"><span class="selo {l.plataforma}">{l.plataforma === 'twitch' ? 'T' : 'K'}</span><span class="cresce">{l.canal}</span><span class="pequeno muted">{t(`lives.estado.${s.livesEstado[l.id] ?? 'desligada'}` as 'lives.estado.tocando')}</span></div>
+                {:else}
+                  <p class="muted pequeno">{t('pd.livesDesligadas', { n: livesDaConta.length })}</p>
+                {/each}
+              {/if}
+              <button class="botao fino" onclick={() => chamar('lives.janela', { contaId: c.id })}><Icone nome="live" tamanho={14} />{t('pd.abrirLives')}</button>
+            {:else if secao === 'consumo'}
+              <h3>{t('pd.consumo')}</h3>
+              <div class="medida"><span>{t('pd.memoria')}</span><b>{atual ? `${Math.round(atual.ramMb)} MB` : '—'}</b></div>
+              <GraficoLinha rotulo={t('pd.memoria')} altura={44} legenda={false} series={[{ nome: t('pd.memoria'), cor: 'var(--destaque)', pontos: pontos('ramMb'), unidade: 'MB' }]} />
+              <div class="medida"><span>{t('pd.cpu')}</span><b>{atual ? `${atual.cpuPct.toFixed(1)}%` : '—'}</b></div>
+              <GraficoLinha rotulo={t('pd.cpu')} altura={44} legenda={false} series={[{ nome: t('pd.cpu'), cor: 'var(--ok)', pontos: pontos('cpuPct'), unidade: '%' }]} />
+            {:else if secao === 'otimizar'}
+              <h3>{t('pc.otimizar')}</h3>
+              <button class="cartao-otimizar" disabled={editando || !ligada} onclick={() => chamar('contas.lote', { ids: [c.id], acao: 'otimizar' })}>
+                <Icone nome="brilho" />
+                <span class="cresce"><b>{t('pc.otimizar')}</b><small>{t('pd.otimizarTexto')}</small></span>
+              </button>
+              {#if ot}
+                <div class="pf-segmento tres" role="radiogroup" aria-label={t('pd.sozinhoTitulo')}>
+                  {#each [['desligado', t('pd.oDesligado')], ['tempo', t('pd.oTempo')], ['memoria', t('pd.oMemoria')]] as [v, r] (v)}
+                    <button role="radio" aria-checked={ot.modo === v} class:ativo={ot.modo === v} onclick={() => otimizar({ modo: v as OtimizarAuto['modo'] })}>{r}</button>
+                  {/each}
+                </div>
+                {#if ot.modo === 'tempo'}
+                  <label class="linha pequeno">{t('pd.aCada')}
+                    <select class="campo pequeno" value={ot.aCadaMin} onchange={(e) => otimizar({ aCadaMin: Number(e.currentTarget.value) })}>
+                      {#each OPCOES_OTIMIZAR.min as n (n)}<option value={n}>{n < 60 ? `${n} min` : `${n / 60} h`}</option>{/each}
+                    </select>
+                  </label>
+                  {#if detalhe?.proximaOtimizacao}<p class="pequeno ok">{t('pd.proxima', { tempo: formatarDuracao(Math.max(0, detalhe.proximaOtimizacao - agora)) })}</p>{/if}
+                {:else if ot.modo === 'memoria'}
+                  <label class="linha pequeno">{t('pd.quandoPassar')}
+                    <select class="campo pequeno" value={ot.limiteMb} onchange={(e) => otimizar({ limiteMb: Number(e.currentTarget.value) })}>
+                      {#each OPCOES_OTIMIZAR.mb as n (n)}<option value={n}>{n >= 1000 ? `${n / 1000} GB` : `${n} MB`}</option>{/each}
+                    </select>
+                  </label>
+                {/if}
+              {/if}
+            {:else if secao === 'historico'}
+              <h3>{t('pd.historico')}</h3>
+              {#if (detalhe?.historico.length ?? 0) === 0}
+                <p class="muted pequeno">{t('pd.semHistorico')}</p>
+              {:else}
+                <ul class="historico">
+                  {#each detalhe!.historico as e, i (i)}
+                    <li><span class="quando">{hora(e.em)}</span><span>{textoEvento(e)}</span></li>
+                  {/each}
+                </ul>
+              {/if}
+            {:else if secao === 'endereco'}
+              <h3>{t('pd.s.endereco')}</h3>
+              {#if editandoUrl}
+                <div class="linha"><input class="campo cresce" bind:value={url} onkeydown={(e) => e.key === 'Enter' && salvarUrl()} aria-label={t('pc.endereco')} /><button class="botao primario" onclick={salvarUrl}>{t('comum.salvar')}</button></div>
+              {:else}
+                <div class="linha"><span class="cresce url pequeno">{c.url}</span><button class="botao fino" onclick={() => ((url = c.url), (editandoUrl = true))}>{t('pd.alterar')}</button></div>
+              {/if}
+            {:else if secao === 'zoom'}
+              <h3>{t('pc.zoom')}</h3>
+              <div class="linha"><button class="icone-botao" aria-label="−" onclick={() => zoom(-0.1)}>−</button><span class="cresce centro">{Math.round(c.zoom * 100)}%</span><button class="icone-botao" aria-label="+" onclick={() => zoom(0.1)}>+</button><button class="botao fino" onclick={() => chamar('contas.editar', { id: c.id, zoom: 1 })}>100%</button></div>
+            {:else if secao === 'foraDaTela'}
+              <h3>{t('pc.foraDaTela')}</h3>
+              <div class="pf-segmento tres" role="radiogroup" aria-label={t('pc.foraDaTela')}>
+                {#each [['padrao_do_jogo', t('pd.seguirGrupo', { p: t(politicaDoGrupo === 'manter' ? 'pg.farmando' : 'pg.economizar') })], ['manter', t('pg.farmando')], ['economizar', t('pg.economizar')]] as [v, r] (v)}
+                  <button role="radio" aria-checked={c.politicaForaTela === v} class:ativo={c.politicaForaTela === v} onclick={() => chamar('contas.editar', { id: c.id, politicaForaTela: v as 'manter' })}>{r}</button>
+                {/each}
+              </div>
+            {:else if secao === 'notas'}
+              <h3>{t('pd.s.notas')}</h3>
+              <textarea class="campo" rows="3" bind:value={notas} onblur={() => chamar('contas.editar', { id: c.id, notas: notas.slice(0, 2000) })} aria-label={t('pd.s.notas')}></textarea>
+            {/if}
+          </section>
+        {/each}
 
-        {#if mostrarLives}
-          <section>
-            <h3>{t('pd.lives')}</h3>
-            {#if livesDaConta.length === 0}
-              <p class="muted pequeno">{t('pd.semLives')}</p>
-            {:else}
-              {#each livesDaConta as l (l.id)}
-                <div class="linha"><Icone nome="live" /><span class="cresce">{l.canal}</span><span class="pequeno muted">{l.plataforma}</span></div>
+        {#if editando}
+          <section class="adicionar">
+            <h3>{t('pd.adicionar')}</h3>
+            <p class="pequeno muted">{t('pd.adicionarTexto')}</p>
+            {#if botoesFora.length > 0}
+              <div class="rotulo-secao">{t('pd.botoes')}</div>
+              <div class="acoes">
+                {#each botoesFora as b (b)}
+                  <button class="acao fora" onclick={() => porBotao(b)}><Icone nome={acoes[b].icone as 'casa'} />{acoes[b].rotulo}<span class="por">+</span></button>
+                {/each}
+              </div>
+            {/if}
+            {#if secoesFora.length > 0}
+              <div class="rotulo-secao">{t('pd.secoes')}</div>
+              {#each secoesFora as x (x)}
+                <button class="item-secao" onclick={() => porSecao(x)}><span class="cresce"><b>{t(`pd.s.${x}` as 'pd.s.acoes')}</b><small>{t(`pd.d.${x}` as 'pd.d.acoes')}</small></span><span class="por">+</span></button>
               {/each}
             {/if}
-            <button class="botao fino" onclick={() => abrirDialogo({ qual: 'lives', id: c.id })}>{t('pd.abrirLives')}</button>
+            <button class="link pequeno" onclick={padrao}><Icone nome="recarregar" tamanho={12} />{t('pd.voltarPadrao')}</button>
           </section>
         {/if}
-
-        <section>
-          <h3>{t('pd.consumo')}</h3>
-          <div class="medida"><span>{t('pd.memoria')}</span><b>{atual ? `${Math.round(atual.ramMb)} MB` : '—'}</b></div>
-          <GraficoLinha rotulo={t('pd.memoria')} altura={44} legenda={false} series={[{ nome: t('pd.memoria'), cor: 'var(--destaque)', pontos: pontos('ramMb'), unidade: 'MB' }]} />
-          <div class="medida"><span>{t('pd.cpu')}</span><b>{atual ? `${atual.cpuPct.toFixed(1)}%` : '—'}</b></div>
-          <GraficoLinha rotulo={t('pd.cpu')} altura={44} legenda={false} series={[{ nome: t('pd.cpu'), cor: 'var(--ok)', pontos: pontos('cpuPct'), unidade: '%' }]} />
-        </section>
-
-        <section>
-          <h3>{t('pc.otimizar')}</h3>
-          <button class="cartao-otimizar" disabled={!ligada} onclick={() => chamar('contas.lote', { ids: [c.id], acao: 'otimizar' })}>
-            <Icone nome="brilho" />
-            <span class="cresce"><b>{t('pc.otimizar')}</b><small>{t('pd.otimizarTexto')}</small></span>
-          </button>
-          <button class="link pequeno" onclick={() => abrirDialogo({ qual: 'configuracoes', busca: t('cfg.otimizarACadaMin.t') })}>
-            {#if otimizarMin > 0}
-              {t('pd.sozinho', { min: otimizarMin })}{#if detalhe?.proximaOtimizacao}
-                · {t('pd.proxima', { tempo: formatarDuracao(Math.max(0, detalhe.proximaOtimizacao - agora)) })}{/if}
-            {:else}
-              {t('pd.sozinhoDesligado')}
-            {/if}
-          </button>
-        </section>
-
-        <section>
-          <h3>{t('pd.historico')}</h3>
-          {#if (detalhe?.historico.length ?? 0) === 0}
-            <p class="muted pequeno">{t('pd.semHistorico')}</p>
-          {:else}
-            <ul class="historico">
-              {#each detalhe!.historico as e, i (i)}
-                <li><span class="quando">{hora(e.em)}</span><span>{textoEvento(e)}</span></li>
-              {/each}
-            </ul>
-          {/if}
-        </section>
       </div>
 
       <div class="rodape">
-        <button class="acao" onclick={() => grupo && chamar('grupos.layout', { id: grupo.id, visao: 'foco' }).then(() => (loja.focoContaId = c.id))}><Icone nome="foco" />{t('pd.foco')}</button>
-        {#if ligada}
-          <button class="acao" onclick={() => chamar('contas.lote', { ids: [c.id], acao: 'desligar' })}><Icone nome="ligar" />{t('pc.desligar')}</button>
-        {:else}
-          <button class="acao" onclick={() => chamar('contas.lote', { ids: [c.id], acao: 'ligar', confirmado: true })}><Icone nome="ligar" />{t('pc.ligar')}</button>
-        {/if}
-        <button class="acao" onclick={mais}><Icone nome="mais" />{t('pd.mais')}</button>
+        {#each cfg.rodape as b (b)}
+          {@const a = acoes[b]}
+          <span class="botao-wrap">
+            {#if b === 'mais'}
+              <button class="acao" bind:this={ultimoMais} onclick={() => !editando && a.fazer()}><Icone nome={a.icone as 'casa'} />{a.rotulo}</button>
+            {:else}
+              <button class="acao" class:destaque={b === 'foco'} onclick={() => !editando && a.fazer()}><Icone nome={a.icone as 'casa'} />{a.rotulo}</button>
+            {/if}
+            {#if editando && b !== 'mais'}<button class="tirar pequeno-x" aria-label={t('pd.tirar', { item: a.rotulo })} onclick={() => tirarBotao('rodape', b)}>−</button>{/if}
+          </span>
+        {/each}
       </div>
     {/if}
   {/if}
@@ -224,6 +463,9 @@ function mais(ev: MouseEvent) {
     font-size: var(--t12);
     opacity: 0.75;
   }
+  .pronto {
+    padding: 4px 10px;
+  }
   .avatar {
     width: 28px;
     height: 28px;
@@ -245,6 +487,49 @@ function mais(ev: MouseEvent) {
     flex-direction: column;
     gap: 14px;
   }
+  .secao {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .editando .secao {
+    padding: 8px;
+    border: 1px dashed var(--borda);
+    border-radius: var(--raio-m);
+    cursor: grab;
+  }
+  .secao.arrastando {
+    opacity: 0.5;
+  }
+  .tirar {
+    position: absolute;
+    top: -8px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--perigo);
+    color: #fff;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 1;
+  }
+  .botao-wrap {
+    position: relative;
+    display: flex;
+  }
+  .botao-wrap > .acao {
+    flex: 1;
+  }
+  .pequeno-x {
+    top: -6px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+  }
   .acoes,
   .rodape {
     display: grid;
@@ -257,17 +542,20 @@ function mais(ev: MouseEvent) {
     border-top: 1px solid var(--borda);
   }
   .acao {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 8px 4px;
+    padding: 8px 2px;
     border-radius: var(--raio-m);
     border: 1px solid var(--borda);
     background: var(--fundo-cartao);
     color: inherit;
-    font-size: var(--t12);
+    font-size: 11px;
     cursor: pointer;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .acao:hover:not(:disabled) {
     border-color: var(--destaque);
@@ -279,10 +567,26 @@ function mais(ev: MouseEvent) {
   .acao.ligado {
     color: var(--ok);
   }
-  section {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  .acao.destaque {
+    background: var(--destaque-suave);
+    border-color: var(--destaque);
+  }
+  .acao.fora {
+    opacity: 0.85;
+  }
+  .por {
+    position: absolute;
+    top: -6px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--ok);
+    color: #000;
+    font-weight: 800;
+    display: grid;
+    place-items: center;
+    line-height: 1;
   }
   h3 {
     margin: 0;
@@ -298,6 +602,35 @@ function mais(ev: MouseEvent) {
   .medida {
     justify-content: space-between;
   }
+  .centro {
+    text-align: center;
+  }
+  .url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ok {
+    color: var(--ok);
+    margin: 0;
+  }
+  .selo {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    display: inline-grid;
+    place-items: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .selo.twitch {
+    background: #9146ff;
+  }
+  .selo.kick {
+    background: #53fc18;
+    color: #000;
+  }
   .cartao-otimizar {
     display: flex;
     align-items: center;
@@ -310,7 +643,8 @@ function mais(ev: MouseEvent) {
     color: inherit;
     cursor: pointer;
   }
-  .cartao-otimizar small {
+  .cartao-otimizar small,
+  .item-secao small {
     display: block;
     opacity: 0.75;
   }
@@ -318,7 +652,13 @@ function mais(ev: MouseEvent) {
     opacity: 0.45;
     cursor: default;
   }
+  .tres {
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
   .link {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     background: none;
     border: 0;
     padding: 0;
@@ -348,5 +688,32 @@ function mais(ev: MouseEvent) {
   }
   .fino {
     align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .adicionar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border-radius: var(--raio-m);
+    background: var(--fundo-cartao);
+  }
+  .item-secao {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    text-align: left;
+    border-radius: var(--raio-m);
+    border: 1px solid var(--borda);
+    background: var(--fundo-painel);
+    color: inherit;
+    cursor: pointer;
+  }
+  .item-secao .por {
+    position: static;
   }
 </style>

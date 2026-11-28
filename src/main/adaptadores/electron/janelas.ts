@@ -179,6 +179,35 @@ export class GerenciadorJanelas {
     })
   }
 
+  lives: BrowserWindow | null = null
+
+  /** Janela de lives (RN-080): lista por conta, com filtro; uma só, reaproveitada. */
+  abrirLives(contaId?: string): void {
+    const consulta = `janela=lives${contaId ? `&conta=${encodeURIComponent(contaId)}` : ''}`
+    if (this.lives && !this.lives.isDestroyed()) {
+      void this.lives.loadURL(this.o.urlInterface(consulta))
+      if (this.lives.isMinimized()) this.lives.restore()
+      this.lives.focus()
+      return
+    }
+    const w = new BrowserWindow({
+      ...this.lugar('lives', 1100, 720),
+      title: 'Lives — HDeck',
+      icon: this.icone,
+      frame: false,
+      titleBarStyle: 'hidden',
+      titleBarOverlay: { color: '#0b2535', symbolColor: '#e5f0f6', height: 40 },
+      backgroundColor: '#08111f',
+      webPreferences: prefsInterface(this.o.preload),
+    })
+    this.lembrar(w, 'lives')
+    w.on('closed', () => {
+      this.lives = null
+    })
+    void w.loadURL(this.o.urlInterface(consulta))
+    this.lives = w
+  }
+
   /** Id da janela no núcleo. */
   obter(id: string): BaseWindow | null {
     if (id === 'principal') return this.principal
@@ -192,6 +221,7 @@ export class GerenciadorJanelas {
     if (this.principal && !this.principal.isDestroyed() && this.principal.webContents === wc)
       return 'principal'
     for (const [g, w] of this.grupos) if (!w.isDestroyed() && w.webContents === wc) return `grupo:${g}`
+    if (this.lives && !this.lives.isDestroyed() && this.lives.webContents === wc) return 'lives'
     return null
   }
 
@@ -199,6 +229,7 @@ export class GerenciadorJanelas {
     const out: WebContents[] = []
     if (this.principal && !this.principal.isDestroyed()) out.push(this.principal.webContents)
     for (const w of this.grupos.values()) if (!w.isDestroyed()) out.push(w.webContents)
+    if (this.lives && !this.lives.isDestroyed()) out.push(this.lives.webContents)
     return out
   }
 

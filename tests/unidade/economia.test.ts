@@ -28,6 +28,7 @@ const conta = (p: Partial<Conta> = {}): Conta => ({
   notificacoesDaPagina: false,
   notas: '',
   criadaEm: 0,
+  otimizarAuto: { modo: 'desligado' as const, aCadaMin: 60, limiteMb: 800 },
   ...p,
 })
 const grupo = (politicas = {}) => ({
@@ -73,7 +74,7 @@ describe('economia', () => {
     const cfg = configPadrao()
     const a = intervaloDaFotoMs(cfg, 'conta-a')
     const b = intervaloDaFotoMs({ ...cfg, economia: { ...cfg.economia, fotoACadaSeg: 10 } }, 'conta-a')
-    expect(Math.abs(a - 1000)).toBeLessThanOrEqual(100)
+    expect(Math.abs(a - 5000)).toBeLessThanOrEqual(500) // padrão: 5 s
     expect(Math.abs(b - 10000)).toBeLessThanOrEqual(100)
     expect(intervaloDaFotoMs(cfg, 'x')).not.toBe(intervaloDaFotoMs(cfg, 'conta-b'))
   })
@@ -119,6 +120,7 @@ describe('otimização programada', () => {
       emUso: (id) => emUso.has(id),
       recarregar: (id, motivo) => feitas.push([id, motivo, r.agora()]),
       limparCache: (id) => caches.push(id),
+      planoDe: () => null,
       avisarMemoria: (id) => memoria.push(id),
       otimizar: (id) => otimizadas.push(id),
     })

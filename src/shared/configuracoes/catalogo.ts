@@ -300,21 +300,6 @@ export const LINHAS: readonly LinhaConfig[] = [
     },
   },
   {
-    id: 'otimizarACadaMin',
-    secao: 'contas',
-    grupo: 'config.grupo.otimizacao',
-    caminho: 'otimizacao.otimizarACadaMin',
-    titulo: 'cfg.otimizarACadaMin.t',
-    descricao: 'cfg.otimizarACadaMin.d',
-    palavras: ['otimizar', 'memória', 'ram', 'processo'],
-    controle: {
-      tipo: 'select',
-      opcoes: OPCOES.otimizarMin.map((n) =>
-        op(n, n === 0 ? t('comum.desligado') : n < 60 ? min(n) : hrs(n / 60)),
-      ),
-    },
-  },
-  {
     id: 'limiteMemoriaMB',
     secao: 'contas',
     grupo: 'config.grupo.otimizacao',

@@ -45,7 +45,6 @@ function tecla(e: KeyboardEvent, i: number) {
       >
         <span class="cor"></span>
         <span>{c.icone} {c.nome}</span>
-        {#if i < 9}<kbd>Ctrl+{i + 1}</kbd>{/if}
         <SeloEstado estado={loja.snap?.estados[c.id]?.estado ?? 'desligada'} />
       </button>
     {/each}
@@ -93,11 +92,6 @@ function tecla(e: KeyboardEvent, i: number) {
     width: 4px;
     align-self: stretch;
     background: var(--cor-conta);
-  }
-  kbd {
-    font: inherit;
-    font-size: 10px;
-    color: var(--texto-3);
   }
   .area {
     flex: 1;

@@ -216,7 +216,8 @@ sealed class Motor
             case "vigiar": await pg.Vigiar(B(m, "valor")); return null;
             case "capturar":
             {
-                var b = await pg.Capturar((int)D(m, "largura"), (int)D(m, "altura"), (int)D(m, "qualidade", 80));
+                var b = await pg.Capturar((int)D(m, "largura"), (int)D(m, "altura"), (int)D(m, "qualidade", 80),
+                    (int)D(m, "naturalLargura"), (int)D(m, "naturalAltura"));
                 return b == null ? null : Convert.ToBase64String(b);
             }
             case "avaliar": return await pg.Avaliar(S(m, "codigo"));
@@ -231,8 +232,7 @@ sealed class Motor
             case "moveu": pg.PaiMoveu(); return null;
             case "estado": return pg.Estado();
             case "focar":
-                // Só no modo de teste: põe o teclado na página (como um clique do usuário no jogo).
-                if (!Teste) throw new InvalidOperationException("só no modo de teste");
+                // O teclado vai para a página (Ctrl+Tab e Ctrl+1…9 deixam a conta pronta para jogar).
                 pg.Focar();
                 return null;
         }

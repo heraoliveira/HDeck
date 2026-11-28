@@ -49,3 +49,15 @@ Provas (`pnpm provas`, 20 s por cenário): timers 99,9% minimizada, 99,9% na ban
 | Economizar (agora, padrão) | ~11% | ~0,9% | ~4,1% |
 
 A conta ao vivo gasta o que a página do jogo pede (~3,5–4%, como numa aba do Edge).
+
+## 2026-11-28 · investigação de CPU e RAM, 3 contas no pokeafk.io (ADR 0014)
+`FOTO=<s> node tools/bancada/cpu-real.ts https://pokeafk.io/ 3 1` (Economizar, modo econômico, 1 conta ao vivo e 2 em foto; RAM = memória privada, como no Gerenciador de Tarefas):
+
+| Foto a cada | CPU total | Conta em foto | GPU das contas | RAM total |
+|---|---|---|---|---|
+| 1 s (antes) | ~9,4% | ~0,9% | ~3,5% | — |
+| 5 s (novo padrão) | ~6–7,5% | ~0,15–0,25% | ~2,5–3% | ~550–610 MB |
+
+Por processo (5 s): interface Electron ~110 MB e ~0,2% (principal, GPU, interface); motor .NET ~25 MB; navegador das contas ~40 MB; GPU das contas ~125 MB; cada página ~75–95 MB. O resto da CPU é a própria conta ao vivo (~3,5%) e o desenho dela na GPU.
+
+O que já foi descartado: o vigia de rede (sem custo mensurável), desligar a aceleração da interface (GPU do Electron ~36 MB), desligar o isolamento por site (não diminuiu). Modo de memória baixa do Edge nas contas ocultas: ~3–4 MB a menos por conta numa página leve; fica ligado (em jogos pesados solta mais).

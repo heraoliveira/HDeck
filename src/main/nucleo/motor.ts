@@ -82,6 +82,7 @@ import type {
   FabricaPaginas,
   LinhaMetrica,
   Log,
+  Metrica,
   PaginaConta,
   PedidoHttp,
   Rede,
@@ -131,6 +132,8 @@ type Rt = {
   google: boolean
   fotoTimer: Cancelar | null
   espaco: { janela: string; retangulo: Retangulo | null; tipo: 'conta' | 'miniatura' } | null
+  /** Último tamanho em que a conta apareceu ao vivo (para a foto quando a janela não tem espaço de conta). */
+  ultimoTamanhoVivo?: { largura: number; altura: number }
   exibicao: ModoExibicao
   solta: boolean
   loginPedido: boolean
@@ -184,6 +187,7 @@ export class Motor {
     const r = d.relogio
     this.filaLigar = new FilaEscalonada(r, 3000, (p) => d.emitir('lote.progresso', p))
     this.otimizacao = new AgendaOtimizacao(r, () => this.config, {
+      planoDe: (id) => this.conta(id)?.otimizarAuto ?? null,
       ligadas: () => this.idsLigadas(),
       emUso: (id) =>
         id === this.ativaId &&
@@ -1068,6 +1072,7 @@ export class Motor {
     const mudou = modo !== rt.exibicao
     rt.exibicao = modo
     if (modo === 'viva' && rt.espaco?.retangulo) {
+      rt.ultimoTamanhoVivo = { largura: rt.espaco.retangulo.largura, altura: rt.espaco.retangulo.altura }
       rt.pagina.exibir({ modo: 'viva', retangulo: rt.espaco.retangulo, janela: rt.espaco.janela })
     } else {
       rt.pagina.exibir({ modo: modo === 'viva' ? 'fora' : modo })
@@ -1096,12 +1101,31 @@ export class Motor {
     }
   }
 
+  /**
+   * Tamanho em que a página da conta é desenhada para a foto: o do maior espaço de conta da janela dela
+   * (ex.: o principal, no "Principal + miniaturas"). Assim a miniatura mostra a tela inteira, reduzida,
+   * e não a página espremida no tamanho da miniatura.
+   */
+  private tamanhoNatural(id: string): { largura: number; altura: number } | undefined {
+    const rt = this.rt.get(id)
+    const janela = rt?.espaco?.janela
+    let maior: { largura: number; altura: number } | undefined
+    for (const e of (janela && this.espacosPorJanela.get(janela)) || []) {
+      const r = e.retangulo
+      if (e.tipo !== 'conta' || !r) continue
+      if (!maior || r.largura * r.altura > maior.largura * maior.altura)
+        maior = { largura: r.largura, altura: r.altura }
+    }
+    return maior ?? rt?.ultimoTamanhoVivo ?? undefined
+  }
+
   async capturarFoto(id: string): Promise<boolean> {
     const rt = this.rt.get(id)
     if (!rt || rt.exibicao !== 'foto' || !rt.espaco?.retangulo) return false
     const { largura, altura } = rt.espaco.retangulo
     if (largura <= 0 || altura <= 0) return false
-    const dados = await rt.pagina.capturar(largura, altura)
+    const dados = await rt.pagina.capturar(largura, altura, this.tamanhoNatural(id))
+
     if (!dados) return false
     this.d.emitir('conta.foto', { contaId: id, dados })
     return true
@@ -1276,6 +1300,42 @@ export class Motor {
     this.timerMetricas = this.d.relogio.aCada(seg * 1000, () => this.coletarMetricas())
   }
 
+  /**
+   * Detalhamento do consumo: cada grupo (páginas e lives das contas dele), a interface do HDeck, o desenho
+   * das contas (GPU do navegador das contas) e a base desse navegador (processo principal, rede, motor).
+   */
+  private partesDoConsumo(
+    ms: readonly Metrica[],
+    pids: ReadonlyMap<number, string>,
+    porConta: ReadonlyMap<string, { ramMb: number; cpuPct: number }>,
+  ): NonNullable<MetricasEvento['partes']> {
+    const somar = (lista: readonly { ramMb: number; cpuPct: number }[]) =>
+      lista.reduce((s, x) => ({ ramMb: s.ramMb + x.ramMb, cpuPct: s.cpuPct + x.cpuPct }), {
+        ramMb: 0,
+        cpuPct: 0,
+      })
+    const out: NonNullable<MetricasEvento['partes']> = []
+    for (const g of [...this.grupos].sort((a, b) => a.ordem - b.ordem)) {
+      const ids = this.contas.filter((c) => c.grupoId === g.id && porConta.has(c.id)).map((c) => c.id)
+      if (ids.length === 0) continue
+      out.push({
+        chave: `grupo:${g.id}`,
+        nome: g.nome,
+        detalhe: t('consumo.ligadas', { n: ids.length }),
+        ...somar(ids.map((id) => porConta.get(id)!)),
+      })
+    }
+    const soltas = ms.filter((x) => !pids.has(x.pid))
+    const parte = (p: string, nome: string, detalhe: string) => {
+      const s = somar(soltas.filter((x) => (x.parte ?? 'interface') === p))
+      if (s.ramMb > 0 || s.cpuPct > 0) out.push({ chave: p, nome, detalhe, ...s })
+    }
+    parte('interface', t('consumo.interface'), t('consumo.interfaceD'))
+    parte('gpuContas', t('consumo.gpu'), t('consumo.gpuD'))
+    parte('baseContas', t('consumo.base'), t('consumo.baseD'))
+    return out
+  }
+
   coletarMetricas(): MetricasEvento {
     const ms = this.d.sistema.metricas()
     const pids = new Map<number, string>()
@@ -1285,7 +1345,11 @@ export class Motor {
     }
     for (const [pid, conta] of this.controleLives.pids()) pids.set(pid, conta)
     const porConta = metricasPorConta(ms, pids)
-    const evento: MetricasEvento = { porConta: Object.fromEntries(porConta), total: totais(ms) }
+    const evento: MetricasEvento = {
+      porConta: Object.fromEntries(porConta),
+      total: totais(ms),
+      partes: this.partesDoConsumo(ms, pids, porConta),
+    }
     this.ultimasMetricas = evento
     this.d.emitir('conta.metricas', evento)
     const agora = this.d.relogio.agora()
@@ -1505,7 +1569,55 @@ export class Motor {
 
   entrarNaLive(id: string): void {
     const l = this.lives.find((x) => x.id === id)
-    if (l) this.d.lives.abrirLogin(l)
+    if (l) this.d.lives.abrirLogin(l.contaId, l.plataforma)
+  }
+
+  /** "Conectar Twitch/Kick" da janela de lives: login na sessão das lives desta conta. */
+  entrarNaPlataforma(contaId: string, plataforma: PlataformaLive): boolean {
+    if (!this.conta(contaId)) return false
+    this.d.lives.abrirLogin(contaId, plataforma)
+    return true
+  }
+
+  /**
+   * Um link de live (clicado no jogo ou colado na janela de lives) vira live da conta: reconhece Twitch ou
+   * Kick pelo endereço, reaproveita a live que já existe e a liga. Aceita também só o nome do canal.
+   */
+  abrirLinkDeLive(contaId: string, texto: string, plataforma?: PlataformaLive): Resultado<Live> {
+    const t = texto.trim()
+    let achado: { plataforma: PlataformaLive; canal: string } | null = null
+    for (const p of ['twitch', 'kick'] as const) {
+      const canal = this.d.lives.canalDaUrl(p, t)
+      if (canal) {
+        achado = { plataforma: p, canal }
+        break
+      }
+    }
+    if (!achado && plataforma && /^@?[A-Za-z0-9_-]{1,60}$/.test(t))
+      achado = { plataforma, canal: t.replace(/^@/, '') }
+    if (!achado) return falha('canal')
+    const existente = this.lives.find(
+      (l) =>
+        l.contaId === contaId &&
+        l.plataforma === achado.plataforma &&
+        l.canal.toLowerCase() === achado.canal.toLowerCase(),
+    )
+    if (existente) {
+      if (!existente.ligada) {
+        const r = this.ligarLive(existente.id, true)
+        if (!r.ok) return falha(r.erro)
+      }
+      return ok(existente)
+    }
+    return this.adicionarLive(contaId, achado.plataforma, achado.canal)
+  }
+
+  /** "Ligar tudo" / "Desligar tudo" da janela de lives (de uma conta e uma plataforma). */
+  ligarLivesDaConta(contaId: string, plataforma: PlataformaLive, ligada: boolean): number {
+    let n = 0
+    for (const l of this.lives.filter((x) => x.contaId === contaId && x.plataforma === plataforma))
+      if (l.ligada !== ligada && this.ligarLive(l.id, ligada).ok) n++
+    return n
   }
 
   async lerLives(): Promise<void> {

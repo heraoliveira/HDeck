@@ -21,7 +21,6 @@ export const OPCOES = {
   recarregarH: [0, 2, 4, 6, 12, 24] as const,
   memoriaMB: [0, 1024, 1536, 2048, 3072] as const,
   cacheDias: [0, 1, 7] as const,
-  otimizarMin: [0, 30, 60, 120, 240] as const,
   qualidade: ['160p', '360p', '480p', '720p', 'auto'] as const,
   livesPorConta: [0, 1, 2, 3, 5] as const,
   religarMin: [30, 60, 120, 240, 360] as const,
@@ -29,6 +28,39 @@ export const OPCOES = {
   somAviso: ['sino', 'bip', 'gota', 'arquivo'] as const,
   canalAtualizacao: ['estavel', 'teste'] as const,
 } as const
+
+/** RN-008: blocos e botões que podem ir para o painel direito. */
+export const SECOES_PAINEL = [
+  'acoes',
+  'lives',
+  'consumo',
+  'otimizar',
+  'historico',
+  'endereco',
+  'zoom',
+  'foraDaTela',
+  'notas',
+] as const
+export const BOTOES_PAINEL = [
+  'inicio',
+  'recarregar',
+  'som',
+  'destacar',
+  'otimizar',
+  'renomear',
+  'endereco',
+  'login',
+  'preencher',
+  'lives',
+  'mover',
+  'duplicar',
+  'devtools',
+  'limpar',
+  'excluir',
+  'foco',
+  'ligar',
+  'mais',
+] as const
 
 const canaisDoTipo = (ligado: boolean) =>
   z
@@ -58,7 +90,7 @@ const tiposAvisoConfig = z
 const hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
 
 export const configSchema = z.object({
-  versao: z.literal(4).default(4),
+  versao: z.literal(5).default(5),
   geral: z
     .object({
       iniciarComWindows: z.boolean().default(false),
@@ -86,7 +118,8 @@ export const configSchema = z.object({
   economia: z
     .object({
       modoEconomico: z.boolean().default(true),
-      fotoACadaSeg: umDe(OPCOES.fotoSeg, 1),
+      // RN-052 (alterada): 5 s. Cada foto acorda a conta oculta; a 1 s isso custava ~3x a CPU (MEDICOES).
+      fotoACadaSeg: umDe(OPCOES.fotoSeg, 5),
       voltarAFotoSeg: umDe(OPCOES.voltarFotoSeg, 0),
     })
     .prefault({}),
@@ -95,8 +128,6 @@ export const configSchema = z.object({
       recarregarACadaH: umDe(OPCOES.recarregarH, 0),
       limiteMemoriaMB: umDe(OPCOES.memoriaMB, 0),
       limparCacheDias: umDe(OPCOES.cacheDias, 0),
-      // RN-058: a página só recarrega sozinha se a dona ligar (padrão desligado).
-      otimizarACadaMin: umDe(OPCOES.otimizarMin, 0),
     })
     .prefault({}),
   lives: z
@@ -151,6 +182,17 @@ export const configSchema = z.object({
     .prefault({}),
   atualizacao: z.object({ canal: z.enum(OPCOES.canalAtualizacao).default('estavel') }).prefault({}),
   avancado: z.object({ aceleracaoHardware: z.boolean().default(true) }).prefault({}),
+  // RN-008: o que aparece no painel direito, e em que ordem (personalizável).
+  painelDireito: z
+    .object({
+      secoes: z
+        .array(z.enum(SECOES_PAINEL))
+        .max(20)
+        .default(['acoes', 'lives', 'consumo', 'otimizar', 'historico']),
+      botoes: z.array(z.enum(BOTOES_PAINEL)).max(30).default(['inicio', 'recarregar', 'som', 'destacar']),
+      rodape: z.array(z.enum(BOTOES_PAINEL)).max(6).default(['foco', 'ligar', 'mais']),
+    })
+    .prefault({}),
 })
 
 export type Config = z.infer<typeof configSchema>
@@ -192,13 +234,20 @@ export function migrarConfig(bruto: unknown): Config {
     obj.avisos = av
     obj.versao = 4
   }
+  if (obj.versao === 4) {
+    // v4 tirava foto a cada 1 s (o padrão de antes); agora 5 s, que gasta bem menos CPU.
+    const eco = (obj.economia ?? {}) as Record<string, unknown>
+    if (eco.fotoACadaSeg === 1 || eco.fotoACadaSeg === undefined) eco.fotoACadaSeg = 5
+    obj.economia = eco
+    obj.versao = 5
+  }
   const r = configSchema.safeParse(obj)
   if (r.success) return r.data
   // Campo inválido: descarta só as seções com problema.
-  const limpo: Record<string, unknown> = { versao: 4 }
+  const limpo: Record<string, unknown> = { versao: 5 }
   for (const [chave, valor] of Object.entries(obj)) {
     if (chave === 'versao') continue
-    const parcial = configSchema.safeParse({ versao: 4, [chave]: valor })
+    const parcial = configSchema.safeParse({ versao: 5, [chave]: valor })
     if (parcial.success) limpo[chave] = valor
   }
   return configSchema.parse(limpo)

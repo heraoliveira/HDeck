@@ -60,9 +60,21 @@ export const MIGRACOES: Migracao[] = [
     sobe: `CREATE TABLE ultima_url (conta_id TEXT PRIMARY KEY, url TEXT NOT NULL, em INTEGER NOT NULL);`,
     desce: `DROP TABLE ultima_url;`,
   },
+  {
+    // RN-058: Otimizar sozinho por conta (JSON: modo, aCadaMin, limiteMb).
+    sobe: `ALTER TABLE contas ADD COLUMN otimizar_auto TEXT NOT NULL DEFAULT '{}';`,
+    desce: `ALTER TABLE contas DROP COLUMN otimizar_auto;`,
+  },
 ]
 
 const n = (b: boolean) => (b ? 1 : 0)
+const lerJson = (s: unknown): unknown => {
+  try {
+    return typeof s === 'string' ? JSON.parse(s) : {}
+  } catch {
+    return {}
+  }
+}
 
 export class ArmazemSqlite implements Armazem {
   readonly db: DatabaseSync
@@ -189,6 +201,7 @@ export class ArmazemSqlite implements Armazem {
           notificacoesDaPagina: r.notificacoes === 1,
           notas: r.notas,
           criadaEm: r.criada_em,
+          otimizarAuto: lerJson(r.otimizar_auto),
         }),
       )
       .filter((r) => r.success)
@@ -215,11 +228,11 @@ export class ArmazemSqlite implements Armazem {
     this.db
       .prepare(
         `INSERT INTO contas (id, grupo_id, jogo_id, nome, cor, icone, ordem, url, zoom, som, politica_fora_tela,
-         notificacoes, notas, criada_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         notificacoes, notas, criada_em, otimizar_auto) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET grupo_id=excluded.grupo_id, jogo_id=excluded.jogo_id, nome=excluded.nome,
          cor=excluded.cor, icone=excluded.icone, ordem=excluded.ordem, url=excluded.url, zoom=excluded.zoom,
          som=excluded.som, politica_fora_tela=excluded.politica_fora_tela, notificacoes=excluded.notificacoes,
-         notas=excluded.notas`,
+         notas=excluded.notas, otimizar_auto=excluded.otimizar_auto`,
       )
       .run(
         c.id,
@@ -236,6 +249,7 @@ export class ArmazemSqlite implements Armazem {
         n(c.notificacoesDaPagina),
         c.notas,
         c.criadaEm,
+        JSON.stringify(c.otimizarAuto),
       )
   }
   apagarConta(id: string): void {

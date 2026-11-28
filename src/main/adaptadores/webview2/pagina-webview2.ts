@@ -34,6 +34,8 @@ export type DependenciasWebView2 = {
   aoBloquearDownload: (nome: string) => void
   /** Um atalho do HDeck (RN-176) apertado dentro da página. */
   aoTecla: (texto: string) => void
+  /** Link da Twitch ou da Kick clicado no jogo: vira live da conta (devolve true se era live). */
+  aoLinkDeLive: (contaId: string, url: string) => boolean
 }
 
 /** Identificador nativo (HWND) da janela, em texto, para o motor pendurar a página nela. */
@@ -278,12 +280,23 @@ class PaginaWebView2 implements PaginaConta {
     this.d.motor.enviar('vigiar', { conta: this.conta.id, valor: ligado })
   }
 
-  async capturar(largura: number, altura: number): Promise<Uint8Array | null> {
+  async capturar(
+    largura: number,
+    altura: number,
+    natural?: { largura: number; altura: number },
+  ): Promise<Uint8Array | null> {
     if (this.fechada || this.carregando) return null
     const b64 = await this.d.motor
       .pedir<string | null>(
         'capturar',
-        { conta: this.conta.id, largura, altura, qualidade: PADROES.fotoQualidadeJpeg },
+        {
+          conta: this.conta.id,
+          largura,
+          altura,
+          naturalLargura: natural?.largura ?? 0,
+          naturalAltura: natural?.altura ?? 0,
+          qualidade: PADROES.fotoQualidadeJpeg,
+        },
         5000,
       )
       .catch(() => null)
@@ -334,8 +347,8 @@ class PaginaWebView2 implements PaginaConta {
     return this.d.motor.pedir('estado', { conta: this.conta.id })
   }
 
-  /** Só no modo de teste: o teclado vai para a página (como um clique no jogo). */
-  focarParaTeste(): Promise<unknown> {
+  /** O teclado vai para a página (como um clique no jogo). */
+  focarTeclado(): Promise<unknown> {
     return this.d.motor.pedir('focar', { conta: this.conta.id })
   }
 
@@ -433,13 +446,15 @@ export class FabricaPaginasWebView2 implements FabricaPaginas {
    * conta (página e iframes) saem com o pid da página, para o núcleo somar tudo na conta certa.
    */
   async medir(pidsElectron: number[]): Promise<Metrica[]> {
-    type P = { pid: number; ramMb: number; cpuPct: number; conta?: string; principal?: boolean }
+    type P = { pid: number; tipo: string; ramMb: number; cpuPct: number; conta?: string; principal?: boolean }
     const r = await this.d.motor.pedir<{ processos: P[] }>('metricas', { pids: pidsElectron }, 8000)
     // O processo da página principal de cada conta (o motor também avisa pelo evento "pid").
     for (const p of r.processos) if (p.conta && p.principal) this.paginas.get(p.conta)?.conhecerPid(p.pid)
     return r.processos.map((p) => {
       const dona = p.conta ? this.paginas.get(p.conta)?.pid() : null
-      return { pid: dona ?? p.pid, ramMb: p.ramMb, cpuPct: p.cpuPct }
+      // De onde é: Electron = interface (as lives saem pelas contas); GPU do Edge = desenho das contas; o resto = base.
+      const parte = p.tipo === 'Electron' ? 'interface' : p.tipo === 'Gpu' ? 'gpuContas' : 'baseContas'
+      return { pid: dona ?? p.pid, ramMb: p.ramMb, cpuPct: p.cpuPct, parte } as const
     })
   }
 
@@ -470,6 +485,8 @@ export class FabricaPaginasWebView2 implements FabricaPaginas {
     const janela = (this.d.principal() as BrowserWindow | null) ?? null
     if (e.tipo === 'popup') {
       const url = String(e.url ?? '')
+      // Live da Twitch ou da Kick: abre na janela de lives da conta, no lugar certo (não vira pop-up).
+      if (this.d.aoLinkDeLive(contaId, url)) return { acao: 'negar' }
       // RN-151: login abre na sessão da conta (e fecha sozinho ao voltar ao jogo).
       const decisao = decidirPopup(url, { ligado: this.d.modoTeste })
       if (decisao === 'login') {

@@ -83,8 +83,15 @@ export class PaginaFalsa implements PaginaConta {
   vigiar(l: boolean): void {
     this.vigiando = l
   }
-  async capturar(): Promise<Uint8Array | null> {
+  ultimaCaptura: { largura: number; altura: number; natural?: { largura: number; altura: number } } | null =
+    null
+  async capturar(
+    largura = 0,
+    altura = 0,
+    natural?: { largura: number; altura: number },
+  ): Promise<Uint8Array | null> {
     this.capturas++
+    this.ultimaCaptura = { largura, altura, ...(natural ? { natural } : {}) }
     return new Uint8Array([1, 2, 3])
   }
   pid(): number | null {
@@ -187,8 +194,8 @@ export class FabricaLivesFalsa implements FabricaLives {
       return null
     }
   }
-  abrirLogin(l: Live): void {
-    this.logins.push(l.id)
+  abrirLogin(contaId: string, plataforma: PlataformaLive): void {
+    this.logins.push(`${contaId}:${plataforma}`)
   }
   abertas(): PaginaLiveFalsa[] {
     return this.criadas.filter((p) => !p.fechada)

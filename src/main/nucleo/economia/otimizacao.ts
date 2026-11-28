@@ -1,5 +1,6 @@
 import type { Config } from '@shared/config/esquema.ts'
 import { PADROES } from '@shared/dados/padroes-config.ts'
+import type { OtimizarAuto } from '@shared/tipos/dominio.ts'
 import { FilaEscalonada } from '../contas/fila.ts'
 import type { Cancelar, Relogio } from '../portas.ts'
 
@@ -12,6 +13,8 @@ export type AcoesOtimizacao = {
   avisarMemoria(id: string, limiteMb: number): void
   /** RN-058: reabre a página num processo novo. */
   otimizar(id: string): void
+  /** RN-058: o Otimizar sozinho desta conta (cada conta tem o seu). */
+  planoDe(id: string): OtimizarAuto | null
 }
 
 const MIN = 60_000
@@ -56,9 +59,9 @@ export class AgendaOtimizacao {
 
   /** Quando "Otimizar sozinho" vai rodar nesta conta (null = desligado ou conta ainda sem relógio). */
   proximaOtimizacao(id: string): number | null {
-    const min = this.config().otimizacao.otimizarACadaMin
+    const p = this.acoes.planoDe(id)
     const ult = this.ultimaOtimizacao.get(id)
-    return min > 0 && ult !== undefined ? ult + min * MIN : null
+    return p?.modo === 'tempo' && ult !== undefined ? ult + p.aCadaMin * MIN : null
   }
 
   esquecer(id: string): void {
@@ -85,13 +88,12 @@ export class AgendaOtimizacao {
         if (agora - ult >= lim) this.enfileirar(id)
       }
     }
-    if (cfg.otimizarACadaMin > 0) {
-      const lim = cfg.otimizarACadaMin * MIN
-      for (const id of this.acoes.ligadas()) {
-        const ult = this.ultimaOtimizacao.get(id)
-        if (ult === undefined) this.ultimaOtimizacao.set(id, agora)
-        else if (agora - ult >= lim) this.enfileirarOtimizar(id)
-      }
+    for (const id of this.acoes.ligadas()) {
+      const p = this.acoes.planoDe(id)
+      if (p?.modo !== 'tempo') continue
+      const ult = this.ultimaOtimizacao.get(id)
+      if (ult === undefined) this.ultimaOtimizacao.set(id, agora)
+      else if (agora - ult >= p.aCadaMin * MIN) this.enfileirarOtimizar(id)
     }
     if (cfg.limparCacheDias > 0 && agora - this.ultimaLimpeza >= cfg.limparCacheDias * DIA) {
       this.ultimaLimpeza = agora
@@ -133,6 +135,12 @@ export class AgendaOtimizacao {
 
   /** RN-056: recarrega a conta cuja memória passou do limite. Devolve as recarregadas. */
   verificarMemoria(ramPorConta: ReadonlyMap<string, number>): string[] {
+    // RN-058: conta com "Otimizar quando passar de X MB" (uma vez por vez; o relógio dela recomeça).
+    for (const [id, mb] of ramPorConta) {
+      const p = this.acoes.planoDe(id)
+      if (p?.modo === 'memoria' && mb > p.limiteMb && !this.fila.pendentes().includes(`otimizar:${id}`))
+        this.enfileirarOtimizar(id)
+    }
     const lim = this.config().otimizacao.limiteMemoriaMB
     if (lim <= 0) return []
     const out: string[] = []

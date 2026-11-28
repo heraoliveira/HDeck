@@ -34,12 +34,11 @@ describe('configuração', () => {
 
   it('RN-052 RN-053 RN-056 RN-100 padrões de economia, otimização e som', () => {
     const c = configPadrao()
-    expect(c.economia).toEqual({ modoEconomico: true, fotoACadaSeg: 1, voltarAFotoSeg: 0 })
+    expect(c.economia).toEqual({ modoEconomico: true, fotoACadaSeg: 5, voltarAFotoSeg: 0 })
     expect(c.otimizacao).toEqual({
       recarregarACadaH: 0,
       limiteMemoriaMB: 0,
       limparCacheDias: 0,
-      otimizarACadaMin: 0,
     }) // RN-058
     expect(c.som.modo).toBe('todas')
   })
@@ -92,11 +91,11 @@ describe('configuração', () => {
 
   it('RN-174 migra da versão 1 e descarta só as seções inválidas', () => {
     const m = migrarConfig({ versao: 1, economia: { fotoMs: 5000 }, queda: { esperaQuedaSeg: 'lixo' } })
-    expect(m.versao).toBe(4)
+    expect(m.versao).toBe(5)
     expect(m.economia.fotoACadaSeg).toBe(5)
     expect(m.queda.esperaQuedaSeg).toBe(45)
     expect(migrarConfig(null)).toEqual(configPadrao())
-    expect(migrarConfig({ versao: 1 }).versao).toBe(4)
+    expect(migrarConfig({ versao: 1 }).versao).toBe(5)
   })
 
   it('RN-111 v3 → v4: ping, memória, lives e limite de contas só no histórico; o resto avisa', () => {
@@ -122,13 +121,9 @@ describe('configuração', () => {
     expect(configPadrao().avisos.tipos.live.windows).toBe(false)
   })
 
-  it('RN-058 v2 → v3: o Otimizar sozinho que vinha ligado por padrão passa a desligado; escolha diferente fica', () => {
-    expect(
-      migrarConfig({ versao: 2, otimizacao: { otimizarACadaMin: 60 } }).otimizacao.otimizarACadaMin,
-    ).toBe(0)
-    expect(
-      migrarConfig({ versao: 2, otimizacao: { otimizarACadaMin: 120 } }).otimizacao.otimizarACadaMin,
-    ).toBe(120)
+  it('RN-058 o Otimizar sozinho saiu da config geral (agora é por conta): migrar não quebra', () => {
+    const m = migrarConfig({ versao: 2, otimizacao: { otimizarACadaMin: 60, recarregarACadaH: 2 } })
+    expect(m.otimizacao).toEqual({ recarregarACadaH: 2, limiteMemoriaMB: 0, limparCacheDias: 0 })
   })
 })
 

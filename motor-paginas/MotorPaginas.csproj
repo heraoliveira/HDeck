@@ -20,6 +20,8 @@
     <WebView2LoaderPreference>Static</WebView2LoaderPreference>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);MSB3277</NoWarn>
+    <!-- O mesmo ícone do HDeck (janelas de pop-up e o próprio processo, no Gerenciador de Tarefas). -->
+    <ApplicationIcon>../build/icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

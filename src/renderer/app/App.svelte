@@ -6,6 +6,7 @@ import Configuracoes from '../configuracoes/Configuracoes.svelte'
 import Especial from '../configuracoes/Especial.svelte'
 import AdicionarConta from '../dialogos/AdicionarConta.svelte'
 import Confirmar from '../dialogos/Confirmar.svelte'
+import DetalheConsumo from '../dialogos/DetalheConsumo.svelte'
 import Lives from '../dialogos/Lives.svelte'
 import LoginSalvo from '../dialogos/LoginSalvo.svelte'
 import PainelConta from '../dialogos/PainelConta.svelte'
@@ -22,6 +23,7 @@ import VisaoPainel from '../visoes/painel/VisaoPainel.svelte'
 import VisaoPrincipal from '../visoes/principal/VisaoPrincipal.svelte'
 import BarraLateral from './BarraLateral.svelte'
 import BarraTitulo from './BarraTitulo.svelte'
+import JanelaLives from './JanelaLives.svelte'
 import PainelDireito from './PainelDireito.svelte'
 
 let painel = $state(false)
@@ -105,6 +107,12 @@ $effect(() => {
 const visao = $derived(painel ? 'painel' : (grupo?.visao ?? 'grade'))
 </script>
 
+{#if loja.janela === 'lives'}
+  {#if pronto}<JanelaLives />{/if}
+  <div class="mensagens" role="status" aria-live="polite">
+    {#each loja.mensagens as m (m.id)}<div class="mensagem {m.tipo}">{m.texto}</div>{/each}
+  </div>
+{:else}
 <div class="app">
   <BarraTitulo bind:painel />
   <div class="corpo">
@@ -158,6 +166,8 @@ const visao = $derived(painel ? 'painel' : (grupo?.visao ?? 'grade'))
     {:else}
       {#if dialogo.qual === 'painelConta'}
         <PainelConta id={dialogo.id} x={dialogo.x} y={dialogo.y} />
+      {:else if dialogo.qual === 'consumo'}
+        <DetalheConsumo x={dialogo.x} y={dialogo.y} aoAbrirPainel={() => (painel = true)} />
       {:else if dialogo.qual === 'painelGrupo'}
         <PainelGrupo id={dialogo.id} x={dialogo.x} y={dialogo.y} />
       {:else if dialogo.qual === 'confirmar'}
@@ -172,6 +182,7 @@ const visao = $derived(painel ? 'painel' : (grupo?.visao ?? 'grade'))
     {#each loja.mensagens as m (m.id)}<div class="mensagem {m.tipo}">{m.texto}</div>{/each}
   </div>
 </div>
+{/if}
 
 <style>
   .app {

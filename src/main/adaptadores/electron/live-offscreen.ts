@@ -2,13 +2,14 @@ import { type SeletoresPlataforma, seletoresDasLives } from '@shared/dados/catal
 import { PADROES } from '@shared/dados/padroes-config.ts'
 import type { Live, PlataformaLive } from '@shared/tipos/dominio.ts'
 import { dominioDe, dominioPertence } from '@shared/util/texto.ts'
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, nativeImage } from 'electron'
 import { z } from 'zod'
 import type { EstadoLidoLive, EventosLive, FabricaLives, Log, PaginaLive } from '../../nucleo/portas.ts'
 
 /** Sessão das lives de uma conta (no Electron; as contas em si moram no WebView2, ADR 0014). */
 const particaoDa = (contaId: string) => `persist:live-${contaId}`
 
+import { bitmapLogo } from './icones.ts'
 import { MUNDO_ISOLADO, scriptEstadoLive, scriptQualidade } from './scripts-pagina.ts'
 
 const estadoSchema = z.object({
@@ -100,6 +101,7 @@ class PaginaLiveElectron implements PaginaLive {
     this.visivel = new BrowserWindow({
       width: 640,
       height: 400,
+      icon: nativeImage.createFromBitmap(bitmapLogo(64), { width: 64, height: 64 }),
       autoHideMenuBar: true,
       title: this.live.canal,
       webPreferences: prefsPagina(this.live.contaId),
@@ -159,14 +161,15 @@ export class FabricaLivesElectron implements FabricaLives {
     return decodeURIComponent(caminho.slice(prefixo.length).split('/')[0] ?? '') || null
   }
 
-  abrirLogin(live: Live): void {
-    const url = live.plataforma === 'twitch' ? 'https://www.twitch.tv/login' : 'https://kick.com/login'
+  abrirLogin(contaId: string, plataforma: PlataformaLive): void {
+    const url = plataforma === 'twitch' ? 'https://www.twitch.tv/login' : 'https://kick.com/login'
     const w = new BrowserWindow({
       width: 520,
       height: 760,
       autoHideMenuBar: true,
-      webPreferences: prefsPagina(live.contaId),
+      icon: nativeImage.createFromBitmap(bitmapLogo(64), { width: 64, height: 64 }),
+      webPreferences: prefsPagina(contaId),
     })
-    void w.loadURL(this.urlDeTeste ? this.urlDoCanal(live.plataforma, live.canal) : url).catch(() => {})
+    void w.loadURL(this.urlDeTeste ? this.urlDoCanal(plataforma, 'login') : url).catch(() => {})
   }
 }

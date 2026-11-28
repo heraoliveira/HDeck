@@ -192,6 +192,7 @@ describe('motor: exibição e economia', () => {
 
   it('RN-052 a foto é atualizada a cada 1 s e continua farmando (sem estrangular)', async () => {
     const m = montarMotor()
+    m.motor.alterarConfig('economia.fotoACadaSeg', 1)
     const [a, b] = ligarTudo(m, 2)
     m.motor.definirEspacos('principal', [
       { contaId: a!.id, retangulo: ret(0), tipo: 'conta' },
@@ -624,7 +625,7 @@ describe('motor: lives, jogos e grupos', () => {
     expect(m.motor.mostrarLive(l.valor.id, false)).toBe(true)
     m.motor.esconderLive(l.valor.id)
     m.motor.entrarNaLive(l.valor.id)
-    expect(m.lives.logins).toEqual([l.valor.id])
+    expect(m.lives.logins).toEqual([`${a!.id}:twitch`])
     m.lives.abertas()[0]!.estadoLido = { aoVivo: false, offline: false, pedeLogin: true, tocando: false }
     await m.motor.lerLives()
     expect(m.motor.snapshot().livesEstado[l.valor.id]).toBe('pede_login')

@@ -2,6 +2,14 @@
 
 ## Próxima versão
 
+- Otimizar sozinho por conta: por tempo ou quando a página passa de X MB de RAM; otimizar à mão zera o relógio.
+- Painel direito personalizável (tirar, pôr de volta e arrastar blocos e botões).
+- Janela de lives com filtro por conta; link de live clicado no jogo abre lá, na conta certa.
+- Clique em RAM/CPU na barra de título mostra o consumo de cada parte.
+- Miniaturas mostram a tela inteira da conta, na proporção certa.
+- Foto das contas a cada 5 s por padrão (bem menos CPU).
+- Ctrl+Tab e Ctrl+1…9 já deixam a conta pronta para jogar; abrir os avisos marca como lidos.
+- Ícone novo no visual do app; barra de rolagem do jogo não faz mais a tela tremer.
 - CPU bem menor: contas em foto ou fora da tela param de desenhar entre as fotos ("Economizar" é o novo padrão; timers e rede seguem).
 - Login com Google em sites de jogo: a conta é o Edge comum desde o início (sem trocar no meio do login).
 - Avisos: por padrão só o que acontece no jogo ou é importante; ping, memória, lives e limite de contas ficam no histórico.
