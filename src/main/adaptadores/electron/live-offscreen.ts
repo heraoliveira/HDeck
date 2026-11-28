@@ -2,7 +2,7 @@ import { type SeletoresPlataforma, seletoresDasLives } from '@shared/dados/catal
 import { PADROES } from '@shared/dados/padroes-config.ts'
 import type { Live, PlataformaLive } from '@shared/tipos/dominio.ts'
 import { dominioDe, dominioPertence } from '@shared/util/texto.ts'
-import { BrowserWindow, nativeImage } from 'electron'
+import { BrowserWindow, nativeImage, shell, WebContentsView } from 'electron'
 import { z } from 'zod'
 import type { EstadoLidoLive, EventosLive, FabricaLives, Log, PaginaLive } from '../../nucleo/portas.ts'
 
@@ -195,5 +195,61 @@ export class FabricaLivesElectron implements FabricaLives {
       webPreferences: prefsPagina(contaId),
     })
     void w.loadURL(this.urlDeTeste ? this.urlDoCanal(plataforma, 'login') : url).catch(() => {})
+  }
+}
+
+/**
+ * A live selecionada aparece dentro da janela de lives (com o chat), na sessão das lives da conta
+ * (RN-080): dá para mandar mensagem no chat em promoções e eventos. Sem som até a dona ligar.
+ * Uma só por vez; trocar de live ou fechar a janela solta a anterior.
+ */
+export class LiveNaJanela {
+  private view: WebContentsView | null = null
+  private janela: BrowserWindow | null = null
+  private chave = ''
+
+  mostrar(
+    janela: BrowserWindow,
+    contaId: string,
+    url: string,
+    r: { x: number; y: number; largura: number; altura: number },
+  ): void {
+    const chave = `${contaId}|${url}`
+    if (this.view && (this.chave !== chave || this.janela !== janela)) this.fechar()
+    if (!this.view) {
+      const v = new WebContentsView({ webPreferences: prefsPagina(contaId) })
+      v.setBackgroundColor('#08111f')
+      v.webContents.setAudioMuted(true)
+      // Nada de pop-up escondido (RN-092): links que abririam janela vão para o navegador do Windows.
+      v.webContents.setWindowOpenHandler(({ url: destino }) => {
+        if (/^https:\/\//.test(destino)) void shell.openExternal(destino)
+        return { action: 'deny' }
+      })
+      janela.contentView.addChildView(v)
+      janela.once('closed', () => this.fechar())
+      void v.webContents.loadURL(url).catch(() => {})
+      this.view = v
+      this.janela = janela
+      this.chave = chave
+    }
+    this.view.setBounds({ x: r.x, y: r.y, width: Math.max(0, r.largura), height: Math.max(0, r.altura) })
+  }
+
+  som(ligado: boolean): void {
+    this.view?.webContents.setAudioMuted(!ligado)
+  }
+
+  fechar(): void {
+    const v = this.view
+    this.view = null
+    this.chave = ''
+    if (!v) return
+    if (this.janela && !this.janela.isDestroyed()) this.janela.contentView.removeChildView(v)
+    if (!v.webContents.isDestroyed()) v.webContents.close()
+    this.janela = null
+  }
+
+  aberta(): boolean {
+    return this.view !== null
   }
 }

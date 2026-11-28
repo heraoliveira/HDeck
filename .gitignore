@@ -10,10 +10,8 @@ tools/bancada/resultados/
 dist-log.txt
 test-results-provas*.log
 bancada-log.txt
-dist-prova/
 motor-paginas/bin/
 motor-paginas/obj/
 motor-paginas/publicado/
 tools/prova-webview2/bin/
 tools/prova-webview2/obj/
-dist-nova/

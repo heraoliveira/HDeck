@@ -136,3 +136,57 @@ test('RN-080 depois de conectar a Twitch, a conta aparece como conectada (o bot�
     await a.fechar()
   }
 })
+
+test('RN-080 RN-092 live selecionada aparece dentro da janela de lives (com o chat) e some ao fechar a janela', async () => {
+  const a = await abrirApp()
+  try {
+    await garantirJogoFalso(a)
+    const [c] = await criarContas(a, 1)
+    await esperarEstado(a, c!, ['ativa', 'economica', 'escondida'])
+    await a.app.evaluate(
+      (_e, id) => (globalThis as H).hdeckTeste.motor.adicionarLive(id, 'twitch', 'canalvisto'),
+      c!,
+    )
+    await a.janela.evaluate((id) => (window as H).hdeck.lives.janela({ contaId: id }), c!)
+    const janela = await a.app.waitForEvent('window', { predicate: (p) => p.url().includes('janela=lives') })
+    await janela.getByText('canalvisto').first().click()
+    const urlsNaJanela = () =>
+      a.app.evaluate(() => {
+        const w = (globalThis as H).hdeckTeste.janelas.lives
+        return w ? w.contentView.children.map((v: H) => v.webContents.getURL()) : []
+      })
+    await expect.poll(urlsNaJanela).toEqual([expect.stringContaining('/live/canalvisto')])
+    // Sem som até ligar.
+    expect(
+      await a.app.evaluate(() =>
+        (globalThis as H).hdeckTeste.janelas.lives.contentView.children[0].webContents.isAudioMuted(),
+      ),
+    ).toBe(true)
+    await janela.getByRole('button', { name: 'Som' }).click()
+    await expect
+      .poll(() =>
+        a.app.evaluate(() =>
+          (globalThis as H).hdeckTeste.janelas.lives.contentView.children[0].webContents.isAudioMuted(),
+        ),
+      )
+      .toBe(false)
+    // Fechar a janela de lives não deixa a página da live para trás.
+    const antes = await a.app.evaluate(
+      ({ webContents }) =>
+        webContents.getAllWebContents().filter((w) => w.getURL().includes('/live/canalvisto')).length,
+    )
+    await a.app.evaluate(() => (globalThis as H).hdeckTeste.janelas.lives.close())
+    await expect
+      .poll(() =>
+        a.app.evaluate(
+          ({ webContents }) =>
+            webContents
+              .getAllWebContents()
+              .filter((w) => !w.isDestroyed() && w.getURL().includes('/live/canalvisto')).length,
+        ),
+      )
+      .toBe(antes - 1)
+  } finally {
+    await a.fechar()
+  }
+})

@@ -57,7 +57,7 @@
 ## 4. Visões e divisão de tela
 
 - **RN-040** Visões: Grade, Principal + miniaturas, Foco (abas) e Painel. (R)
-- **RN-041** Divisões: 1, 2 lado a lado, 2 empilhadas, 1+2, 1+3, 2×2, 3×2, 3×3, 4×4 e Personalizada. Cada espaço mostra uma conta escolhida ou "Automático" (ordem do grupo). (D)
+- **RN-041** Divisões: 1, 2 lado a lado, 2 empilhadas, 1+2, 1+3, 2×2, 3×2, 3×3, 4×4 e Personalizada. Cada espaço mostra uma conta escolhida ou "Automático" (ordem do grupo). (D) Diferenças de 1–2 px (arredondamento da escala do Windows) não mudam o tamanho da conta, para o jogo não tremer (D, 2026-11-28).
 - **RN-042** Espaços nunca se sobrepõem e sempre cabem na área disponível, em qualquer tamanho de janela. (P)
 - **RN-043** A conta ativa tem a borda destacada. Clicar numa conta a torna ativa. (R)
 - **RN-044** Ao abrir um diálogo por cima das contas, elas aparecem como foto e continuam rodando; ao fechar, voltam ao vivo. (P)
@@ -94,7 +94,7 @@
 
 ## 7. Lives da Twitch e da Kick
 
-- **RN-080** Uma conta pode ter várias lives (Twitch ou Kick + canal). O botão "Lives" aparece nas contas dos jogos marcados no catálogo como "dá bônus por live", ou em todas se o usuário ligar a opção. A janela de lives mostra as lives com filtro por conta (Twitch e Kick, ligar/desligar tudo, abrir por link ou nome). Depois que a conta entra na Twitch ou na Kick, o "Conectar" daquela plataforma some (vira um selo de conectada). Um link de live da Twitch ou da Kick clicado no jogo vira live daquela conta e abre nessa janela. O painel direito mostra as lives ligadas da conta. (R; alterada D 2026-11-28)
+- **RN-080** Uma conta pode ter várias lives (Twitch ou Kick + canal). O botão "Lives" aparece nas contas dos jogos marcados no catálogo como "dá bônus por live", ou em todas se o usuário ligar a opção. A janela de lives mostra as lives com filtro por conta (Twitch e Kick, ligar/desligar tudo, abrir por link ou nome). Depois que a conta entra na Twitch ou na Kick, o "Conectar" daquela plataforma some (vira um selo de conectada). Selecionar uma live mostra a live com o chat dentro dessa janela, sem som até a dona ligar. Um link de live da Twitch ou da Kick clicado no jogo vira live daquela conta e abre nessa janela. O painel direito mostra as lives ligadas da conta. (R; alterada D 2026-11-28)
 - **RN-081** A live usa a sessão da própria conta: o login na Twitch/Kick é por conta e serve também ao vínculo feito dentro do jogo. (P)
 - **RN-082** **Lives nas contas** (ligado): liga o sistema; desligado fecha todas as lives. (R)
 - **RN-083** As lives tocam sem som e não aparecem na tela. "Mostrar" abre a live numa janela pequena; fechar volta ao modo escondido. (D/R)

@@ -309,11 +309,33 @@ sealed class Pagina
         }
         var k = Win32.Escala(pai);
         if (viva)
-            ret = new Rectangle((int)Math.Round(x * k), (int)Math.Round(y * k), (int)Math.Round(largura * k), (int)Math.Round(altura * k));
+        {
+            var novo = new Rectangle((int)Math.Round(x * k), (int)Math.Round(y * k), (int)Math.Round(largura * k), (int)Math.Round(altura * k));
+            // Anti-tremor: diferenças de 1–2 px (arredondamento da escala do Windows, medidas repetidas da
+            // interface) não mexem na página. Cada mudança de tamanho faz o jogo refazer o layout; ida e volta
+            // de 1 px várias vezes por segundo era o "HUD tremendo".
+            if (QuaseIgual(novo, ret)) novo = ret;
+            else RegistrarMudanca(novo);
+            ret = novo;
+        }
         else
             ret = new Rectangle(Fora, 0, ret.Width > 0 ? ret.Width : 960, ret.Height > 0 ? ret.Height : 600);
         Posicionar();
         AplicarVisibilidade();
+    }
+
+    private static bool QuaseIgual(Rectangle a, Rectangle b) =>
+        Math.Abs(a.X - b.X) <= 2 && Math.Abs(a.Y - b.Y) <= 2 && Math.Abs(a.Width - b.Width) <= 2 && Math.Abs(a.Height - b.Height) <= 2;
+
+    private readonly Queue<long> mudancas = new();
+
+    /// <summary>Diagnóstico: muitas mudanças de tamanho seguidas vão para o log (para achar outro tremor).</summary>
+    private void RegistrarMudanca(Rectangle novo)
+    {
+        var agora = Environment.TickCount64;
+        mudancas.Enqueue(agora);
+        while (mudancas.Count > 0 && agora - mudancas.Peek() > 5000) mudancas.Dequeue();
+        if (mudancas.Count == 8) motor.Log("aviso", $"conta {Id}: 8 mudanças de tamanho em 5 s (agora {novo.Width}x{novo.Height})");
     }
 
     private void Posicionar()

@@ -335,3 +335,26 @@ test('RN-041 barra de rolagem da página da conta fica por cima: não muda a lar
     await a.fechar()
   }
 })
+
+test('RN-041 grade automática com a barra dos grupos aberta: a interface não fica remedindo (nada de tremor)', async () => {
+  const a = await abrirApp()
+  try {
+    await garantirJogoFalso(a)
+    const ids = await criarContas(a, 3)
+    for (const id of ids) await esperarEstado(a, id, ['ativa', 'economica', 'escondida'])
+    await a.app.evaluate(() => {
+      const m = (globalThis as H).hdeckTeste.motor
+      ;(globalThis as H).chamadas = []
+      const orig = m.definirEspacos.bind(m)
+      m.definirEspacos = (j: string, e: unknown) => {
+        ;(globalThis as H).chamadas.push(JSON.stringify(e))
+        return orig(j, e)
+      }
+    })
+    await new Promise((r) => setTimeout(r, 15000))
+    const c = await a.app.evaluate(() => (globalThis as H).chamadas)
+    expect(c.length).toBeLessThan(3)
+  } finally {
+    await a.fechar()
+  }
+})

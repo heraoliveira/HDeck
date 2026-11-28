@@ -29,7 +29,7 @@ import {
 import { Bandeja } from './adaptadores/electron/bandeja.ts'
 import { instalarEndurecimento } from './adaptadores/electron/endurecimento.ts'
 import { GerenciadorJanelas } from './adaptadores/electron/janelas.ts'
-import { FabricaLivesElectron, janelasDasLives } from './adaptadores/electron/live-offscreen.ts'
+import { FabricaLivesElectron, janelasDasLives, LiveNaJanela } from './adaptadores/electron/live-offscreen.ts'
 import {
   type Perguntador,
   PerguntadorDeTeste,
@@ -393,16 +393,18 @@ async function iniciar(): Promise<void> {
     }
   }
 
+  const livesFab = new FabricaLivesElectron(
+    log,
+    modoTeste ? (process.env.HDECK_TESTE_LIVE_URL ?? null) : null,
+    (contaId, plataforma, url) => abrirLoginNoMotor(contaId, plataforma, url),
+  )
+  const liveNaJanela = new LiveNaJanela()
   motor = new Motor({
     relogio: relogioReal,
     armazem,
     configArquivo: arquivoConfig,
     paginas: fabrica,
-    lives: new FabricaLivesElectron(
-      log,
-      modoTeste ? (process.env.HDECK_TESTE_LIVE_URL ?? null) : null,
-      (contaId, plataforma, url) => abrirLoginNoMotor(contaId, plataforma, url),
-    ),
+    lives: livesFab,
     http,
     rede: redeElectron,
     locais,
@@ -708,6 +710,14 @@ async function iniciar(): Promise<void> {
     },
     'lives.ligarTodas': (e) => m.ligarLivesDaConta(e.contaId, e.plataforma, e.ligada),
     'lives.janela': (e) => janelas.abrirLives(e.contaId ?? m.snapshot().ativaId ?? undefined),
+    // A live selecionada na janela de lives aparece nela, com o chat (null = esconder).
+    'lives.exibir': (e) => {
+      const live = e.id ? m.snapshot().lives.find((l) => l.id === e.id) : undefined
+      const w = janelas.lives
+      if (!live || !e.retangulo || !w || w.isDestroyed()) return liveNaJanela.fechar()
+      liveNaJanela.mostrar(w, live.contaId, livesFab.urlDoCanal(live.plataforma, live.canal), e.retangulo)
+      liveNaJanela.som(e.som)
+    },
     // A conta já entrou na Twitch/Kick? (cookie de login na sessão das lives dela): o "Conectar" some.
     'lives.conexoes': async (e) => {
       const s = session.fromPartition(`persist:live-${e.contaId}`)

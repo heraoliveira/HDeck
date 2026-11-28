@@ -43,6 +43,7 @@ export const NOMES_CANAIS = [
   'lives.ligarTodas',
   'lives.janela',
   'lives.conexoes',
+  'lives.exibir',
   'textos.salvar',
   'textos.apagar',
   'avisos.listar',

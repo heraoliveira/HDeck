@@ -2,6 +2,9 @@
 
 ## Próxima versão
 
+- Cada instalador sai com versão nova, e instalar fecha o HDeck antes de trocar os arquivos (a versão velha não fica mais). Os seus dados ficam.
+- A live selecionada aparece na janela de lives, com o chat.
+- Anti-tremor: o tamanho das contas não muda por diferenças de 1–2 px.
 - Janela de lives: depois de conectar a Twitch/Kick, o "Conectar" vira um selo de conectada.
 - Painel direito recolhido mostra tudo o que está nele (botões e um ícone por bloco).
 - Seleções de Otimizar e Fora da tela no estilo de segmentos do app.

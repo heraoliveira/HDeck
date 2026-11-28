@@ -250,6 +250,8 @@
   "lj.conta": "Conta",
   "lj.lives": "Lives",
   "lj.conectar": "Conectar {p}",
+  "lj.som": "Som",
+  "lj.carregando": "Abrindo a live…",
   "lj.conectada": "Esta conta já entrou na {p}",
   "lj.prontoTitulo": "Twitch e Kick conectadas",
   "lj.prontoTexto": "Abra uma live pelo link ou pelo nome do canal, ou clique numa live dentro do jogo.",

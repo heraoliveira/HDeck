@@ -226,6 +226,15 @@ export const canais = {
     .strict(),
   'lives.janela': z.object({ contaId: idSchema.optional() }).strict(),
   'lives.conexoes': z.object({ contaId: idSchema }).strict(),
+  'lives.exibir': z
+    .object({
+      id: idSchema.nullable(),
+      retangulo: z
+        .object({ x: z.number(), y: z.number(), largura: z.number(), altura: z.number() })
+        .nullable(),
+      som: z.boolean(),
+    })
+    .strict(),
 
   'textos.salvar': z
     .object({

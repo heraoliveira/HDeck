@@ -16,7 +16,7 @@
     "dev": "electron-vite dev",
     "build": "pnpm motor && electron-vite build",
     "motor": "dotnet publish motor-paginas/MotorPaginas.csproj -c Release -o motor-paginas/publicado --nologo -v q",
-    "dist": "pnpm build && electron-builder --config build/electron-builder.yml --win",
+    "dist": "pnpm build && node tools/dist.ts",
     "test": "vitest run --project unidade --project integracao --project componentes",
     "cobertura": "vitest run --project unidade --project integracao --project componentes --coverage",
     "e2e": "pnpm build && playwright test --config tests/playwright.config.ts --project e2e",

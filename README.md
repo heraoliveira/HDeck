@@ -92,6 +92,6 @@ Documentos: `docs/REGRAS.md` (regras de negócio), `docs/decisoes/` (ADRs), `doc
 
 ### Publicar uma versão
 
-1. Ajuste `version` no `package.json` (formato `AAAA.M.D`) e o `CHANGELOG.md`.
-2. `pnpm dist`.
+1. Atualize o `CHANGELOG.md`.
+2. Feche o HDeck e rode `pnpm dist`. A versão sai sozinha com a data e a hora (`AAAA.MDD.HHmm`, ex.: 2026.1128.1405), sempre maior que a anterior; o instalador fecha o HDeck e o motor antes de trocar os arquivos e mantém os dados em `%APPDATA%\HDeck`. Abra o HDeck pelo atalho (não pela pasta `dist`).
 3. Crie a release no GitHub com `HDeck-Setup-<versão>.exe`, o `.blockmap` e o `latest.yml` de `dist/` (o app instalado procura atualização ali).

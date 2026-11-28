@@ -65,6 +65,35 @@ $effect(() => {
   return () => clearInterval(t)
 })
 
+// A live selecionada aparece no palco: o main põe a página da live exatamente sobre ele.
+let palco: HTMLDivElement | undefined = $state()
+$effect(() => {
+  const id = live?.id ?? null
+  const som = comSom
+  const el = palco
+  if (!id || !el) {
+    void chamar('lives.exibir', { id: null, retangulo: null, som: false }).catch(() => {})
+    return
+  }
+  const enviar = () => {
+    const b = el.getBoundingClientRect()
+    void chamar('lives.exibir', {
+      id,
+      som,
+      retangulo: {
+        x: Math.round(b.left),
+        y: Math.round(b.top),
+        largura: Math.round(b.width),
+        altura: Math.round(b.height),
+      },
+    }).catch(() => {})
+  }
+  enviar()
+  const ro = new ResizeObserver(enviar)
+  ro.observe(el)
+  return () => ro.disconnect()
+})
+
 const urlDe = (l: Live) => (l.plataforma === 'twitch' ? `twitch.tv/${l.canal}` : `kick.com/${l.canal}`)
 </script>
 
@@ -135,20 +164,20 @@ const urlDe = (l: Live) => (l.plataforma === 'twitch' ? `twitch.tv/${l.canal}` :
 
     <main class="principal">
       {#if live}
-        <div class="cartao">
-          <h2>{live.canal}</h2>
-          <p class="muted">{nomeP(live.plataforma)} · {urlDe(live)}</p>
-          {#if !live.ligada}
-            <p>{t('lj.desligadaTexto')}</p>
-            <button class="botao primario" onclick={() => ligar(live, true)}><Icone nome="ligar" />{t('lj.ligarEsta')}</button>
-          {:else}
-            <p class="muted">{t('lj.tocaEscondida')}</p>
-            <div class="linha">
-              <button class="botao primario" onclick={() => chamar('lives.mostrar', { id: live.id, som: comSom })}>{t('lives.mostrar')}</button>
-              <label class="pequeno"><input type="checkbox" bind:checked={comSom} /> {t('lives.somAoMostrar')}</label>
-              <button class="botao" onclick={() => ligar(live, false)}>{t('lj.desligar')}</button>
-            </div>
-          {/if}
+        <div class="exibicao">
+          <div class="barra-live">
+            <b>{live.canal}</b>
+            <span class="muted pequeno">{nomeP(live.plataforma)}</span>
+            <span class="cresce"></span>
+            <button class="botao fino" class:ligado={comSom} aria-pressed={comSom} onclick={() => (comSom = !comSom)}><Icone nome={comSom ? 'som' : 'mudo'} tamanho={14} />{t('lj.som')}</button>
+            {#if live.ligada}
+              <button class="botao fino" onclick={() => ligar(live, false)}><Icone nome="ligar" tamanho={14} />{t('lj.desligar')}</button>
+            {:else}
+              <button class="botao fino primario" onclick={() => ligar(live, true)}><Icone nome="ligar" tamanho={14} />{t('lj.ligarEsta')}</button>
+            {/if}
+          </div>
+          <!-- A live (com o chat) aparece aqui, na sessão das lives da conta. -->
+          <div class="palco" bind:this={palco}><span class="muted pequeno">{t('lj.carregando')}</span></div>
         </div>
       {:else}
         <div class="vazio-grande">
@@ -397,14 +426,34 @@ const urlDe = (l: Live) => (l.plataforma === 'twitch' ? `twitch.tv/${l.canal}` :
     place-items: center;
     padding: 24px;
   }
-  .cartao {
+  .principal:has(.exibicao) {
+    padding: 0;
+    place-items: stretch;
+  }
+  .exibicao {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-    max-width: 520px;
+    min-height: 0;
+    height: 100%;
   }
-  .cartao h2,
+  .barra-live {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--borda);
+    background: var(--fundo-painel);
+  }
+  .barra-live .ligado {
+    color: var(--ok);
+  }
+  .palco {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    background: #08111f;
+  }
   .vazio-grande h2 {
     margin: 0;
   }
