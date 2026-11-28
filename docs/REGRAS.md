@@ -27,7 +27,7 @@
 - **RN-005** O HDeck não bloqueia nem altera anúncios ou conteúdo dos sites dos jogos e das lives. (P)
 - **RN-006** Toda frase da interface é pt-BR simples e direta. (D)
 - **RN-007** Todos os painéis, menus, diálogos e o HUD seguem a estilização do app (tema do HFinance, tokens de `estilos/tokens.css`); nada de menu nativo do sistema dentro do app (a bandeja do Windows é a exceção). Clicar ou passar o mouse num controle da interface devolve o teclado que ficou na página de uma conta: nenhum campo deixa de aceitar texto e nenhum botão pede dois cliques. (D, 2026-11-27)
-- **RN-008** À direita fica o painel da conta selecionada, que recolhe e expande como o dos grupos: estado, Início, Recarregar, Som, Destacar, lives, consumo de RAM e CPU da última hora, Otimizar (com o horário do automático) e o histórico da conta; Foco, Desligar e Mais no rodapé. Recolhido, mostra só o avatar e os ícones dos botões escolhidos (e as lives ligadas); a barra dos grupos recolhida mostra as contas de cada grupo, na cor dele, com clique e botão direito. Totalmente personalizável: cada bloco (botões, lives, consumo, Otimizar, histórico, endereço, zoom, fora da tela, notas) e cada botão sai, volta e muda de lugar. (D, 2026-11-27; personalização 2026-11-28)
+- **RN-008** À direita fica o painel da conta selecionada, que recolhe e expande como o dos grupos: estado, Início, Recarregar, Som, Destacar, lives, consumo de RAM e CPU da última hora, Otimizar (com o horário do automático) e o histórico da conta; Foco, Desligar e Mais no rodapé. Recolhido, mostra o avatar e tudo o que está no painel, na mesma ordem: cada botão e um ícone para cada bloco (clicar abre o painel nele); a barra dos grupos recolhida mostra as contas de cada grupo, na cor dele, com clique e botão direito. Totalmente personalizável: cada bloco (botões, lives, consumo, Otimizar, histórico, endereço, zoom, fora da tela, notas) e cada botão sai, volta e muda de lugar. (D, 2026-11-27; personalização 2026-11-28)
 
 ## 2. Contas
 
@@ -94,7 +94,7 @@
 
 ## 7. Lives da Twitch e da Kick
 
-- **RN-080** Uma conta pode ter várias lives (Twitch ou Kick + canal). O botão "Lives" aparece nas contas dos jogos marcados no catálogo como "dá bônus por live", ou em todas se o usuário ligar a opção. A janela de lives mostra as lives com filtro por conta (Twitch e Kick, ligar/desligar tudo, abrir por link ou nome). Um link de live da Twitch ou da Kick clicado no jogo vira live daquela conta e abre nessa janela. O painel direito mostra as lives ligadas da conta. (R; alterada D 2026-11-28)
+- **RN-080** Uma conta pode ter várias lives (Twitch ou Kick + canal). O botão "Lives" aparece nas contas dos jogos marcados no catálogo como "dá bônus por live", ou em todas se o usuário ligar a opção. A janela de lives mostra as lives com filtro por conta (Twitch e Kick, ligar/desligar tudo, abrir por link ou nome). Depois que a conta entra na Twitch ou na Kick, o "Conectar" daquela plataforma some (vira um selo de conectada). Um link de live da Twitch ou da Kick clicado no jogo vira live daquela conta e abre nessa janela. O painel direito mostra as lives ligadas da conta. (R; alterada D 2026-11-28)
 - **RN-081** A live usa a sessão da própria conta: o login na Twitch/Kick é por conta e serve também ao vínculo feito dentro do jogo. (P)
 - **RN-082** **Lives nas contas** (ligado): liga o sistema; desligado fecha todas as lives. (R)
 - **RN-083** As lives tocam sem som e não aparecem na tela. "Mostrar" abre a live numa janela pequena; fechar volta ao modo escondido. (D/R)

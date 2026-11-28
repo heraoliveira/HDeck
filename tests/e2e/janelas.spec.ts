@@ -114,3 +114,25 @@ test('RN-154 RN-081 login da live abre no motor do Edge e o login vai para a ses
     await a.fechar()
   }
 })
+
+test('RN-080 depois de conectar a Twitch, a conta aparece como conectada (o botão de conectar some)', async () => {
+  const a = await abrirApp({ env: { HDECK_TESTE_LOGIN_MOTOR: '1' } })
+  try {
+    await garantirJogoFalso(a)
+    const [c] = await criarContas(a, 1)
+    await esperarEstado(a, c!, ['ativa', 'economica', 'escondida'])
+    const conexoes = () =>
+      a.janela.evaluate(async (id) => (await (window as H).hdeck.lives.conexoes({ contaId: id })).valor, c!)
+    expect(await conexoes()).toEqual({ twitch: false, kick: false })
+    await a.app.evaluate((_e, id) => (globalThis as H).hdeckTeste.motor.entrarNaPlataforma(id, 'twitch'), c!)
+    await expect.poll(conexoes, { timeout: 20_000 }).toEqual({ twitch: true, kick: false })
+    // Na janela de lives, a Twitch aparece como conectada e o "Conectar Twitch" sumiu.
+    await a.janela.evaluate((id) => (window as H).hdeck.lives.janela({ contaId: id }), c!)
+    const janela = await a.app.waitForEvent('window', { predicate: (p) => p.url().includes('janela=lives') })
+    await expect(janela.locator('.conectada')).toContainText('Twitch')
+    await expect(janela.getByRole('button', { name: 'Conectar Twitch' })).toHaveCount(0)
+    await expect(janela.getByRole('button', { name: 'Conectar Kick' }).first()).toBeVisible()
+  } finally {
+    await a.fechar()
+  }
+})

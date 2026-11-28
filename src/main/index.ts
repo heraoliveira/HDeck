@@ -708,6 +708,22 @@ async function iniciar(): Promise<void> {
     },
     'lives.ligarTodas': (e) => m.ligarLivesDaConta(e.contaId, e.plataforma, e.ligada),
     'lives.janela': (e) => janelas.abrirLives(e.contaId ?? m.snapshot().ativaId ?? undefined),
+    // A conta já entrou na Twitch/Kick? (cookie de login na sessão das lives dela): o "Conectar" some.
+    'lives.conexoes': async (e) => {
+      const s = session.fromPartition(`persist:live-${e.contaId}`)
+      const tem = async (dominios: string[], nomes: string[]) => {
+        for (const domain of dominios) {
+          const cs = await s.cookies.get({ domain }).catch(() => [])
+          if (cs.some((c) => nomes.includes(c.name) && c.value !== '')) return true
+        }
+        return false
+      }
+      const teste = modoTeste ? ['localhost'] : []
+      return {
+        twitch: await tem(['twitch.tv', ...teste], ['auth-token', 'twitch_auth']),
+        kick: await tem(['kick.com', ...teste], ['session_token', 'kick_auth']),
+      }
+    },
     'textos.salvar': (e) => m.salvarTexto(e),
     'textos.apagar': (e) => m.apagarTexto(e.id),
     'avisos.listar': (e) => m.listarAvisos(e.limite),

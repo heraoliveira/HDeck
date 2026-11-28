@@ -51,6 +51,20 @@ async function abrir() {
       r.erro === 'limite' ? t('lives.limite', { n: s.config.lives.porConta }) : t('lj.linkInvalido'),
     )
 }
+// Já conectada na Twitch/Kick (login na sessão das lives desta conta): o botão de conectar some.
+let conexoes = $state({ twitch: false, kick: false })
+$effect(() => {
+  const id = contaId
+  if (!id) return
+  const ler = () =>
+    void chamar<'lives.conexoes', { twitch: boolean; kick: boolean }>('lives.conexoes', { contaId: id })
+      .then((r) => (conexoes = r))
+      .catch(() => {})
+  ler()
+  const t = setInterval(ler, 3000)
+  return () => clearInterval(t)
+})
+
 const urlDe = (l: Live) => (l.plataforma === 'twitch' ? `twitch.tv/${l.canal}` : `kick.com/${l.canal}`)
 </script>
 
@@ -64,8 +78,13 @@ const urlDe = (l: Live) => (l.plataforma === 'twitch' ? `twitch.tv/${l.canal}` :
     {/if}
     <span class="cresce"></span>
     {#if conta}
-      <button class="botao conectar twitch" onclick={() => chamar('lives.entrarPlataforma', { contaId, plataforma: 'twitch' })}>{t('lj.conectar', { p: 'Twitch' })}</button>
-      <button class="botao conectar kick" onclick={() => chamar('lives.entrarPlataforma', { contaId, plataforma: 'kick' })}>{t('lj.conectar', { p: 'Kick' })}</button>
+      {#each ['twitch', 'kick'] as const as p (p)}
+        {#if conexoes[p]}
+          <span class="conectada" title={t('lj.conectada', { p: nomeP(p) })}><span class="selo {p}">{p === 'twitch' ? 'T' : 'K'}</span>{nomeP(p)} ✓</span>
+        {:else}
+          <button class="botao conectar {p}" onclick={() => chamar('lives.entrarPlataforma', { contaId, plataforma: p })}>{t('lj.conectar', { p: nomeP(p) })}</button>
+        {/if}
+      {/each}
     {/if}
   </header>
 
@@ -134,12 +153,20 @@ const urlDe = (l: Live) => (l.plataforma === 'twitch' ? `twitch.tv/${l.canal}` :
       {:else}
         <div class="vazio-grande">
           <Icone nome="live" tamanho={36} />
-          <h2>{t('lj.conecteTitulo')}</h2>
-          <p class="muted">{t('lj.conecteTexto')}</p>
-          <div class="conectar-cartoes">
-            <button class="cartao-plataforma twitch" onclick={() => chamar('lives.entrarPlataforma', { contaId, plataforma: 'twitch' })}><span class="selo grande twitch">T</span><span><b>{t('lj.conectar', { p: 'Twitch' })}</b><small>{t('lj.entrarNaConta', { p: 'Twitch' })}</small></span></button>
-            <button class="cartao-plataforma kick" onclick={() => chamar('lives.entrarPlataforma', { contaId, plataforma: 'kick' })}><span class="selo grande kick">K</span><span><b>{t('lj.conectar', { p: 'Kick' })}</b><small>{t('lj.entrarNaConta', { p: 'Kick' })}</small></span></button>
-          </div>
+          {#if !conexoes.twitch || !conexoes.kick}
+            <h2>{t('lj.conecteTitulo')}</h2>
+            <p class="muted">{t('lj.conecteTexto')}</p>
+            <div class="conectar-cartoes">
+              {#each ['twitch', 'kick'] as const as p (p)}
+                {#if !conexoes[p]}
+                  <button class="cartao-plataforma {p}" onclick={() => chamar('lives.entrarPlataforma', { contaId, plataforma: p })}><span class="selo grande {p}">{p === 'twitch' ? 'T' : 'K'}</span><span><b>{t('lj.conectar', { p: nomeP(p) })}</b><small>{t('lj.entrarNaConta', { p: nomeP(p) })}</small></span></button>
+                {/if}
+              {/each}
+            </div>
+          {:else}
+            <h2>{t('lj.prontoTitulo')}</h2>
+            <p class="muted">{t('lj.prontoTexto')}</p>
+          {/if}
           <p class="pequeno muted">{t('lj.cliqueNoJogo')}</p>
           <p class="pequeno muted">{t('lj.fecharNaoPara')}</p>
         </div>
@@ -194,6 +221,26 @@ const urlDe = (l: Live) => (l.plataforma === 'twitch' ? `twitch.tv/${l.canal}` :
   }
   .conectar {
     font-size: var(--t12);
+  }
+  .conectada {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--borda);
+    font-size: var(--t12);
+    color: var(--ok);
+  }
+  .conectada {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--borda);
+    font-size: var(--t12);
+    color: var(--ok);
   }
   .conectar.twitch {
     border-color: #9146ff;

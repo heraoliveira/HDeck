@@ -59,7 +59,7 @@ Regras ativas: 103 · com teste: 103
 | RN-068 | Site fora do ar (falha ao carregar ou erro do servidor): mesma espera da RN-061 e aviso. (… | tests/unidade/motor.test.ts<br>tests/unidade/saude.test.ts |
 | RN-069 | Toda queda, recarga, travamento e volta fica registrada no histórico da conta. (R)… | tests/unidade/motor.test.ts<br>tests/unidade/saude.test.ts |
 | RN-070 | Se a interface do HDeck cair, ela volta sozinha sem recarregar as contas. Se o app fechar … | tests/e2e/contas.spec.ts<br>tests/unidade/ping-painel-cofre.test.ts |
-| RN-080 | Uma conta pode ter várias lives (Twitch ou Kick + canal). O botão "Lives" aparece nas cont… | tests/e2e/recursos.spec.ts<br>tests/unidade/lives.test.ts<br>tests/unidade/motor.test.ts |
+| RN-080 | Uma conta pode ter várias lives (Twitch ou Kick + canal). O botão "Lives" aparece nas cont… | tests/e2e/janelas.spec.ts<br>tests/e2e/recursos.spec.ts<br>tests/unidade/lives.test.ts<br>tests/unidade/motor.test.ts |
 | RN-081 | A live usa a sessão da própria conta: o login na Twitch/Kick é por conta e serve também ao… | tests/e2e/janelas.spec.ts<br>tests/e2e/recursos.spec.ts<br>tests/unidade/lives.test.ts |
 | RN-082 | **Lives nas contas** (ligado): liga o sistema; desligado fecha todas as lives. (R)… | tests/unidade/lives.test.ts<br>tests/unidade/motor.test.ts<br>tests/unidade/shared.test.ts |
 | RN-083 | As lives tocam sem som e não aparecem na tela. "Mostrar" abre a live numa janela pequena; … | tests/e2e/recursos.spec.ts<br>tests/provas/provas.spec.ts<br>tests/unidade/lives.test.ts<br>tests/unidade/motor.test.ts |

@@ -171,6 +171,19 @@ sealed class Motor
                 await Encerrar();
                 return null;
             case "popups": return JanelaPopup.Abertas;
+            case "popupsInfo":
+            {
+                // Diagnóstico: o que cada pop-up/login mostra ao site (identidade e endereço).
+                var lista = new JsonArray();
+                foreach (var f in Application.OpenForms.OfType<JanelaPopup>().ToList())
+                {
+                    var w = f.Web;
+                    if (w == null) continue;
+                    var info = await w.ExecuteScriptAsync("JSON.stringify({ ua: navigator.userAgent, marcas: navigator.userAgentData && navigator.userAgentData.brands, webview: typeof (window.chrome && window.chrome.webview), titulo: document.title })");
+                    lista.Add(new JsonObject { ["perfil"] = f.Perfil, ["url"] = w.Source, ["info"] = info });
+                }
+                return lista;
+            }
             case "fecharPopups":
                 foreach (var f in Application.OpenForms.OfType<JanelaPopup>().ToList()) f.Close();
                 return null;

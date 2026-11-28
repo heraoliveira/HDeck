@@ -349,14 +349,21 @@ test('RN-008 RN-007 painéis recolhidos: contas por grupo e cor à esquerda, bot
     await minis.nth(0).click({ button: 'right' })
     await expect(j.getByRole('menu')).toContainText('Conta 1')
     await j.keyboard.press('Escape')
-    // Direita recolhida: só os ícones dos botões escolhidos (botões + rodapé).
+    // Direita recolhida: tudo o que está no painel (cada botão e um ícone para cada bloco), mais o expandir.
     const painel = j.getByRole('complementary', { name: 'Configurações da conta' })
     await painel.getByRole('button', { name: 'Recolher o painel da conta' }).click()
     const cfg = (await snap(a)).config.painelDireito
     await expect(painel.locator('.mini-acao:not(.lives)')).toHaveCount(
-      cfg.botoes.length + cfg.rodape.length + 1,
+      cfg.botoes.length +
+        cfg.rodape.length +
+        cfg.secoes.filter((x: string) => x !== 'acoes' && x !== 'lives').length +
+        1,
     )
     await j.screenshot({ path: 'test-results/paineis-recolhidos.png' })
+    // Clicar no ícone de um bloco abre o painel nele.
+    await painel.getByRole('button', { name: 'Consumo na última hora' }).click()
+    await expect(painel.locator('[data-secao="consumo"]')).toBeVisible()
+    await painel.getByRole('button', { name: 'Recolher o painel da conta' }).click()
     await painel.getByRole('button', { name: 'Abrir o painel da conta' }).click()
     await expect(painel.locator('.rolagem')).toBeVisible()
     void c1

@@ -158,27 +158,6 @@ function tecla(e: KeyboardEvent) {
     margin: 6px 0;
     background: var(--borda);
   }
-  .painel :global(.pf-segmento) {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px;
-    padding: 2px;
-    border-radius: var(--raio-s);
-    background: var(--fundo-app);
-    margin: 4px 0 6px;
-  }
-  .painel :global(.pf-segmento button) {
-    padding: 6px;
-    border: 0;
-    border-radius: 5px;
-    background: none;
-    color: var(--texto-2);
-  }
-  .painel :global(.pf-segmento button.ativo) {
-    background: var(--destaque);
-    color: var(--destaque-texto);
-    font-weight: 600;
-  }
   .painel :global(.pf-cores) {
     display: flex;
     gap: 8px;

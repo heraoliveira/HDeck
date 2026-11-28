@@ -53,6 +53,27 @@ $effect(() => {
   notas = c?.notas ?? ''
 })
 
+const ICONE_SECAO: Record<Secao, 'casa'> = {
+  acoes: 'casa',
+  lives: 'live',
+  consumo: 'raio',
+  otimizar: 'brilho',
+  historico: 'sino',
+  endereco: 'link',
+  zoom: 'buscar',
+  foraDaTela: 'folha',
+  notas: 'lapis',
+} as unknown as Record<Secao, 'casa'>
+/** Recolhido: clicar no ícone de um bloco abre o painel já nele. */
+function abrirEm(secao: Secao) {
+  if (loja.direitaRecolhida) alternar()
+  requestAnimationFrame(() =>
+    document
+      .querySelector(`.direita [data-secao="${secao}"]`)
+      ?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
+  )
+}
+
 function alternar() {
   loja.direitaRecolhida = !loja.direitaRecolhida
   try {
@@ -260,15 +281,24 @@ const politicaDoGrupo = $derived(c ? (grupo?.layout.politicas[c.jogoId] ?? 'econ
     <div class="mini">
       {#if c}
         <button class="avatar mini-avatar" style:--cor={c.cor} title={c.nome} aria-label={c.nome} onclick={alternar}>{iniciais(c.nome)}<span class="ponto" data-estado={est?.estado ?? 'desligada'}></span></button>
-        {#each [...cfg.botoes, ...cfg.rodape] as b (b)}
-          {@const a = acoes[b]}
-          <button class="mini-acao" class:ligado={a.ativo} disabled={a.precisaLigada && !ligada} title={a.rotulo} aria-label={a.rotulo} onclick={() => (b === 'mais' ? alternar() : a.fazer())}>
-            <Icone nome={a.icone as 'casa'} tamanho={16} />
-          </button>
+        <!-- Tudo o que está no painel, na mesma ordem: os botões e um ícone para cada bloco (abre o painel nele). -->
+        {#each cfg.secoes as secao (secao)}
+          {#if secao === 'acoes'}
+            {#each cfg.botoes as b (b)}
+              {@const a = acoes[b]}
+              <button class="mini-acao" class:ligado={a.ativo} disabled={a.precisaLigada && !ligada} title={a.rotulo} aria-label={a.rotulo} onclick={() => a.fazer()}><Icone nome={a.icone as 'casa'} tamanho={16} /></button>
+            {/each}
+          {:else if secao === 'lives'}
+            <button class="mini-acao lives" title={t('pd.lives')} aria-label={t('pd.lives')} onclick={() => chamar('lives.janela', { contaId: c.id })}><Icone nome="live" tamanho={16} /><span class="contagem">{livesDaConta.filter((l) => l.ligada).length}</span></button>
+          {:else}
+            <button class="mini-acao" title={t(`pd.s.${secao}` as 'pd.s.acoes')} aria-label={t(`pd.s.${secao}` as 'pd.s.acoes')} onclick={() => abrirEm(secao)}><Icone nome={ICONE_SECAO[secao]} tamanho={16} /></button>
+          {/if}
         {/each}
-        {#if cfg.secoes.includes('lives')}
-          <button class="mini-acao lives" title={t('pd.lives')} aria-label={t('pd.lives')} onclick={() => chamar('lives.janela', { contaId: c.id })}><Icone nome="live" tamanho={16} /><span class="contagem">{livesDaConta.filter((l) => l.ligada).length}</span></button>
-        {/if}
+        <span class="sep-mini"></span>
+        {#each cfg.rodape as b (b)}
+          {@const a = acoes[b]}
+          <button class="mini-acao" class:destaque={b === 'foco'} title={a.rotulo} aria-label={a.rotulo} onclick={() => (b === 'mais' ? alternar() : a.fazer())}><Icone nome={a.icone as 'casa'} tamanho={16} /></button>
+        {/each}
       {/if}
       <span class="cresce"></span>
       <button class="mini-acao" aria-label={t('pd.expandir')} title={t('pd.expandir')} onclick={alternar}><Icone nome="seta" tamanho={14} /></button>
@@ -303,6 +333,7 @@ const politicaDoGrupo = $derived(c ? (grupo?.layout.politicas[c.jogoId] ?? 'econ
         {#each cfg.secoes as secao (secao)}
           <section
             class="secao"
+            data-secao={secao}
             class:arrastando={arrastando === secao}
             draggable={editando}
             ondragstart={() => (arrastando = secao)}
@@ -354,18 +385,20 @@ const politicaDoGrupo = $derived(c ? (grupo?.layout.politicas[c.jogoId] ?? 'econ
                   {/each}
                 </div>
                 {#if ot.modo === 'tempo'}
-                  <label class="linha pequeno">{t('pd.aCada')}
-                    <select class="campo pequeno" value={ot.aCadaMin} onchange={(e) => otimizar({ aCadaMin: Number(e.currentTarget.value) })}>
-                      {#each OPCOES_OTIMIZAR.min as n (n)}<option value={n}>{n < 60 ? `${n} min` : `${n / 60} h`}</option>{/each}
-                    </select>
-                  </label>
+                  <div class="pequeno muted">{t('pd.aCada')}</div>
+                  <div class="pf-segmento quatro" role="radiogroup" aria-label={t('pd.aCada')}>
+                    {#each OPCOES_OTIMIZAR.min as n (n)}
+                      <button role="radio" aria-checked={ot.aCadaMin === n} class:ativo={ot.aCadaMin === n} onclick={() => otimizar({ aCadaMin: n })}>{n < 60 ? `${n} min` : `${n / 60} h`}</button>
+                    {/each}
+                  </div>
                   {#if detalhe?.proximaOtimizacao}<p class="pequeno ok">{t('pd.proxima', { tempo: formatarDuracao(Math.max(0, detalhe.proximaOtimizacao - agora)) })}</p>{/if}
                 {:else if ot.modo === 'memoria'}
-                  <label class="linha pequeno">{t('pd.quandoPassar')}
-                    <select class="campo pequeno" value={ot.limiteMb} onchange={(e) => otimizar({ limiteMb: Number(e.currentTarget.value) })}>
-                      {#each OPCOES_OTIMIZAR.mb as n (n)}<option value={n}>{n >= 1000 ? `${n / 1000} GB` : `${n} MB`}</option>{/each}
-                    </select>
-                  </label>
+                  <div class="pequeno muted">{t('pd.quandoPassar')}</div>
+                  <div class="pf-segmento cinco" role="radiogroup" aria-label={t('pd.quandoPassar')}>
+                    {#each OPCOES_OTIMIZAR.mb as n (n)}
+                      <button role="radio" aria-checked={ot.limiteMb === n} class:ativo={ot.limiteMb === n} onclick={() => otimizar({ limiteMb: n })}>{n >= 1000 ? `${n / 1000} GB` : `${n}`}</button>
+                    {/each}
+                  </div>
                 {/if}
               {/if}
             {:else if secao === 'historico'}
@@ -518,6 +551,15 @@ const politicaDoGrupo = $derived(c ? (grupo?.layout.politicas[c.jogoId] ?? 'econ
     width: 44px;
     gap: 2px;
     grid-auto-flow: column;
+  }
+  .sep-mini {
+    width: 22px;
+    height: 1px;
+    margin: 4px 0;
+    background: var(--borda);
+  }
+  .mini-acao.destaque {
+    color: var(--destaque);
   }
   .contagem {
     font-size: 11px;

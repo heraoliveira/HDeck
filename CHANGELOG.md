@@ -2,6 +2,9 @@
 
 ## Próxima versão
 
+- Janela de lives: depois de conectar a Twitch/Kick, o "Conectar" vira um selo de conectada.
+- Painel direito recolhido mostra tudo o que está nele (botões e um ícone por bloco).
+- Seleções de Otimizar e Fora da tela no estilo de segmentos do app.
 - Login da Twitch/Kick (inclusive com Google) abre no motor do Edge e vale para as lives da conta.
 - Nenhuma janela fica aberta escondida: lives, logins e pop-ups fecham de verdade; um zelador confere a cada 30 s.
 - Barras laterais recolhidas: contas por grupo e cor à esquerda; botões escolhidos à direita.

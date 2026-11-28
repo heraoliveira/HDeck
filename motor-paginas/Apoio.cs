@@ -160,6 +160,8 @@ sealed class JanelaPopup : Form
 
     public string Perfil => perfil;
 
+    public CoreWebView2? Web => ctl?.CoreWebView2;
+
     /// <summary>Pop-ups abertos agora (diagnóstico e testes).</summary>
     public static int Abertas { get; private set; }
 

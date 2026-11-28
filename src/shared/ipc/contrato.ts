@@ -225,6 +225,7 @@ export const canais = {
     .object({ contaId: idSchema, plataforma: plataformaLiveSchema, ligada: z.boolean() })
     .strict(),
   'lives.janela': z.object({ contaId: idSchema.optional() }).strict(),
+  'lives.conexoes': z.object({ contaId: idSchema }).strict(),
 
   'textos.salvar': z
     .object({

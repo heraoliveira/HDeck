@@ -139,3 +139,46 @@ select.campo {
   border-radius: 10px;
   border: 2px solid var(--fundo-app);
 }
+
+/* Seleção em segmentos (Desligado / Por tempo / Por RAM, Farmando / Economizar…): igual em todo o app (RN-007). */
+.pf-segmento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--raio-s);
+  border: 1px solid var(--borda);
+  background: var(--fundo-app);
+  margin: 4px 0 6px;
+}
+.pf-segmento button {
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--texto-2);
+  font: inherit;
+  font-size: var(--t12);
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.pf-segmento button:hover:not(.ativo) {
+  background: var(--fundo-cartao-hover);
+  color: var(--texto);
+}
+.pf-segmento button.ativo {
+  background: var(--destaque);
+  color: var(--destaque-texto);
+  font-weight: 600;
+}
+.pf-segmento.tres {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.pf-segmento.quatro {
+  grid-template-columns: repeat(4, 1fr);
+}
+.pf-segmento.cinco {
+  grid-template-columns: repeat(5, 1fr);
+}
